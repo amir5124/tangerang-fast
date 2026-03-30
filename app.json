@@ -1,0 +1,79 @@
+{
+  "expo": {
+    "name": "TangerangFast",
+    "slug": "TangerangFast",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/app-icon.png",
+    "notification": {
+      "icon": "./assets/images/notif-icon.png",
+      "color": "#633594",
+      "vapidPublicKey": "BFPdeTAbPGE5VGFZpZFav7IEn-2M6sUP9PJf39QSqb3SPmDwaSFvs93gJSCECXsjVswzcA1R4_m6ONz0eYQ_mOw",
+      "serviceWorkerPath": "expo-service-worker.js"
+    },
+    "scheme": "tangerangfast",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.tangerangfast.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Aplikasi membutuhkan akses lokasi untuk mencari layanan terdekat."
+      }
+    },
+    "web": {
+      "themeColor": "#633594",
+      "config": {
+        "firebase": {
+          "apiKey": "AIzaSyDlcY6gl30RNhKvTFUMYLB9W-booJLYVHs",
+          "authDomain": "mitra-tangerangfast.firebaseapp.com",
+          "projectId": "mitra-tangerangfast",
+          "messagingSenderId": "206607018424",
+          "appId": "1:206607018424:web:4f0ddad4a1a6fc3aa7074d",
+          "measurementId": "G-QWL9KRJ77J"
+        }
+      }
+    },
+    "android": {
+      "package": "com.tangerangfast.app",
+      "googleServicesFile": "./google-services.json",
+      "adaptiveIcon": {
+        "backgroundColor": "#633594",
+        "foregroundImage": "./assets/images/notif-icon.png",
+        "backgroundImage": "./assets/images/notif-icon.png"
+      },
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "NOTIFICATIONS"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-dev-client",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/app-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff"
+        }
+      ],
+      "expo-secure-store",
+      "expo-notifications",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Izinkan TangerangFast mengakses lokasi Anda."
+        }
+      ],
+      "expo-web-browser"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "14d5785f-9410-43b8-bf9c-d742463c62dd"
+      }
+    }
+  }
+}
