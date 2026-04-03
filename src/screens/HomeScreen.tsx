@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-    Image,
-    RefreshControl,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    View,
+  Image,
+  RefreshControl,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
 import { MenuGrid } from '../../src/components/home/MenuGrid';
 import api from '../../src/utils/api';
@@ -155,7 +155,7 @@ const styles = StyleSheet.create({
   },
   promoImageContent: {
     width: '100%',
-    height: 160,
+    aspectRatio: 16 / 9, 
     resizeMode: 'cover',
   },
   promoTextContainer: {

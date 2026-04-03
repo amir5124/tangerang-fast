@@ -2,7 +2,22 @@
   publish = "dist"
   command = "npx expo export -p web"
 
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # Ubah menjadi 'unsafe-none' agar browser tidak memblokir 
+    # redirect yang membawa token di URL fragment (#id_token)
+    Cross-Origin-Opener-Policy = "unsafe-none"
+    Cross-Origin-Embedder-Policy = "unsafe-none"
+    
+    # Izinkan komunikasi dari origin mana pun (penting untuk API Google)
+    Access-Control-Allow-Origin = "*"
+    
+    # Keamanan tambahan agar script Google bisa berjalan lancar
+    X-Content-Type-Options = "nosniff"
+
 [[redirects]]
+  # Penting untuk SPA (Single Page Application) seperti Expo Router
   from = "/*"
   to = "/index.html"
   status = 200

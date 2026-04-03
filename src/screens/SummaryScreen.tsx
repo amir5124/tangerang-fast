@@ -41,26 +41,33 @@ const SummaryScreen = () => {
   const [isValidatingVoucher, setIsValidatingVoucher] = useState(false);
 
   // --- STATE BIAYA LAYANAN DINAMIS ---
-  const [biayaLayanan, setBiayaLayanan] = useState(11000); // Default fallback
+  // 1. Definisikan tipe datanya di useState (gunakan number)
+  const [biayaLayanan, setBiayaLayanan] = useState<number>(0);
 
-  // --- FUNGSI AMBIL BIAYA DARI DATABASE ---
   const fetchServiceFee = async () => {
     try {
       const response = await axios.get(
-        'https://backend.tangerangfast.online/api/assets',
+        'https://backend.tangerangfast.online/api/settings/app_service_fee',
       );
-      const assets = response.data;
-      if (Array.isArray(assets)) {
-        // Cari key_name "biaya_layanan"
-        const feeAsset = assets.find(
-          (a: any) => a.key_name === 'biaya_layanan',
-        );
-        if (feeAsset && feeAsset.title) {
-          setBiayaLayanan(parseInt(feeAsset.title));
-        }
+
+      const res = response.data;
+
+      // 2. Pastikan pengecekan success dan value sesuai response API
+      if (res && res.success === true && res.value) {
+        // 3. Konversi string ke number dengan benar
+        const feeConverted = parseInt(res.value, 10);
+
+        // Simpan ke state
+        setBiayaLayanan(feeConverted);
+
+        // Jika ada garis merah di 'fee', itu karena variabelnya tidak dipakai setelah di-assign.
+        // Langsung saja masukkan ke setBiayaLayanan seperti di bawah ini:
+        // setBiayaLayanan(parseInt(res.value, 10));
       }
     } catch (error) {
       console.error('Gagal mengambil biaya layanan:', error);
+      // Fallback jika API error agar aplikasi tidak crash atau menampilkan angka aneh
+      setBiayaLayanan(11000);
     }
   };
 
@@ -103,7 +110,6 @@ const SummaryScreen = () => {
     }
   };
 
-  // --- FUNGSI CEK VOUCHER ---
   const handleCheckVoucher = async () => {
     if (!voucherCodeInput)
       return Alert.alert('Peringatan', 'Masukkan kode voucher dulu');
@@ -119,18 +125,30 @@ const SummaryScreen = () => {
         },
       );
 
-      if (response.data.success) {
-        setAppliedVoucher(response.data.data);
-        setVoucherModalVisible(false);
-        showInfoToast('Voucher berhasil dipasang!');
-      }
+      // Tutup modal terlebih dahulu agar tidak menutupi Toast
+      setVoucherModalVisible(false);
+
+      // Beri jeda sedikit agar modal benar-benar hilang sebelum toast muncul
+      setTimeout(() => {
+        if (response.data.success) {
+          setAppliedVoucher(response.data.data);
+          showInfoToast('Voucher berhasil dipasang!');
+        } else {
+          // Ini menangkap pesan: "Voucher ini sudah pernah Anda gunakan..."
+          setAppliedVoucher(null);
+          showInfoToast(response.data.message || 'Voucher tidak valid');
+        }
+      }, 500); // Jeda 500ms
     } catch (error: any) {
-      Alert.alert(
-        'Gagal',
-        error.response?.data?.message ||
-          'Voucher tidak valid atau sudah digunakan',
-      );
+      setVoucherModalVisible(false);
       setAppliedVoucher(null);
+
+      const errorMsg =
+        error.response?.data?.message || 'Gagal validasi voucher';
+
+      setTimeout(() => {
+        showInfoToast(errorMsg);
+      }, 500);
     } finally {
       setIsValidatingVoucher(false);
     }
@@ -420,7 +438,7 @@ const SummaryScreen = () => {
             <View style={styles.inputContainer}>
               <TextInput
                 style={styles.textInput}
-                placeholder="Masukkan kode (Contoh: HEMAT10)"
+                placeholder="Masukkan kode"
                 autoCapitalize="characters"
                 value={voucherCodeInput}
                 onChangeText={setVoucherCodeInput}

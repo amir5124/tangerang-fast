@@ -1,8 +1,9 @@
-import { Ionicons } from '@expo/vector-icons';
+import {AntDesign, Ionicons} from '@expo/vector-icons';
+import * as AuthSession from 'expo-auth-session';
 import * as Google from 'expo-auth-session/providers/google';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import {useLocalSearchParams, useRouter} from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import React, { useEffect, useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -13,15 +14,13 @@ import {
   Text,
   TextInput,
   TextStyle,
-  ToastAndroid,
   TouchableOpacity,
   View,
 } from 'react-native';
 import API from '../utils/api';
-import { storage } from '../utils/storage';
-import { registerForPushNotificationsAsync } from '../utils/usePushNotifications';
+import {storage} from '../utils/storage';
+import {registerForPushNotificationsAsync} from '../utils/usePushNotifications';
 
-// Penting untuk menutup session browser setelah auth selesai
 WebBrowser.maybeCompleteAuthSession();
 
 const RegisterScreen = () => {
@@ -31,7 +30,6 @@ const RegisterScreen = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [fcmToken, setFcmToken] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
   const [form, setForm] = useState({
@@ -39,15 +37,16 @@ const RegisterScreen = () => {
     email: '',
     phone_number: '',
     password: '',
-    role: 'customer', // Default role untuk aplikasi ini
+    role: (params.role as string) || 'customer',
   });
 
-  // Konfigurasi Google Auth Request
   const [request, googleResponse, promptAsync] = Google.useIdTokenAuthRequest({
     webClientId:
       '206607018424-vpr9bdfrk6oedfcvouf5i5e3lan7ckoh.apps.googleusercontent.com',
-    iosClientId: 'CLIENT_ID_IOS.apps.googleusercontent.com', // Ganti dengan ID iOS Anda
-    androidClientId: 'CLIENT_ID_ANDROID.apps.googleusercontent.com', // Ganti dengan ID Android Anda
+    redirectUri: AuthSession.makeRedirectUri({
+      scheme: 'tangerangfast',
+      preferLocalhost: true,
+    }),
   });
 
   const isFormValid =
@@ -57,11 +56,35 @@ const RegisterScreen = () => {
     form.password.length >= 6 &&
     form.password === confirmPassword;
 
+  // Handler Subscribe Topic
+  const handleSubscribe = async (token: string, role: string) => {
+    try {
+      await API.post('/notifications/subscribe', {token, role});
+      console.log(`✅ Berhasil subscribe ke topik: all_${role}`);
+    } catch (error: any) {
+      console.error('❌ Gagal subscribe:', error.message);
+    }
+  };
+
+  // Handle Redirect Google Auth untuk Web
   useEffect(() => {
-    getDeviceToken();
+    if (Platform.OS === 'web') {
+      const hash = window.location.hash;
+      if (hash && hash.includes('id_token=')) {
+        const paramsUrl = new URLSearchParams(hash.replace('#', '?'));
+        const idToken = paramsUrl.get('id_token');
+        if (idToken) {
+          window.history.replaceState(
+            null,
+            '',
+            window.location.origin + window.location.pathname,
+          );
+          handleGoogleLoginBackend(idToken);
+        }
+      }
+    }
   }, []);
 
-  // Listener untuk response dari Google
   useEffect(() => {
     if (googleResponse?.type === 'success') {
       const {id_token} = googleResponse.params;
@@ -69,53 +92,66 @@ const RegisterScreen = () => {
     }
   }, [googleResponse]);
 
-  const getDeviceToken = async () => {
-    try {
-      const result = await registerForPushNotificationsAsync();
-
-      if (result) {
-        let finalToken = '';
-        if (typeof result === 'object') {
-          const rawToken = result.token || result.endpoint || '';
-          if (rawToken.includes('/send/')) {
-            finalToken = rawToken.split('/send/')[1];
-          } else {
-            finalToken =
-              typeof result === 'object' ? JSON.stringify(result) : result;
-          }
-        } else {
-          finalToken = result.includes('/send/')
-            ? result.split('/send/')[1]
-            : result;
-        }
-        setFcmToken(finalToken);
-      } else {
-        setFcmToken('NO_TOKEN');
-      }
-    } catch (error) {
-      console.error('❌ Error Filter Token:', error);
-      setFcmToken('ERROR_TOKEN');
+  const onGoogleRegisterPress = async () => {
+    setLoading(true);
+    if (Platform.OS === 'web') {
+      const clientId =
+        '206607018424-vpr9bdfrk6oedfcvouf5i5e3lan7ckoh.apps.googleusercontent.com';
+      const redirectUri = window.location.origin + window.location.pathname;
+      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=id_token&scope=${encodeURIComponent('openid profile email')}&nonce=${Math.random().toString(36).substring(7)}`;
+      window.location.href = authUrl;
+    } else {
+      const result = await promptAsync();
+      if (result?.type !== 'success') setLoading(false);
     }
   };
 
   const handleGoogleLoginBackend = async (idToken: string) => {
     setLoading(true);
     try {
+      // Ambil fresh token tepat sebelum tembak API
+      const freshToken = await registerForPushNotificationsAsync();
+      const currentFcmToken =
+        freshToken || (Platform.OS === 'web' ? 'WEB_TOKEN' : 'NO_TOKEN');
+
       const response = await API.post('/auth/google', {
         idToken,
-        role: 'customer', // Jika user baru, otomatis jadi customer
-        targetRole: 'customer', // Validasi agar admin tidak bisa masuk ke app customer
-        fcm_token: fcmToken,
+        role: form.role,
+        targetRole: form.role,
+        fcm_token: currentFcmToken,
       });
 
-      if (response.data.token) {
-        await storage.save('userToken', response.data.token);
-        await storage.save('userData', JSON.stringify(response.data.user));
-        router.replace('/(tabs)');
+      if (response.data.success) {
+        const {token, user} = response.data;
+        await storage.save('userToken', token);
+        await storage.save('userData', JSON.stringify(user));
+
+        // Auto Subscribe
+        const blacklist = [
+          'NO_TOKEN',
+          'ERROR_TOKEN',
+          'WEB_NO_TOKEN',
+          'WEB_TOKEN',
+          '',
+          null,
+          undefined,
+        ];
+        if (currentFcmToken && !blacklist.includes(currentFcmToken)) {
+          await handleSubscribe(currentFcmToken, user.role);
+        }
+
+        router.replace(
+          user.role === 'mitra' ? '/(mitra)/dashboard' : '/(tabs)',
+        );
       }
     } catch (error: any) {
-      const msg = error.response?.data?.message || 'Login Google bermasalah';
-      Alert.alert('Gagal', msg);
+      console.error(
+        '❌ Google Register Backend Error:',
+        error.response?.data || error.message,
+      );
+      const msg =
+        error.response?.data?.message || 'Registrasi Google bermasalah';
+      Platform.OS === 'web' ? alert(msg) : Alert.alert('Gagal', msg);
     } finally {
       setLoading(false);
     }
@@ -124,29 +160,41 @@ const RegisterScreen = () => {
   const handleRegister = async () => {
     if (!isFormValid) return;
     setLoading(true);
-
-    const payload = {
-      ...form,
-      fcm_token: fcmToken,
-    };
-
     try {
+      // Ambil fresh token
+      const freshToken = await registerForPushNotificationsAsync();
+      const currentFcmToken =
+        freshToken || (Platform.OS === 'web' ? 'WEB_NO_TOKEN' : 'NO_TOKEN');
+
+      const payload = {...form, fcm_token: currentFcmToken};
       const response = await API.post('/auth/register', payload);
-      if (response.status === 201 || response.status === 200) {
+
+      if (response.data.success) {
         const {token, user} = response.data;
-        await Promise.all([
-          storage.save('userToken', token),
-          storage.save('userData', JSON.stringify(user)),
-        ]);
-        router.replace('/(tabs)');
+        await storage.save('userToken', token);
+        await storage.save('userData', JSON.stringify(user));
+
+        // Auto Subscribe
+        const blacklist = [
+          'NO_TOKEN',
+          'ERROR_TOKEN',
+          'WEB_NO_TOKEN',
+          '',
+          null,
+          undefined,
+        ];
+        if (currentFcmToken && !blacklist.includes(currentFcmToken)) {
+          await handleSubscribe(currentFcmToken, user.role);
+        }
+
+        router.replace(
+          user.role === 'mitra' ? '/(mitra)/dashboard' : '/(tabs)',
+        );
       }
-    } catch (error) {
-      const errorMsg = 'Koneksi ke server bermasalah';
-      if (Platform.OS === 'android') {
-        ToastAndroid.show(errorMsg, ToastAndroid.LONG);
-      } else {
-        Alert.alert('Gagal', errorMsg);
-      }
+    } catch (error: any) {
+      const errorMsg =
+        error.response?.data?.message || 'Koneksi ke server bermasalah';
+      Platform.OS === 'web' ? alert(errorMsg) : Alert.alert('Gagal', errorMsg);
     } finally {
       setLoading(false);
     }
@@ -192,8 +240,6 @@ const RegisterScreen = () => {
               value={form.phone_number}
               onChangeText={v => setForm({...form, phone_number: v})}
               maxLength={15}
-              returnKeyType="done"
-              textContentType="telephoneNumber"
             />
           </View>
           <Text style={styles.hintText}>Contoh: 08123xxxxx</Text>
@@ -253,7 +299,6 @@ const RegisterScreen = () => {
               />
             </TouchableOpacity>
           </View>
-          <Text style={styles.hintText}>Pastikan kata sandi anda sesuai</Text>
 
           <TouchableOpacity
             style={[
@@ -269,25 +314,29 @@ const RegisterScreen = () => {
             )}
           </TouchableOpacity>
 
-          {/* Divider atau Pemisah */}
           <View style={styles.divider}>
             <View style={styles.line} />
             <Text style={styles.dividerText}>Atau daftar dengan</Text>
             <View style={styles.line} />
           </View>
 
-          {/* Tombol Google */}
           <TouchableOpacity
             style={[styles.btnAction, styles.btnGoogle]}
-            onPress={() => promptAsync()}
-            disabled={!request || loading}>
-            <Ionicons
-              name="logo-google"
-              size={20}
-              color="#DB4437"
-              style={{marginRight: 10}}
-            />
-            <Text style={styles.btnGoogleText}>Daftar dengan Google</Text>
+            onPress={onGoogleRegisterPress}
+            disabled={loading}>
+            {loading ? (
+              <ActivityIndicator color="#633594" />
+            ) : (
+              <>
+                <AntDesign
+                  name="google"
+                  size={20}
+                  color="#EA4335"
+                  style={{marginRight: 10}}
+                />
+                <Text style={styles.btnGoogleText}>Google</Text>
+              </>
+            )}
           </TouchableOpacity>
 
           <View style={styles.termsContainer}>
@@ -355,27 +404,15 @@ const styles = StyleSheet.create({
   btnActive: {backgroundColor: '#633594'},
   btnDisabled: {backgroundColor: '#E0E0E0'},
   btnActionText: {color: '#FFF', fontSize: 16, fontWeight: '700'},
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 25,
-  },
-  line: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#EEE',
-  },
-  dividerText: {
-    marginHorizontal: 10,
-    color: '#A0A0A0',
-    fontSize: 12,
-  },
+  divider: {flexDirection: 'row', alignItems: 'center', marginVertical: 25},
+  line: {flex: 1, height: 1, backgroundColor: '#EEE'},
+  dividerText: {marginHorizontal: 10, color: '#A0A0A0', fontSize: 12},
   btnGoogle: {
     backgroundColor: '#FFF',
     borderWidth: 1,
     borderColor: '#DDD',
     flexDirection: 'row',
-    marginTop: 0, // Sudah diatur margin oleh divider
+    marginTop: 0,
   },
   btnGoogleText: {color: '#333', fontWeight: '700'},
   termsContainer: {marginTop: 30, alignItems: 'center', paddingHorizontal: 10},

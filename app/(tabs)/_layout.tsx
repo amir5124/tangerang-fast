@@ -27,14 +27,13 @@ export default function TabLayout() {
           height: Platform.OS === 'ios' ? 60 + insets.bottom : 70,
           paddingBottom: Platform.OS === 'ios' ? insets.bottom : 0,
           paddingTop: 10,
-        }
-      }}
-    >
+        },
+      }}>
       <Tabs.Screen
         name="index"
         options={{
           title: 'Layanan',
-          tabBarIcon: ({ color, focused }) => (
+          tabBarIcon: ({color, focused}) => (
             <Home size={24} color={color} strokeWidth={focused ? 2.5 : 2} />
           ),
         }}
@@ -44,7 +43,7 @@ export default function TabLayout() {
         name="riwayat"
         options={{
           title: 'Riwayat',
-          tabBarIcon: ({ color, focused }) => (
+          tabBarIcon: ({color, focused}) => (
             <Clock3 size={24} color={color} strokeWidth={focused ? 2.5 : 2} />
           ),
         }}
@@ -54,8 +53,12 @@ export default function TabLayout() {
         name="explore"
         options={{
           title: 'Pesan',
-          tabBarIcon: ({ color, focused }) => (
-            <MessageSquareText size={24} color={color} strokeWidth={focused ? 2.5 : 2} />
+          tabBarIcon: ({color, focused}) => (
+            <MessageSquareText
+              size={24}
+              color={color}
+              strokeWidth={focused ? 2.5 : 2}
+            />
           ),
         }}
       />
@@ -64,9 +67,19 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: 'Profil',
-          tabBarIcon: ({ color, focused }) => (
-            <CircleUser size={24} color={color} strokeWidth={focused ? 2.5 : 2} />
+          tabBarIcon: ({color, focused}) => (
+            <CircleUser
+              size={24}
+              color={color}
+              strokeWidth={focused ? 2.5 : 2}
+            />
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="dist"
+        options={{
+          href: null,
         }}
       />
     </Tabs>

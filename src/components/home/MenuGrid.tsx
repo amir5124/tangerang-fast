@@ -1,14 +1,8 @@
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Image,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import api from '../../utils/api'; // Pastikan path api sudah benar
+import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Shimmer } from '../../components/home/Shimmer';
+import api from '../../utils/api';
 
 // Base URL untuk gambar dari backend
 const IMAGE_BASE_URL = 'https://backend.tangerangfast.online';
@@ -70,27 +64,27 @@ export const MenuGrid = () => {
       category: 'cleaning',
       key: 'icon_cleaning',
     },
+    {id: 3, title: 'Sedot\nWC', category: 'wc', key: 'icon_wc'},
     {
-      id: 3,
+      id: 4,
+      title: 'ART\nBabysitter',
+      category: 'rigid',
+      key: 'icon_rigid',
+    },
+    {
+      id: 5,
       title: 'Tukang\nBangunan',
       category: 'bangunan',
       key: 'icon_bangunan',
     },
-    {id: 4, title: 'Tukang\nKebun', category: 'kebun', key: 'icon_kebun'},
-    {
-      id: 5,
-      title: 'Layanan\nKorporasi',
-      category: 'korporasi',
-      key: 'icon_korporasi',
-    },
-    {id: 6, title: 'Ojek\nOnline', category: 'ojek', key: 'icon_ojek'},
-    {id: 7, title: 'Sedot\nWC', category: 'wc', key: 'icon_wc'},
-    {
-      id: 8,
-      title: 'Layanan\nRigid',
-      category: 'rigid',
-      key: 'icon_rigid',
-    },
+    {id: 6, title: 'Tukang\nKebun', category: 'kebun', key: 'icon_kebun'},
+    // {
+    //   id: 7,
+    //   title: 'Layanan\nKorporasi',
+    //   category: 'korporasi',
+    //   key: 'icon_korporasi',
+    // },
+    // {id: 8, title: 'Ojek\nOnline', category: 'ojek', key: 'icon_ojek'},
   ];
 
   const handlePress = (category: string) => {
@@ -126,7 +120,31 @@ export const MenuGrid = () => {
 
   if (loading) {
     return (
-      <ActivityIndicator size="large" color="#633594" style={{marginTop: 50}} />
+      <View style={styles.container}>
+        {/* Skeleton Header */}
+        <View style={styles.sectionHeader}>
+          <Shimmer style={{width: 120, height: 20, borderRadius: 4}} />
+        </View>
+
+        {/* Skeleton Jasa Terpopuler */}
+        <View style={styles.popularRow}>
+          <Shimmer style={[styles.popularImage, {width: '48%', height: 110}]} />
+          <Shimmer style={[styles.popularImage, {width: '48%', height: 110}]} />
+        </View>
+
+        {/* Skeleton Kategori Grid */}
+        <View style={[styles.sectionHeader, {marginTop: 35}]}>
+          <Shimmer style={{width: 100, height: 20, borderRadius: 4}} />
+        </View>
+
+        <View style={styles.categoryGrid}>
+          {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+            <View key={i} style={styles.categoryItem}>
+              <Shimmer style={[styles.categoryCard, {width: '100%'}]} />
+            </View>
+          ))}
+        </View>
+      </View>
     );
   }
 
@@ -135,11 +153,6 @@ export const MenuGrid = () => {
       {/* Section: Jasa Terpopuler */}
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Jasa Terpopuler</Text>
-        <TouchableOpacity
-          activeOpacity={0.6}
-          onPress={() => router.push('/explore')}>
-          <Text style={styles.seeAll}>Lihat Semua</Text>
-        </TouchableOpacity>
       </View>
 
       <View style={styles.popularRow}>
@@ -157,12 +170,7 @@ export const MenuGrid = () => {
 
       {/* Section: Kategori */}
       <View style={[styles.sectionHeader, {marginTop: 35}]}>
-        <Text style={styles.sectionTitle}>Kategori</Text>
-        <TouchableOpacity
-          activeOpacity={0.6}
-          onPress={() => router.push('/explore')}>
-          <Text style={styles.seeAll}>Lihat Semua</Text>
-        </TouchableOpacity>
+        <Text style={styles.sectionTitle}>Kategori Layanan</Text>
       </View>
 
       <View style={styles.categoryGrid}>
@@ -238,20 +246,20 @@ const styles = StyleSheet.create({
   categoryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'flex-start',
+    justifyContent: 'flex-start', // Tetap flex-start agar sejajar rapi
     marginTop: 20,
   },
   categoryItem: {
-    width: '25%', // Diubah ke 25% agar 4 kolom per baris untuk total 8 menu
-    padding: 5,
-    marginBottom: 10,
+    width: '33.3%', // Diubah ke 33.3% agar menjadi 3 kolom per baris
+    padding: 8, // Padding sedikit diperbesar agar antar card ada jarak manis
+    marginBottom: 5,
   },
   categoryCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
     paddingVertical: 10,
     alignItems: 'center',
-    height: 95,
+    height: 95, // Tinggi tetap sama sesuai permintaan Anda
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: '#f0f0f0',
@@ -262,16 +270,16 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
   },
   categoryIcon: {
-    width: 35,
-    height: 35,
+    width: 45, // Ukuran icon bisa dinaikkan sedikit karena ruang lebih luas
+    height: 45,
     marginBottom: 8,
     resizeMode: 'contain',
   },
   categoryText: {
     textAlign: 'center',
-    fontSize: 9, // Diperkecil sedikit agar muat 4 kolom
+    fontSize: 11, // Ukuran font dinaikkan dari 9 ke 11 agar lebih jelas
     color: '#444',
     fontWeight: '600',
-    lineHeight: 12,
+    lineHeight: 14,
   },
 });

@@ -9,7 +9,8 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import API from '../../utils/api'; // Pastikan path utilitas API Anda benar
+import API from '../../utils/api'; 
+import { Shimmer } from '../../components/home/Shimmer';
 
 const {width: PAGE_WIDTH} = Dimensions.get('window');
 
@@ -104,9 +105,16 @@ export const BannerSlider = () => {
   // Tampilkan loading jika data belum siap
   if (isLoading) {
     return (
-      <View style={[styles.container, {justifyContent: 'center'}]}>
-        <ActivityIndicator color="#633594" />
+     <View style={styles.container}>
+      {/* Shimmer berbentuk kotak banner */}
+      <Shimmer style={styles.image} />
+      {/* Shimmer untuk dots */}
+      <View style={[styles.dotRow, { bottom: 15 }]}>
+        {[1, 2, 3].map(i => (
+          <Shimmer key={i} style={[styles.dot, { width: 10, backgroundColor: '#E1E9EE' }]} />
+        ))}
       </View>
+    </View>
     );
   }
 
