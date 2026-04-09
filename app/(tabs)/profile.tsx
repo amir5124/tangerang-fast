@@ -1,10 +1,13 @@
 import LogoutModal from '@/src/components/home/LogoutModal';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Image,
+  Linking,
+  RefreshControl,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -19,59 +22,98 @@ export default function ProfileScreen() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
-  useEffect(() => {
-    loadUserData();
-  }, []);
+  // Update BASE_URL sesuai dengan domain backend online Anda
+  const BASE_URL = 'https://backend.tangerangfast.online';
 
-  const loadUserData = async () => {
+  const fetchUserProfile = async () => {
     try {
-      const rawData = await storage.get('userData');
-      if (rawData) {
-        const parsedData =
-          typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
-        setUser(parsedData);
+      const response: any = await API.get('/auth/profile');
+
+      if (response.data.success) {
+        const userData = response.data.user;
+        setUser(userData);
+        // Pastikan menyimpan data terbaru ke storage agar sinkron dengan Edit Profile
+        await storage.save('userData', JSON.stringify(userData));
       }
-    } catch (error) {
-      console.error('❌ Gagal memuat profil:', error);
+    } catch (error: any) {
+      console.error('❌ Gagal ambil data dari DB:', error);
+      const cached = await storage.get('userData');
+      if (cached) {
+        setUser(JSON.parse(cached));
+        console.log('📦 Using cached data instead.');
+      }
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchUserProfile();
+    }, []),
+  );
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchUserProfile();
   };
 
   const logoutAction = async () => {
     try {
-      // 1. Ambil fcm_token sebelum dihapus untuk dikirim ke backend (opsional tapi disarankan)
       const fcmToken = await storage.get('fcmToken');
-
-      // 2. Beritahu server bahwa user ini logout
       await API.post('/auth/logout', {fcm_token: fcmToken});
     } catch (error) {
-      // Kita tetap lanjut menghapus storage lokal meskipun request server gagal
-      console.log('⚠️ Logout server skip atau token sudah tidak valid');
+      console.log('Logout error bypass...');
     } finally {
-      // 3. HAPUS SEMUA DATA SESI (Token Auth, Data User, dan FCM Token)
-      // Ini memastikan saat login lagi, aplikasi mencari token FCM yang BARU
       await storage.delete('userToken');
       await storage.delete('userData');
-      await storage.delete('fcmToken'); // <--- TAMBAHKAN INI (Sangat Penting)
-
-      // 4. Arahkan kembali ke halaman login
       router.replace('/(auth)/login');
     }
   };
 
-  const handleLogout = () => {
-    setIsModalOpen(true);
+  const handleWhatsApp = async () => {
+    const phoneNumber = '628211074757';
+    const message =
+      'Halo Admin, saya butuh bantuan terkait layanan TangerangFast.';
+    const url = `whatsapp://send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`;
+    try {
+      const supported = await Linking.canOpenURL(url);
+      supported
+        ? await Linking.openURL(url)
+        : await Linking.openURL(`https://wa.me/${phoneNumber}`);
+    } catch (error) {
+      Alert.alert('Error', 'Tidak dapat membuka WhatsApp');
+    }
   };
 
-  const confirmLogout = () => {
-    setIsModalOpen(false);
-    logoutAction();
+  const getProfileImage = () => {
+    if (user?.profile_picture) {
+      // Jika URL sudah lengkap (dimulai dengan http)
+      if (user.profile_picture.startsWith('http')) {
+        return {uri: user.profile_picture};
+      }
+
+      // Sanitasi path: pastikan tidak double slash atau kurang slash
+      const cleanPath = user.profile_picture.startsWith('/')
+        ? user.profile_picture
+        : `/${user.profile_picture}`;
+
+      return {uri: `${BASE_URL}${cleanPath}`};
+    }
+
+    // Fallback Avatar
+    return {
+      uri: `https://ui-avatars.com/api/?name=${encodeURIComponent(
+        user?.full_name || 'User',
+      )}&background=633594&color=fff&size=256`,
+    };
   };
 
-  if (loading) {
+  if (loading && !refreshing) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#633594" />
@@ -81,17 +123,6 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.mainWrapper}>
-      {/* Header Navbar */}
-      {/* <View style={styles.navbar}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.navBtn}>
-          <Ionicons name="arrow-back" size={24} color="#1E293B" />
-        </TouchableOpacity>
-        <Text style={styles.navTitle}>Profil Saya</Text>
-        <TouchableOpacity style={styles.navBtn}>
-          <Ionicons name="settings-outline" size={24} color="#1E293B" />
-        </TouchableOpacity>
-      </View> */}
-
       <View style={styles.customHeader}>
         <View style={styles.headerContent}>
           <TouchableOpacity
@@ -104,46 +135,40 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        {/* Profile Hero Section */}
+      <ScrollView
+        style={styles.container}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#633594']}
+          />
+        }>
         <View style={styles.heroSection}>
           <View style={styles.avatarWrapper}>
-            <Image
-              source={{
-                uri: `https://ui-avatars.com/api/?name=${user?.full_name}&background=633594&color=fff&size=128`,
-              }}
-              style={styles.avatar}
-            />
-            <TouchableOpacity style={styles.editBadge}>
-              <Ionicons name="camera" size={16} color="#FFF" />
+            <Image source={getProfileImage()} style={styles.avatar} />
+            <TouchableOpacity
+              style={styles.editBadge}
+              onPress={() => router.push('/edit-profile')}>
+              <Ionicons name="pencil" size={16} color="#FFF" />
             </TouchableOpacity>
           </View>
-          <Text style={styles.userNameText}>
-            {user?.full_name || 'User TangerangFast'}
-          </Text>
+          <Text style={styles.userNameText}>{user?.full_name || 'User'}</Text>
         </View>
 
-        {/* Info Card */}
         <View style={styles.infoCard}>
-          <View style={styles.infoItem}>
-            <View style={styles.iconCircle}>
-              <Ionicons name="call" size={18} color="#633594" />
-            </View>
-            <View>
-              <Text style={styles.infoLabel}>Nomor Telepon</Text>
-              <Text style={styles.infoValue}>{user?.phone_number || '-'}</Text>
-            </View>
-          </View>
+          <InfoItem
+            icon="call"
+            label="Nomor Telepon"
+            value={user?.phone_number || '-'}
+          />
           <View style={styles.infoDivider} />
-          <View style={styles.infoItem}>
-            <View style={styles.iconCircle}>
-              <Ionicons name="mail" size={18} color="#633594" />
-            </View>
-            <View>
-              <Text style={styles.infoLabel}>Alamat Email</Text>
-              <Text style={styles.infoValue}>{user?.email || '-'}</Text>
-            </View>
-          </View>
+          <InfoItem
+            icon="mail"
+            label="Alamat Email"
+            value={user?.email || '-'}
+          />
         </View>
 
         <View style={styles.fullStatsContainer}>
@@ -159,26 +184,41 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Menu Section */}
         <View style={styles.menuGroup}>
           <Text style={styles.groupLabel}>Aktivitas & Keamanan</Text>
-          <MenuItem icon="time-outline" label="Riwayat Transaksi" />
-          <MenuItem icon="shield-checkmark-outline" label="Ubah Password" />
-          <MenuItem icon="help-buoy-outline" label="Pusat Bantuan" />
+
+          <MenuItem
+            icon="person-outline"
+            label="Edit Profil"
+            onPress={() => router.push('/edit-profile')}
+          />
+          <MenuItem
+            icon="time-outline"
+            label="Riwayat Transaksi"
+            onPress={() => router.push('/(tabs)/riwayat')}
+          />
+          <MenuItem
+            icon="shield-checkmark-outline"
+            label="Ubah Password"
+            onPress={() => router.push('/change-password')}
+          />
+          <MenuItem
+            icon="help-buoy-outline"
+            label="Pusat Bantuan"
+            onPress={handleWhatsApp}
+          />
 
           <TouchableOpacity
             style={styles.logoutButton}
-            onPress={handleLogout} // Memanggil handleLogout yang baru
-            activeOpacity={0.7}>
+            onPress={() => setIsModalOpen(true)}>
             <Ionicons name="log-out-outline" size={22} color="#FF3B30" />
             <Text style={styles.logoutText}>Keluar dari Akun</Text>
           </TouchableOpacity>
 
-          {/* Letakkan Modal di sini */}
           <LogoutModal
             visible={isModalOpen}
             onClose={() => setIsModalOpen(false)}
-            onConfirm={confirmLogout} // Memanggil fungsi eksekusi logout
+            onConfirm={logoutAction}
           />
         </View>
 
@@ -189,8 +229,24 @@ export default function ProfileScreen() {
   );
 }
 
-const MenuItem = ({icon, label}: any) => (
-  <TouchableOpacity style={styles.menuItem} activeOpacity={0.6}>
+// Sub-komponen tetap sama
+const InfoItem = ({icon, label, value}: any) => (
+  <View style={styles.infoItem}>
+    <View style={styles.iconCircle}>
+      <Ionicons name={icon} size={18} color="#633594" />
+    </View>
+    <View>
+      <Text style={styles.infoLabel}>{label}</Text>
+      <Text style={styles.infoValue}>{value}</Text>
+    </View>
+  </View>
+);
+
+const MenuItem = ({icon, label, onPress}: any) => (
+  <TouchableOpacity
+    style={styles.menuItem}
+    activeOpacity={0.6}
+    onPress={onPress}>
     <View style={styles.menuLeft}>
       <View style={styles.menuIconBg}>
         <Ionicons name={icon} size={20} color="#633594" />
@@ -202,37 +258,18 @@ const MenuItem = ({icon, label}: any) => (
 );
 
 const styles = StyleSheet.create({
-  // 1. mainWrapper diubah menjadi warna off-white modern (bukan murni fff)
-  mainWrapper: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
-
-  // 2. container (latar halaman scroll) diubah menjadi putih murni
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-
+  mainWrapper: {flex: 1, backgroundColor: '#F8FAFC'},
+  container: {flex: 1, backgroundColor: '#FFFFFF'},
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#FFF',
   },
-
   customHeader: {
     backgroundColor: '#FFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9', // Warna abu-abu sangat muda agar elegan
-
-    // --- SHADOW UNTUK IOS ---
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-
-    // --- SHADOW UNTUK ANDROID ---
+    borderBottomColor: '#F1F5F9',
     elevation: 3,
   },
   headerContent: {
@@ -251,25 +288,19 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 10,
   },
-
   heroSection: {
     alignItems: 'center',
     paddingVertical: 30,
     backgroundColor: '#FFF',
-    // Border radius dihapus atau dikurangi jika ingin look yang lebih clean menyatu dengan bg putih
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
   },
-  avatarWrapper: {
-    position: 'relative',
-    marginBottom: 15,
-  },
+  avatarWrapper: {position: 'relative', marginBottom: 15},
   avatar: {
     width: 100,
     height: 100,
     borderRadius: 50,
     borderWidth: 4,
     borderColor: '#F8FAFC',
+    backgroundColor: '#F1F5F9',
   },
   editBadge: {
     position: 'absolute',
@@ -285,27 +316,20 @@ const styles = StyleSheet.create({
     borderColor: '#FFF',
   },
   userNameText: {fontSize: 22, fontWeight: '800', color: '#1E293B'},
-
   infoCard: {
     backgroundColor: '#FFF',
     marginHorizontal: 20,
-    marginTop: 0, // Dinetralkan karena heroSection sudah putih
     borderRadius: 24,
     padding: 20,
     borderWidth: 1,
     borderColor: '#F1F5F9',
-    // Shadow dibuat sangat soft
-    shadowColor: '#633594',
-    shadowOffset: {width: 0, height: 10},
-    shadowOpacity: 0.05,
-    shadowRadius: 20,
     elevation: 5,
   },
   infoItem: {flexDirection: 'row', alignItems: 'center', gap: 15},
   iconCircle: {
     width: 40,
     height: 40,
-    borderRadius: 12, // Dibuat kotak tumpul lebih modern dari lingkaran penuh
+    borderRadius: 12,
     backgroundColor: '#F3E5F5',
     justifyContent: 'center',
     alignItems: 'center',
@@ -313,25 +337,20 @@ const styles = StyleSheet.create({
   infoLabel: {fontSize: 12, color: '#94A3B8', fontWeight: '500'},
   infoValue: {fontSize: 14, fontWeight: '600', color: '#1E293B', marginTop: 2},
   infoDivider: {height: 1, backgroundColor: '#F8FAFC', marginVertical: 15},
-
-  menuGroup: {
-    paddingHorizontal: 20,
-    marginTop: 30,
-    backgroundColor: '#FFF',
-  },
+  menuGroup: {paddingHorizontal: 20, marginTop: 30, backgroundColor: '#FFF'},
   groupLabel: {
     fontSize: 13,
     fontWeight: '700',
     color: '#94A3B8',
     marginBottom: 15,
-    textTransform: 'uppercase', // Gaya modern
+    textTransform: 'uppercase',
     letterSpacing: 1,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 16, // Lebih lega
+    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#F8FAFC',
   },
@@ -345,7 +364,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   menuLabel: {fontSize: 15, fontWeight: '600', color: '#334155'},
-
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -354,18 +372,14 @@ const styles = StyleSheet.create({
     marginTop: 40,
     padding: 16,
     borderRadius: 16,
-    backgroundColor: '#FFF1F0', // Tetap soft red untuk warning
+    backgroundColor: '#FFF1F0',
   },
   logoutText: {fontSize: 15, fontWeight: '700', color: '#FF3B30'},
-
-  fullStatsContainer: {
-    paddingHorizontal: 20,
-    marginTop: 25,
-  },
+  fullStatsContainer: {paddingHorizontal: 20, marginTop: 25},
   wideStatItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC', // Kontras tipis dengan background putih utama
+    backgroundColor: '#F8FAFC',
     padding: 18,
     borderRadius: 20,
     borderWidth: 1,
@@ -379,13 +393,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 15,
-    elevation: 1,
   },
-  wideStatLabel: {
-    fontSize: 12,
-    color: '#64748B',
-    fontWeight: '600',
-  },
+  wideStatLabel: {fontSize: 12, color: '#64748B', fontWeight: '600'},
   wideStatValue: {
     fontSize: 20,
     fontWeight: '900',

@@ -179,7 +179,7 @@ const LoginScreen = () => {
         targetRole: TARGET_ROLE,
       };
 
-      console.log('🚀 Login Payload (Fresh Token):', freshToken);
+      // console.log('🚀 Login Payload (Fresh Token):', freshToken);
 
       // 3. Eksekusi Login API
       const response = await API.post('/auth/login', payload);
@@ -274,7 +274,9 @@ const LoginScreen = () => {
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity style={styles.forgotPassContainer}>
+          <TouchableOpacity
+            style={styles.forgotPassContainer}
+            onPress={() => router.push('/(auth)/forgot-password')}>
             <Text style={styles.forgotPassText}>Lupa Kata Sandi?</Text>
           </TouchableOpacity>
 

@@ -162,6 +162,14 @@ function RootLayoutContent() {
           }}>
           <Stack.Screen name="index" />
           <Stack.Screen name="(tabs)" options={{animation: 'fade'}} />
+          <Stack.Screen
+            name="edit-profile"
+            options={{
+              headerShown: false,
+              title: 'Edit Profil',
+              animation: 'slide_from_right',
+            }}
+          />
         </Stack>
       </View>
       <View style={{height: insets.bottom, backgroundColor: '#fff'}} />

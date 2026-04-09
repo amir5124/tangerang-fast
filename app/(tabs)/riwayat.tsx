@@ -115,70 +115,93 @@ const RiwayatScreen: React.FC = () => {
     async (isSilent = false) => {
       const targetId = params?.orderId;
 
+      // 1. Reset state & Start Loading
       if (!isSilent) {
-        if (targetId) setDetailLoading(true);
-        else if (historyList.length === 0) setLoading(true);
+        if (targetId) {
+          setOrder(null); // Bersihkan detail lama agar tidak "nyangkut"
+          setDetailLoading(true);
+        } else if (historyList.length === 0) {
+          setLoading(true);
+        }
       }
 
       try {
+        // 2. Auth Check
         const rawData = await storage.get('userData');
         if (!rawData) return;
         const parsedUser =
           typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
         setUser(parsedUser);
 
+        // Variabel penampung payment history
         let paymentsData: PaymentHistoryItem[] = [];
 
-        // Fetch List & History
-        if (!isSilent || historyList.length === 0) {
-          const [resOrders, resPayments] = await Promise.all([
-            API.get(`/orders/user/${parsedUser.id}`),
-            API.get(`/payment/history/${parsedUser.id}`),
-          ]);
+        // 3. Fetch List & Payment History (Bisa dipanggil bareng detail untuk akurasi data)
+        const [resOrders, resPayments] = await Promise.all([
+          API.get(`/orders/user/${parsedUser.id}`),
+          API.get(`/payment/history/${parsedUser.id}`),
+        ]);
 
-          paymentsData = resPayments.data.success ? resPayments.data.data : [];
+        paymentsData = resPayments.data.success ? resPayments.data.data : [];
 
-          if (resOrders.data.success) {
-            const orders = resOrders.data.data;
-            const mergedList: OrderDetail[] = orders.map((ord: any) => {
-              const payInfo = paymentsData.find(
-                p =>
-                  Number(p.order_id) === Number(ord.id) ||
-                  p.partner_reff === ord.partner_reff,
-              );
-              return {
-                ...ord,
-                payment_method: payInfo?.payment_method || ord.payment_method,
-                payment_status: payInfo?.payment_status || ord.payment_status,
-                expired_at: payInfo?.expired_at || ord.expired_at,
-              } as OrderDetail;
-            });
-            setHistoryList(mergedList);
-          }
+        // 4. Update History List (Merged)
+        if (resOrders.data.success) {
+          const orders = resOrders.data.data;
+          const mergedList: OrderDetail[] = orders.map((ord: any) => {
+            // Cari payment yang benar-benar milik order_id ini (Prioritas ID)
+            const payInfo = paymentsData.find(
+              p =>
+                Number(p.order_id) === Number(ord.id) ||
+                (ord.partner_reff && p.partner_reff === ord.partner_reff),
+            );
+
+            return {
+              ...ord,
+              payment_method: payInfo?.payment_method || ord.payment_method,
+              payment_status: payInfo?.payment_status || ord.payment_status,
+              expired_at: (payInfo?.expired_at || ord.expired_at)?.replace(
+                ' ',
+                'T',
+              ),
+              id: ord.id, // Pastikan ID order asli tidak tertimpa ID tabel payment
+            } as OrderDetail;
+          });
+          setHistoryList(mergedList);
         }
 
-        // Fetch Detail
+        // 5. Fetch & Update Detail (Jika sedang di halaman detail)
         if (targetId && targetId !== '' && targetId !== 'undefined') {
           const resDetail = await API.get(`/orders/detail/${targetId}`);
 
           if (resDetail.data.success) {
             const ord = resDetail.data.data;
+
+            // Cari info payment spesifik untuk Detail ini
             const currentPayInfo = paymentsData.find(
               p =>
                 Number(p.order_id) === Number(ord.id) ||
-                p.partner_reff === ord.partner_reff,
+                (ord.partner_reff && p.partner_reff === ord.partner_reff),
             );
 
+            // Robust JSON Parsing untuk payment_details
+            let parsedPaymentDetails = null;
             const rawDetails =
               currentPayInfo?.payment_details || ord.payment_details;
-            const parsedPaymentDetails =
-              typeof rawDetails === 'string'
-                ? JSON.parse(rawDetails)
-                : rawDetails;
+
+            if (rawDetails) {
+              try {
+                parsedPaymentDetails =
+                  typeof rawDetails === 'string'
+                    ? JSON.parse(rawDetails)
+                    : rawDetails;
+              } catch (e) {
+                console.error('Gagal parse payment_details:', e);
+              }
+            }
 
             const finalDetail: OrderDetail = {
               ...ord,
-              phone_number: ord.mitra_phone || ord.phone_number,
+              // Prioritas data: data dari payment history > data dari order detail
               payment_method:
                 currentPayInfo?.payment_method || ord.payment_method,
               payment_status:
@@ -194,13 +217,13 @@ const RiwayatScreen: React.FC = () => {
                 ord.pdf_url,
             };
 
-            // --- ROBUST CHECK: Manual Expiry Check ---
+            // 6. Robust Expiry Check
             if (finalDetail.status === 'unpaid' && finalDetail.expired_at) {
               const now = new Date().getTime();
-              const expiry = new Date(
-                finalDetail.expired_at.replace(' ', 'T'),
-              ).getTime();
-              if (expiry <= now) {
+              const expiryStr = finalDetail.expired_at.replace(' ', 'T');
+              const expiry = new Date(expiryStr).getTime();
+
+              if (!isNaN(expiry) && expiry <= now) {
                 setTimeLeft('EXPIRED');
               }
             }
@@ -209,13 +232,13 @@ const RiwayatScreen: React.FC = () => {
           }
         }
       } catch (error) {
-        console.error('Fetch Error:', error);
+        console.error('Robust Fetch Error:', error);
       } finally {
         setLoading(false);
         setDetailLoading(false);
       }
     },
-    [params?.orderId],
+    [params?.orderId, historyList.length], // Tambahkan dependency agar useCallback update saat ID berubah
   );
 
   useEffect(() => {
@@ -348,8 +371,19 @@ const RiwayatScreen: React.FC = () => {
     return `${parseInt(d)} ${bulan[parseInt(m) - 1]} ${y}`;
   };
 
-  const getStatusLabel = (status: string) => {
-    const map: any = {
+  const getStatusLabel = (status: string, expiredAt?: string) => {
+    // Jika statusnya unpaid, cek apakah sudah kadaluwarsa
+    if (status === 'unpaid' && expiredAt) {
+      const now = new Date().getTime();
+      // Ganti spasi dengan 'T' agar kompatibel dengan ISO format di iOS/Android
+      const expiryTime = new Date(expiredAt.replace(' ', 'T')).getTime();
+
+      if (expiryTime <= now) {
+        return 'Kadaluwarsa'; // Atau 'Gagal / Dibatalkan'
+      }
+    }
+
+    const map: Record<string, string> = {
       unpaid: 'Menunggu',
       pending: 'Dibayar',
       accepted: 'Diterima',
@@ -358,18 +392,28 @@ const RiwayatScreen: React.FC = () => {
       completed: 'Selesai',
       cancelled: 'Dibatalkan',
     };
+
     return map[status] || status;
   };
+
   const getStatusWeight = (order: OrderDetail | null) => {
     if (!order) return 0;
 
-    const weights: any = {
+    // Cek Expired untuk status unpaid
+    if (order.status === 'unpaid' && order.expired_at) {
+      const now = new Date().getTime();
+      const expiryTime = new Date(order.expired_at.replace(' ', 'T')).getTime();
+      if (expiryTime <= now) return -1; // Berikan nilai negatif untuk menandakan error/expired
+    }
+
+    const weights: Record<string, number> = {
       unpaid: 0,
       pending: 0,
       accepted: 1,
       on_the_way: 2,
       working: 3,
       completed: 4,
+      cancelled: -1, // Samakan dengan expired
     };
 
     // PERBAIKAN: Pastikan proof_image_url benar-benar berisi string path gambar, bukan null/empty
@@ -453,32 +497,46 @@ const RiwayatScreen: React.FC = () => {
   };
 
   const checkOrderStatus = async () => {
-    // 1. Validasi awal: Jangan jalan jika sedang fetching, order belum ada, atau sudah selesai
-    if (!order?.id || isChecking) return;
-    if (order.status === 'completed' || order.status === 'cancelled') return;
+    // 1. Simpan ID pesanan yang sedang aktif saat fungsi ini dipanggil
+    // Ini adalah "Snapshot" untuk mencegah data tertukar (Race Condition)
+    const currentOrderIdAtStart = order?.id;
+
+    // 2. Validasi awal: Jangan jalan jika ID tidak ada, sedang mengecek, atau sudah final
+    if (!currentOrderIdAtStart || isChecking) return;
+    if (order?.status === 'completed' || order?.status === 'cancelled') return;
 
     try {
       setIsChecking(true);
 
-      // Cukup panggil 1 endpoint detail saja (Request paling ringan ke server)
-      const resDetail = await API.get(`/orders/detail/${order.id}`);
+      // Hit ke endpoint detail berdasarkan ID yang spesifik
+      const resDetail = await API.get(
+        `/orders/detail/${currentOrderIdAtStart}`,
+      );
 
       if (resDetail.data.success) {
         const newData = resDetail.data.data;
 
-        // Cek perubahan status atau penambahan foto bukti
+        // --- GUARD CLAUSE KRITIKAL ---
+        // Cek apakah user MASIH melihat pesanan yang sama?
+        // Jika user sudah pindah ke order lain, jangan teruskan update state.
+        if (order?.id !== currentOrderIdAtStart) {
+          // console.log("⚠️ Polling dibatalkan: User sudah berpindah ke pesanan lain.");
+          return;
+        }
+
+        // 3. Deteksi Perubahan Status
         const isStatusChanged = newData.status !== order.status;
 
-        // Deteksi foto: pastikan newData ada foto DAN state lama belum ada fotonya
+        // 4. Deteksi Foto Bukti Baru (Robust Check)
         const hasNewProof =
           newData.proof_image_url &&
+          newData.proof_image_url !== '' &&
           newData.proof_image_url !== 'null' &&
           !order.proof_image_url;
 
+        // Jika ada perubahan signifikan, lakukan update
         if (isStatusChanged || hasNewProof) {
-          // console.log(`🔄 Polling: Deteksi perubahan! (Status: ${newData.status}, Foto: ${!!newData.proof_image_url})`);
-
-          // Jika status berubah dari unpaid ke status lain (sudah bayar)
+          // Notifikasi khusus jika pembayaran terdeteksi berhasil
           if (order.status === 'unpaid' && newData.status !== 'unpaid') {
             Toast.show({
               type: 'success',
@@ -487,13 +545,14 @@ const RiwayatScreen: React.FC = () => {
             });
           }
 
-          // Jalankan refresh data secara silent untuk memperbarui state Order & Stepper
+          // Jalankan loadData secara silent (true) untuk memperbarui historyList
+          // dan state detail tanpa memicu loading spinner yang mengganggu user
           await loadData(true);
         }
       }
     } catch (error) {
-      // Abaikan error timeout/network saat polling agar aplikasi tidak crash
-      console.log('Polling skip: Server busy atau koneksi tidak stabil.');
+      // Abaikan error jaringan agar tidak mengganggu pengalaman pengguna (silent failure)
+      console.log('Polling skip: Koneksi tidak stabil atau server sibuk.');
     } finally {
       setIsChecking(false);
     }
@@ -874,7 +933,7 @@ const RiwayatScreen: React.FC = () => {
                 )}
                 {steps.map((step, index) => {
                   const curWeight = getStatusWeight(order);
-                  const isActive = index + 1 <= curWeight;
+                  const isActive = curWeight !== -1 && index + 1 <= curWeight;
                   return (
                     <View key={step.id} style={styles.stepRow}>
                       <View style={styles.indicatorCol}>

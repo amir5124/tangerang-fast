@@ -16,6 +16,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import { storage } from '../utils/storage';
+import API from '../utils/api'; // Pastikan import API Anda sudah benar
 
 const GOOGLE_API_KEY = 'AIzaSyAnYqVmhOsyV3SFRFgVFhQrFJdb3_pbrzc';
 
@@ -39,6 +40,7 @@ const ContactDetailScreen = () => {
     // State Autocomplete
     const [predictions, setPredictions] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
+    const [isFetchingProfile, setIsFetchingProfile] = useState(false);
     const autocompleteService = useRef<any>(null);
     const placesService = useRef<any>(null);
 
@@ -48,13 +50,11 @@ const ContactDetailScreen = () => {
         } catch { return {}; }
     }, [params.prevPayload]);
 
-    // 1. Inisialisasi Google SDK untuk Web (Mencegah CORS)
+    // 1. Inisialisasi Google SDK untuk Web
     useEffect(() => {
         if (Platform.OS === 'web') {
             const loadGoogleScript = () => {
-                // Gunakan (window as any) agar TypeScript tidak error
                 const google = (window as any).google;
-
                 if (!google) {
                     const script = document.createElement('script');
                     script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_API_KEY}&libraries=places`;
@@ -73,31 +73,55 @@ const ContactDetailScreen = () => {
                     placesService.current = new google.maps.places.PlacesService(document.createElement('div'));
                 }
             };
-
             loadGoogleScript();
         }
     }, []);
 
-    // 2. Autofill Data User
+    // 2. Autofill Data User dari API (Terbaru) & Fallback ke Storage
     useEffect(() => {
-        const autoFillData = async () => {
+        const loadUserData = async () => {
+            setIsFetchingProfile(true);
             try {
+                // Pertama, ambil ID dari storage untuk hit API
                 const jsonValue = await storage.get('userData');
                 if (jsonValue) {
-                    const userData = JSON.parse(jsonValue);
-                    setUserId(userData.id || null);
-                    setName(userData.full_name || '');
-                    setPhone(userData.phone_number || '');
-                    setEmail(userData.email || '');
+                    const localData = JSON.parse(jsonValue);
+                    const currentId = localData.id;
+                    setUserId(currentId);
+
+                    // Ambil data terbaru dari API
+                    const response = await API.get(`/auth/profile?id=${currentId}`);
+                    
+                    if (response.data && response.data.user) {
+                        const u = response.data.user;
+                        setName(u.full_name || '');
+                        setPhone(u.phone_number || '');
+                        setEmail(u.email || '');
+                    } else {
+                        // Jika API gagal, gunakan data lokal sebagai fallback
+                        setName(localData.full_name || '');
+                        setPhone(localData.phone_number || '');
+                        setEmail(localData.email || '');
+                    }
                 }
             } catch (error) {
-                console.error("Gagal memuat data autofill", error);
+                console.error("Gagal memuat profil dari API", error);
+                // Fallback ke storage jika network error
+                const jsonValue = await storage.get('userData');
+                if (jsonValue) {
+                    const localData = JSON.parse(jsonValue);
+                    setName(localData.full_name || '');
+                    setPhone(localData.phone_number || '');
+                    setEmail(localData.email || '');
+                }
+            } finally {
+                setIsFetchingProfile(false);
             }
         };
-        autoFillData();
+        loadUserData();
     }, []);
 
-    // 3. Logika Pencarian Lokasi (Hybrid Web & Mobile)
+    // 3. Logika Pencarian Lokasi
     const handleLocationSearch = async (text: string) => {
         setLocation(text);
         if (text.length < 3) {
@@ -111,7 +135,6 @@ const ContactDetailScreen = () => {
                 (results: any) => setPredictions(results || [])
             );
         } else {
-            // Mobile menggunakan Fetch (Aman dari CORS)
             try {
                 const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(text)}&key=${GOOGLE_API_KEY}&components=country:id&language=id`;
                 const res = await fetch(url);
@@ -138,7 +161,6 @@ const ContactDetailScreen = () => {
                 setLoading(false);
             });
         } else {
-            // Detail Mobile
             fetch(`https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=geometry&key=${GOOGLE_API_KEY}`)
                 .then(res => res.json())
                 .then(data => {
@@ -179,7 +201,6 @@ const ContactDetailScreen = () => {
             lokasi: {
                 area: location,
                 alamatLengkap: addressDetail,
-                // Pastikan lat & lng diambil dari state coordinates
                 latitude: coordinates.lat,
                 longitude: coordinates.lng
             }
@@ -222,6 +243,8 @@ const ContactDetailScreen = () => {
 
                     {/* Section Form Kontak */}
                     <View style={styles.section}>
+                        {isFetchingProfile && <ActivityIndicator size="small" color="#633594" style={{ marginBottom: 10 }} />}
+                        
                         <View style={styles.inputWrapper}>
                             <Ionicons name="person-outline" size={20} color="#666" style={styles.inputIcon} />
                             <TextInput style={styles.input} placeholder="Masukkan nama Anda" value={name} onChangeText={setName} />
@@ -258,7 +281,6 @@ const ContactDetailScreen = () => {
                             {loading && <ActivityIndicator size="small" color="#633594" />}
                         </View>
 
-                        {/* List Prediksi Alamat */}
                         {predictions.length > 0 && (
                             <View style={styles.suggestionBox}>
                                 {predictions.map((item: any) => (

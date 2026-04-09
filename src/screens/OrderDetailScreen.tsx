@@ -95,25 +95,30 @@ const SERVICE_TERMS_DATA = {
       'Perbaikan struktur septic tank yang runtuh/rusak berat',
     ],
   },
-  RIGID: {
-    equipmentLabel: 'Peralatan dan Material Utama:',
+  ART_BABYSITTER: {
+    equipmentLabel: 'Peralatan dan Perlengkapan Utama:',
     equipment: [
-      'Alat Perataan Tanah (Stamper/Compactor)',
-      'Papan Bekisting & Tulangan Besi (Wiremesh)',
-      'Alat Ukur Leveling (Waterpass)',
-      'Mesin Molen (Jika cor di tempat)',
+      'Seragam Kerja Standar & Apron Higienis',
+      'Alat Pelindung Diri (Masker & Hand Sanitizer)',
+      'Buku Laporan Harian (Daily Activity Log)',
+      'Alat Kebersihan Dasar (Sapu, Pel, & Kemoceng)',
+      'Termometer Digital (Untuk cek suhu anak/anggota keluarga)',
     ],
     includes: [
-      'Pembersihan area dan perataan lahan dasar',
-      'Pemasangan bekisting dan plastik cor',
-      'Pengecoran beton/pemasangan paving rigid',
-      'Finishing permukaan (Trowel atau sapu lidi)',
+      'Pengasuhan anak (Makan, Mandi, Bermain, & Stimulasi)',
+      'Pembersihan area dalam rumah (Sapu, Pel, & Debu)',
+      'Pencucian dan penyetrikaan pakaian harian',
+      'Pembersihan dapur, alat makan, dan kamar mandi',
+      'Update rutin kondisi anak dan pekerjaan rumah kepada majikan',
+      'Penyediaan tenaga kerja yang sudah terverifikasi identitasnya',
     ],
     excludes: [
-      'Mobilisasi alat berat (Excavator/Wales) jika medan sulit',
-      'Biaya koordinasi lingkungan/keamanan warga',
-      'Pekerjaan galian tanah dalam atau pembuangan puing skala besar',
-      'Tes laboratorium mutu beton (K-300 ke atas)',
+      'Penyediaan kebutuhan pokok (Susu, Diapers, Deterjen, Bahan Makanan)',
+      'Pembersihan kerak berat atau sisa renovasi (Deep Cleaning)',
+      'Pengerjaan di ketinggian yang berisiko (Lantai 2 sisi luar)',
+      'Biaya transportasi di luar area jangkauan standar',
+      'Tindakan medis khusus atau pengobatan darurat',
+      'Biaya lembur di luar jam operasional yang disepakati',
     ],
   },
 };
@@ -167,11 +172,12 @@ const OrderDetailScreen = () => {
     if (titleStr === 'TangerangFast') {
       return SERVICE_TERMS_DATA.AC_SERVICE;
     }
-    if (titleStr === 'Sedot WC') {
+    if (titleStr === 'Vendor Rijit') {
       return SERVICE_TERMS_DATA.SEDOT_WC;
     }
-
-    // Default fallback jika title lain
+    if (titleStr === 'Vendor ART') {
+      return SERVICE_TERMS_DATA.ART_BABYSITTER;
+    }
     return SERVICE_TERMS_DATA.CLEANING;
   };
 

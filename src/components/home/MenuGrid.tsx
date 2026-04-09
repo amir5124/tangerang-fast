@@ -68,7 +68,7 @@ export const MenuGrid = () => {
     {
       id: 4,
       title: 'ART\nBabysitter',
-      category: 'rigid',
+      category: 'art',
       key: 'icon_rigid',
     },
     {
@@ -110,7 +110,13 @@ export const MenuGrid = () => {
       case 'wc':
         router.push({
           pathname: '/order-detail',
-          params: {id: '20', user_id: '52', title: 'Sedot WC'},
+          params: {id: '22', user_id: '58', title: 'Vendor Rijit'},
+        });
+        break;
+      case 'art':
+        router.push({
+          pathname: '/order-detail',
+          params: {id: '23', user_id: '59', title: 'Vendor ART'},
         });
         break;
       default:

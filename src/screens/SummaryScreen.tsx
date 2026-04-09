@@ -625,27 +625,42 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     flex: 1,
   },
-  inputContainer: {
+inputContainer: {
     flexDirection: 'row',
     backgroundColor: '#F3F4F6',
     borderRadius: 12,
-    padding: 8,
+    padding: 6, // Dikurangi sedikit agar lebih compact
     alignItems: 'center',
+    width: '100%', // Pastikan kontainer mengambil lebar penuh modal
+    borderWidth: 1,
+    borderColor: '#E5E7EB', // Tambahan border halus agar lebih modern
   },
   textInput: {
-    flex: 1,
+    flex: 1, // Ini kunci agar input mengambil sisa ruang yang ada
     paddingHorizontal: 12,
     height: 45,
-    fontSize: 16,
+    fontSize: 14, // Gunakan 14 atau 15 agar tidak terlalu sesak di layar kecil
     color: '#333',
+    // Khusus Web agar tidak ada outline biru saat diklik
+    ...Platform.select({
+      web: { outlineStyle: 'none' } as any,
+      default: {},
+    }),
   },
   applyBtn: {
     backgroundColor: '#633594',
     paddingVertical: 10,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16, // Dikurangi sedikit dari 20 ke 16 agar hemat ruang
     borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: 80, // Memberikan lebar minimum agar tombol tidak gepeng
   },
-  applyBtnText: {color: '#fff', fontWeight: 'bold'},
+  applyBtnText: {
+    color: '#fff', 
+    fontWeight: 'bold', 
+    fontSize: 14 // Ukuran teks disesuaikan
+  },
 });
 
 export default SummaryScreen;
