@@ -379,7 +379,7 @@ const RiwayatScreen: React.FC = () => {
       const expiryTime = new Date(expiredAt.replace(' ', 'T')).getTime();
 
       if (expiryTime <= now) {
-        return 'Kadaluwarsa'; // Atau 'Gagal / Dibatalkan'
+        return 'Kadaluwarsa';
       }
     }
 
@@ -413,7 +413,7 @@ const RiwayatScreen: React.FC = () => {
       on_the_way: 2,
       working: 3,
       completed: 4,
-      cancelled: -1, // Samakan dengan expired
+      cancelled: -1,
     };
 
     // PERBAIKAN: Pastikan proof_image_url benar-benar berisi string path gambar, bukan null/empty
@@ -428,6 +428,36 @@ const RiwayatScreen: React.FC = () => {
     }
 
     return weights[order.status] || 0;
+  };
+
+  const getStatusStyle = (status: string, expiredAt?: string) => {
+    let currentStatus = status;
+
+    // Cek jika sudah kadaluwarsa secara logic
+    if (status === 'unpaid' && expiredAt) {
+      const now = new Date().getTime();
+      const expiryTime = new Date(expiredAt.replace(' ', 'T')).getTime();
+      if (expiryTime <= now) currentStatus = 'expired';
+    }
+
+    // Definisi warna berdasarkan status
+    switch (currentStatus) {
+      case 'unpaid':
+        return {bg: '#FEF3C7', text: '#D97706'}; // Kuning (Amber)
+      case 'pending':
+        return {bg: '#E0E7FF', text: '#4338CA'}; // Indigo
+      case 'accepted':
+      case 'working':
+      case 'on_the_way':
+        return {bg: '#DBEAFE', text: '#1D4ED8'}; // Biru
+      case 'completed':
+        return {bg: '#DCFCE7', text: '#15803D'}; // Hijau
+      case 'cancelled':
+      case 'expired':
+        return {bg: '#FEE2E2', text: '#B91C1C'}; // Merah
+      default:
+        return {bg: '#F1F5F9', text: '#475569'}; // Abu-abu (Default)
+    }
   };
 
   const onRefresh = useCallback(async () => {
@@ -677,19 +707,23 @@ const RiwayatScreen: React.FC = () => {
                   style={[
                     styles.statusBadgeSmall,
                     {
-                      backgroundColor:
-                        item.status === 'completed' ? '#DCFCE7' : '#F3E5F5',
+                      // Memanggil fungsi style berdasarkan status item
+                      backgroundColor: getStatusStyle(
+                        item.status,
+                        item.expired_at,
+                      ).bg,
                     },
                   ]}>
                   <Text
                     style={[
                       styles.statusTextSmall,
                       {
-                        color:
-                          item.status === 'completed' ? '#166534' : '#633594',
+                        // Memanggil fungsi warna teks berdasarkan status item
+                        color: getStatusStyle(item.status, item.expired_at)
+                          .text,
                       },
                     ]}>
-                    {getStatusLabel(item.status)}
+                    {getStatusLabel(item.status, item.expired_at)}
                   </Text>
                 </View>
                 <ChevronRight size={18} color="#CBD5E1" />
@@ -733,9 +767,27 @@ const RiwayatScreen: React.FC = () => {
               <View style={styles.card}>
                 <View style={styles.rowBetween}>
                   <Text style={styles.orderMitraName}>{order.mitra_name}</Text>
-                  <View style={styles.statusBadgeMain}>
-                    <Text style={styles.statusBadgeMainText}>
-                      {getStatusLabel(order.status)}
+                  <View
+                    style={[
+                      styles.statusBadgeMain,
+                      {
+                        // Mengambil background dinamis berdasarkan status
+                        backgroundColor: getStatusStyle(
+                          order.status,
+                          order.expired_at,
+                        ).bg,
+                      },
+                    ]}>
+                    <Text
+                      style={[
+                        styles.statusBadgeMainText,
+                        {
+                          // Mengambil warna teks dinamis berdasarkan status
+                          color: getStatusStyle(order.status, order.expired_at)
+                            .text,
+                        },
+                      ]}>
+                      {getStatusLabel(order.status, order.expired_at)}
                     </Text>
                   </View>
                 </View>

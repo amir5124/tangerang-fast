@@ -24,8 +24,17 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+   const [walletData, setWalletData] = useState<WalletResponse | null>(null);
 
-  // Update BASE_URL sesuai dengan domain backend online Anda
+     const formatRupiah = (value: string | number) => {
+    const numericValue = typeof value === 'string' ? parseFloat(value) : value;
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+    }).format(numericValue || 0);
+  };
+
   const BASE_URL = 'https://backend.tangerangfast.online';
 
   const fetchUserProfile = async () => {
@@ -51,9 +60,24 @@ export default function ProfileScreen() {
     }
   };
 
+  const fetchWalletData = async () => {
+    try {
+      const response = await API.get('/balance');
+      if (response.data.success) {
+        setWalletData(response.data.data);
+      }
+    } catch (error) {
+      console.error('Gagal memuat data:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
   useFocusEffect(
     useCallback(() => {
       fetchUserProfile();
+      fetchWalletData();
     }, []),
   );
 
@@ -74,6 +98,7 @@ export default function ProfileScreen() {
       router.replace('/(auth)/login');
     }
   };
+  
 
   const handleWhatsApp = async () => {
     const phoneNumber = '628211074757';
@@ -172,13 +197,16 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.fullStatsContainer}>
-          <TouchableOpacity style={styles.wideStatItem} activeOpacity={0.8}>
+          <TouchableOpacity
+            onPress={() => router.push('/balance')}
+            style={styles.wideStatItem}
+            activeOpacity={0.8}>
             <View style={styles.statIconCircle}>
               <Ionicons name="wallet-outline" size={20} color="#633594" />
             </View>
             <View style={{flex: 1}}>
               <Text style={styles.wideStatLabel}>Saldo Wallet</Text>
-              <Text style={styles.wideStatValue}>Rp 0</Text>
+              <Text style={styles.wideStatValue}>{walletData ? formatRupiah(walletData.wallet.balance) : 'Rp 0'}</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color="#CBD5E1" />
           </TouchableOpacity>
