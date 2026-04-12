@@ -2,41 +2,50 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {
-    Linking,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Linking,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 const ExploreScreen: React.FC = () => {
   const router = useRouter();
 
-  const handleWhatsApp = () => {
-    const phoneNumber = '628211074757'; // Ganti dengan nomor WhatsApp kamu (awali dengan 62)
+  const handleWhatsApp = async () => {
+    const phoneNumber = '628211074757';
     const message = 'Halo, saya butuh bantuan terkait aplikasi TangerangFast.';
-    const url = `whatsapp://send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`;
+    const encodedMessage = encodeURIComponent(message);
 
-    Linking.canOpenURL(url)
-      .then(supported => {
+    // URL yang berbeda untuk tiap platform
+    const whatsappUrl = `whatsapp://send?phone=${phoneNumber}&text=${encodedMessage}`;
+    const webUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
+
+    if (Platform.OS === 'web') {
+      // Di Web, langsung buka wa.me di tab baru
+      window.open(webUrl, '_blank');
+    } else {
+      // Di Native, coba buka skema aplikasi dulu
+      try {
+        const supported = await Linking.canOpenURL(whatsappUrl);
         if (supported) {
-          return Linking.openURL(url);
+          await Linking.openURL(whatsappUrl);
         } else {
-          // Jika WhatsApp tidak terinstall, buka versi browser (api.whatsapp.com)
-          const browserUrl = `https://api.whatsapp.com/send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`;
-          return Linking.openURL(browserUrl);
+          // Jika aplikasi WA tidak ada, buka wa.me di browser HP
+          await Linking.openURL(webUrl);
         }
-      })
-      .catch(err => console.error('An error occurred', err));
+      } catch (err) {
+        // Fallback terakhir jika terjadi error fatal
+        Linking.openURL(webUrl);
+      }
+    }
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
-
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.customHeader}>
           <View style={styles.headerContent}>

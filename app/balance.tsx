@@ -10,7 +10,6 @@ import {
   Platform,
   RefreshControl,
   SafeAreaView,
-  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -61,7 +60,6 @@ const WalletScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [walletData, setWalletData] = useState<WalletResponse | null>(null);
-  const [withdrawHistory, setWithdrawHistory] = useState<WithdrawHistory[]>([]);
   const [adminFee, setAdminFee] = useState(0);
 
   // State UI Modal
@@ -79,18 +77,17 @@ const WalletScreen: React.FC = () => {
   const [user, setUser] = useState<any>(null);
 
   // --- API Calls ---
+  const formatTransactionDate = (dateString: string) => {
+    // 1. Ubah spasi menjadi 'T' agar formatnya ISO: YYYY-MM-DDTHH:mm:ss
+    // 2. Tambahkan 'Z' (Zero Meridian / UTC)
+    const utcDate = new Date(dateString.replace(' ', 'T') + 'Z');
 
-  const fetchWalletData = async () => {
-    try {
-      const response = await API.get('/balance');
-      if (response.data.success) {
-        setWalletData(response.data.data);
-      }
-      const feeRes = await API.get('/disburse/withdraw_fee');
-      if (feeRes.data.success) setAdminFee(parseInt(feeRes.data.value));
-    } catch (error) {
-      console.error('Gagal memuat data dompet:', error);
-    }
+    return utcDate.toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   };
 
   const fetchUserProfile = async () => {
@@ -106,39 +103,53 @@ const WalletScreen: React.FC = () => {
     }
   };
 
-  const fetchWithdrawHistory = async () => {
-    const userId = user?.id || walletData?.user?.id;
-    if (!userId) return;
+  const fetchAdminFee = async () => {
     try {
-      const res = await API.get(`/withdraw/history/${userId}`);
-      if (res.data.success) {
-        setWithdrawHistory(res.data.data);
+      const res = await API.get('/disburse/withdraw_fee');
+      if (res.data.success && res.data.value) {
+        setAdminFee(parseInt(res.data.value));
+      }
+    } catch (e) {
+      console.error('❌ Error Fetch Admin Fee:');
+      setAdminFee(0);
+    }
+  };
+
+  const fetchWalletData = async () => {
+    try {
+      const response = await API.get('/balance');
+      if (response.data.success) {
+        setWalletData(response.data.data);
       }
     } catch (error) {
-      console.error('Gagal memuat riwayat withdraw:', error);
+      console.error('Gagal memuat data dompet:', error);
     }
   };
 
   const loadAllData = async () => {
-    await Promise.all([fetchUserProfile(), fetchWalletData()]);
-    setLoading(false);
+    setLoading(true);
+    try {
+      await Promise.all([
+        fetchUserProfile(),
+        fetchWalletData(),
+        fetchAdminFee(),
+      ]);
+    } catch (err) {
+      console.error('Load Data Error:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     loadAllData();
   }, []);
 
-  useEffect(() => {
-    if (user?.id || walletData?.user?.id) {
-      fetchWithdrawHistory();
-    }
-  }, [user, walletData]);
-
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([fetchWalletData(), fetchWithdrawHistory()]);
+    await Promise.all([fetchWalletData(), fetchAdminFee()]);
     setRefreshing(false);
-  }, [user, walletData]);
+  }, []);
 
   // --- Helpers ---
 
@@ -159,22 +170,22 @@ const WalletScreen: React.FC = () => {
     }
   };
 
-  // --- Logic Gabung Data (KUNCI PERBAIKAN) ---
-  const combinedTransactions = [
-    ...(walletData?.wallet.transactions || []),
-    ...withdrawHistory.map(h => ({
-      amount: h.amount,
-      type: 'debit' as const,
-      description:
-        h.status === 'SUCCESS' ? 'Penarikan Dana Berhasil' : 'Penarikan Dana',
-      created_at: h.created_at,
-      is_withdraw: true,
-      status: h.status,
-    })),
-  ].sort(
-    (a, b) =>
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-  );
+  // --- Logic Transaksi (KUNCI AGAR TIDAK DOUBLE) ---
+  const combinedTransactions = (walletData?.wallet.transactions || [])
+    .map((tx, index) => {
+      // Deteksi jika deskripsi mengandung kata 'Withdrawal'
+      const isWithdraw = tx.description.toLowerCase().includes('withdrawal');
+      return {
+        ...tx,
+        // Gunakan created_at + index sebagai key sementara jika tidak ada ID unik dari API
+        uniqueId: `tx-${tx.created_at}-${index}`,
+        status: isWithdraw ? 'SUCCESS' : null,
+      };
+    })
+    .sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    );
 
   // --- Transaction Logic ---
 
@@ -251,8 +262,6 @@ const WalletScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
-
       <View style={styles.customHeader}>
         <View style={styles.headerContent}>
           <TouchableOpacity
@@ -293,7 +302,8 @@ const WalletScreen: React.FC = () => {
 
         <FlatList
           data={combinedTransactions}
-          keyExtractor={(_, index) => index.toString()}
+          keyExtractor={item => item.uniqueId}
+          showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -331,12 +341,7 @@ const WalletScreen: React.FC = () => {
                 </Text>
                 <View style={{flexDirection: 'row', alignItems: 'center'}}>
                   <Text style={styles.itemDate}>
-                    {new Date(item.created_at).toLocaleDateString('id-ID', {
-                      day: 'numeric',
-                      month: 'short',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
+                    {formatTransactionDate(item.created_at)}
                   </Text>
                   {item.status && (
                     <View
@@ -372,7 +377,6 @@ const WalletScreen: React.FC = () => {
           )}
         />
       </View>
-
       {/* MODAL WITHDRAW */}
       <Modal visible={showWithdrawModal} animationType="slide" transparent>
         <KeyboardAvoidingView
@@ -422,6 +426,9 @@ const WalletScreen: React.FC = () => {
                   value={accountNumber}
                   onChangeText={setAccountNumber}
                 />
+                <Text style={styles.inputLabel}>
+                  Biaya admin: {formatRupiah(adminFee)}
+                </Text>
                 <TouchableOpacity
                   style={[styles.mainBtn, {backgroundColor: THEME_COLOR}]}
                   onPress={handleInquiry}

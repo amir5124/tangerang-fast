@@ -18,15 +18,29 @@ import {
 import API from '../../src/utils/api';
 import { storage } from '../../src/utils/storage';
 
+interface Transaction {
+  amount: string | number;
+  type: 'credit' | 'debit';
+  description: string;
+  created_at: string;
+  is_withdraw?: boolean;
+  status?: string;
+}
+
+interface WalletResponse {
+  user: {id: string; name: string; role: string};
+  wallet: {balance: number; transactions: Transaction[]};
+}
+
 export default function ProfileScreen() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-   const [walletData, setWalletData] = useState<WalletResponse | null>(null);
+  const [walletData, setWalletData] = useState<WalletResponse | null>(null);
 
-     const formatRupiah = (value: string | number) => {
+  const formatRupiah = (value: string | number) => {
     const numericValue = typeof value === 'string' ? parseFloat(value) : value;
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
@@ -98,7 +112,6 @@ export default function ProfileScreen() {
       router.replace('/(auth)/login');
     }
   };
-  
 
   const handleWhatsApp = async () => {
     const phoneNumber = '628211074757';
@@ -116,26 +129,46 @@ export default function ProfileScreen() {
   };
 
   const getProfileImage = () => {
-    if (user?.profile_picture) {
-      // Jika URL sudah lengkap (dimulai dengan http)
-      if (user.profile_picture.startsWith('http')) {
-        return {uri: user.profile_picture};
-      }
-
-      // Sanitasi path: pastikan tidak double slash atau kurang slash
-      const cleanPath = user.profile_picture.startsWith('/')
-        ? user.profile_picture
-        : `/${user.profile_picture}`;
-
-      return {uri: `${BASE_URL}${cleanPath}`};
+    // 1. Cek jika data kosong atau string "null"
+    if (
+      !user?.profile_picture ||
+      user.profile_picture === 'null' ||
+      user.profile_picture === ''
+    ) {
+      return {
+        uri: `https://ui-avatars.com/api/?name=${encodeURIComponent(
+          user?.full_name || 'User',
+        )}&background=633594&color=fff&size=256`,
+      };
     }
 
-    // Fallback Avatar
-    return {
-      uri: `https://ui-avatars.com/api/?name=${encodeURIComponent(
-        user?.full_name || 'User',
-      )}&background=633594&color=fff&size=256`,
-    };
+    const path = user.profile_picture;
+
+    // 2. Jika URL sudah lengkap (http/https)
+    if (path.startsWith('http')) {
+      return {uri: path.replace('http://', 'https://')};
+    }
+
+    // 3. Logika Pintar untuk Path Relatif
+    // Kita cek apakah path sudah mengandung kata 'uploads/profiles'
+    const hasFolder = path.includes('uploads/profiles');
+
+    // Hilangkan slash di awal agar tidak terjadi double slash saat digabung BASE_URL
+    const cleanPath = path.startsWith('/') ? path.substring(1) : path;
+
+    let finalUri = '';
+    if (hasFolder) {
+      // Jika di DB sudah ada folder 'uploads/profiles/...'
+      finalUri = `${BASE_URL}/${cleanPath}`;
+    } else {
+      // Jika di DB hanya nama filenya saja 'foto.jpg'
+      finalUri = `${BASE_URL}/uploads/profiles/${cleanPath}`;
+    }
+
+    // Debugging: Muncul di console log untuk cek URL mana yang salah
+    // console.log("Final Profile URI:", finalUri);
+
+    return {uri: finalUri};
   };
 
   if (loading && !refreshing) {
@@ -206,7 +239,9 @@ export default function ProfileScreen() {
             </View>
             <View style={{flex: 1}}>
               <Text style={styles.wideStatLabel}>Saldo Wallet</Text>
-              <Text style={styles.wideStatValue}>{walletData ? formatRupiah(walletData.wallet.balance) : 'Rp 0'}</Text>
+              <Text style={styles.wideStatValue}>
+                {walletData ? formatRupiah(walletData.wallet.balance) : 'Rp 0'}
+              </Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color="#CBD5E1" />
           </TouchableOpacity>

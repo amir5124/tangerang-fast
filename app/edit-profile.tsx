@@ -122,11 +122,11 @@ export default function EditProfileScreen() {
       formData.append('email', form.email);
       formData.append('phone_number', form.phone_number);
 
-      console.log('[1] Teks data appended:', {
-        id: form.user_id,
-        name: form.full_name,
-        email: form.email,
-      });
+      // console.log('[1] Teks data appended:', {
+      //   id: form.user_id,
+      //   name: form.full_name,
+      //   email: form.email,
+      // });
 
       // 2. Logika File Gambar
       const isLocalUri =
@@ -151,25 +151,26 @@ export default function EditProfileScreen() {
           });
           formData.append('image', file);
 
-          console.log('[3] Web File created & appended:', {
-            name: file.name,
-            type: file.type,
-            size: file.size,
-          });
+          // console.log('[3] Web File created & appended:', {
+          //   name: file.name,
+          //   type: file.type,
+          //   size: file.size,
+          // });
         } else {
-          // --- LOGIKA NATIVE ---
+          // --- LOGIKA NATIVE (PERBAIKAN) ---
           const uri = selectedImage;
-          const filename = uri.split('/').pop() || `profile-${Date.now()}.jpg`;
-          const match = /\.(\w+)$/.exec(filename);
-          const type = match ? `image/${match[1]}` : `image/jpeg`;
+
+          // Ambil ekstensi file dengan benar
+          const uriParts = uri.split('.');
+          const fileType = uriParts[uriParts.length - 1];
 
           formData.append('image', {
-            uri: Platform.OS === 'ios' ? uri.replace('file://', '') : uri,
-            name: filename,
-            type: type,
+            uri: Platform.OS === 'android' ? uri : uri.replace('file://', ''),
+            name: `profile-${Date.now()}.${fileType}`,
+            type: `image/${fileType === 'jpg' ? 'jpeg' : fileType}`,
           } as any);
 
-          console.log('[3] Native Image object appended');
+          // console.log('[3] Native Image object appended:', uri);
         }
       } else {
         // Jika gambar tidak berubah (masih URL dari server)
@@ -179,10 +180,10 @@ export default function EditProfileScreen() {
       }
 
       // 3. Eksekusi Request
-      console.log(
-        '[4] Sending request to:',
-        `${BASE_URL}/api/auth/update-profile`,
-      );
+      // console.log(
+      //   '[4] Sending request to:',
+      //   `${BASE_URL}/api/auth/update-profile`,
+      // );
 
       const response = await fetch(`${BASE_URL}/api/auth/update-profile`, {
         method: 'PUT',

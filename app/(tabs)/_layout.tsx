@@ -9,9 +9,7 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        // --- SEMBUNYIKAN HEADER UNTUK SEMUA TAB ---
         headerShown: false,
-
         tabBarActiveTintColor: '#633594',
         tabBarInactiveTintColor: '#8c8c8c',
         tabBarLabelStyle: {

@@ -67,7 +67,6 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor="#633594" />
 
       <ScrollView
         showsVerticalScrollIndicator={false}

@@ -3,13 +3,13 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   LayoutAnimation,
   Platform,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  ToastAndroid,
   TouchableOpacity,
   UIManager,
   View,
@@ -130,6 +130,11 @@ const OrderDetailScreen = () => {
   // --- STATE DATA API ---
   const [isLoading, setIsLoading] = useState(true);
   const [subServices, setSubServices] = useState<any[]>([]);
+  const [operatingHours, setOperatingHours] = useState<any[]>([]);
+
+  // State untuk Custom Toast (iOS Fallback)
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMsg, setToastMsg] = useState('');
 
   // --- STATE TRANSAKSI ---
   const [selectedItems, setSelectedItems] = useState<Record<string, number>>(
@@ -155,29 +160,26 @@ const OrderDetailScreen = () => {
   const [inputMinute, setInputMinute] = useState(initialTime.m);
   const [showTerms, setShowTerms] = useState(false);
 
+  // --- TOAST FUNCTION ---
+  const showInfoToast = (message: string) => {
+    if (Platform.OS === 'android') {
+      ToastAndroid.show(message, ToastAndroid.SHORT);
+    } else {
+      setToastMsg(message);
+      setToastVisible(true);
+      setTimeout(() => setToastVisible(false), 3000);
+    }
+  };
+
   // --- LOGIKA PENENTUAN SYARAT & KETENTUAN DINAMIS ---
-  // --- LOGIKA HARDCODE DINAMIS (FIXED) ---
   const getActiveTerms = () => {
-    // Decode agar %20 menjadi spasi asli
     const titleStr =
       typeof params.title === 'string' ? decodeURIComponent(params.title) : '';
-
-    // Hardcode sesuai request:
-    // Jika title persis "TangerangFast Service" -> Cleaning
-    if (titleStr === 'TangerangFast Service') {
+    if (titleStr === 'TangerangFast Service')
       return SERVICE_TERMS_DATA.CLEANING;
-    }
-
-    // Jika title persis "TangerangFast" -> AC Service
-    if (titleStr === 'TangerangFast') {
-      return SERVICE_TERMS_DATA.AC_SERVICE;
-    }
-    if (titleStr === 'Vendor Rijit') {
-      return SERVICE_TERMS_DATA.SEDOT_WC;
-    }
-    if (titleStr === 'Vendor ART') {
-      return SERVICE_TERMS_DATA.ART_BABYSITTER;
-    }
+    if (titleStr === 'TangerangFast') return SERVICE_TERMS_DATA.AC_SERVICE;
+    if (titleStr === 'Vendor Rijit') return SERVICE_TERMS_DATA.SEDOT_WC;
+    if (titleStr === 'Vendor ART') return SERVICE_TERMS_DATA.ART_BABYSITTER;
     return SERVICE_TERMS_DATA.CLEANING;
   };
 
@@ -193,6 +195,14 @@ const OrderDetailScreen = () => {
     try {
       setIsLoading(true);
       const response = await API.get(`/mitra/${params.id}`);
+
+      const rawHours = response.data.operating_hours;
+      if (rawHours) {
+        setOperatingHours(
+          typeof rawHours === 'string' ? JSON.parse(rawHours) : rawHours,
+        );
+      }
+
       const servicesData = response.data.services || [];
       const BASE_URL = 'https://backend.tangerangfast.online';
 
@@ -203,7 +213,6 @@ const OrderDetailScreen = () => {
             ? s.image_url
             : `${BASE_URL}${s.image_url}`;
         }
-
         return {
           ...s,
           price: Number(s.base_price || s.price || 0),
@@ -213,18 +222,42 @@ const OrderDetailScreen = () => {
 
       setSubServices(normalizedServices);
     } catch (error) {
-      console.error('Error Fetch Detail:', error);
-      Alert.alert('Error', 'Gagal mengambil daftar harga layanan.');
+      showInfoToast('Gagal memuat daftar harga.');
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    if (params.id) {
-      fetchDetailMitra();
-    }
+    if (params.id) fetchDetailMitra();
   }, [params.id]);
+
+  // --- FUNGSI VALIDASI TUTUP ---
+  const checkIsClosed = () => {
+    if (!operatingHours || operatingHours.length === 0) return false;
+    const daysMap = [
+      'Minggu',
+      'Senin',
+      'Selasa',
+      'Rabu',
+      'Kamis',
+      'Jumat',
+      'Sabtu',
+    ];
+    const dateObj = new Date(selectedDate);
+    const selectedDayName = daysMap[dateObj.getDay()];
+
+    const schedule = operatingHours.find((h: any) => h.day === selectedDayName);
+    if (!schedule || !schedule.active) return true;
+
+    const hh = inputHour.padStart(2, '0');
+    const mm = inputMinute.padStart(2, '0');
+    const userTime = `${hh}:${mm}`;
+
+    return userTime < schedule.open || userTime > schedule.close;
+  };
+
+  const isClosed = checkIsClosed();
 
   // --- KALKULASI TOTAL ---
   const subtotal = subServices.reduce((acc: number, item: any) => {
@@ -232,7 +265,7 @@ const OrderDetailScreen = () => {
     return acc + item.price * qty;
   }, 0);
 
-  const buildingFee = buildingType === 'Apartemen' ? 5000 : 0;
+  const buildingFee = buildingType && buildingType !== 'Rumah' ? 5000 : 0;
   const total = subtotal > 0 ? subtotal + buildingFee : 0;
 
   // --- FUNGSI NAVIGASI ---
@@ -247,9 +280,12 @@ const OrderDetailScreen = () => {
       }));
 
     if (selectedLayanan.length === 0) {
-      return Alert.alert(
-        'Perhatian',
-        'Pilih minimal satu layanan sebelum melanjutkan.',
+      return showInfoToast('Pilih minimal satu layanan dulu ya!');
+    }
+
+    if (isClosed) {
+      return showInfoToast(
+        '🛑 Jadwal yang dipilih di luar jam operasional mitra.',
       );
     }
 
@@ -289,21 +325,44 @@ const OrderDetailScreen = () => {
             style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#fff" />
           </TouchableOpacity>
-
           <Text style={styles.headerTitle}>
             {typeof params.title === 'string'
               ? params.title.toUpperCase()
               : 'DETAIL PESANAN'}
           </Text>
-
           <View style={{width: 34}} />
         </View>
       </View>
 
+      {/* BANNER NOTIFIKASI TUTUP */}
+      {isClosed && (
+        <View
+          style={{
+            backgroundColor: '#FFF1F2',
+            padding: 10,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+          <Ionicons name="alert-circle" size={18} color="#E11D48" />
+          <Text
+            style={{
+              color: '#E11D48',
+              marginLeft: 8,
+              fontSize: 13,
+              fontWeight: '600',
+            }}>
+            Yah, mitra sudah tutup coba besok lagi ya
+          </Text>
+        </View>
+      )}
+
+      {/* OVERLAY PADA SCROLLVIEW JIKA TUTUP */}
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{paddingBottom: 120}}>
-        {/* ACCORDION SYARAT & KETENTUAN (DINAMIS) */}
+        contentContainerStyle={{paddingBottom: 120}}
+        style={isClosed ? {opacity: 0.6} : null}>
+        {/* ACCORDION SYARAT & KETENTUAN */}
         <View style={styles.termsSection}>
           <TouchableOpacity
             style={styles.termsHeader}
@@ -316,7 +375,6 @@ const OrderDetailScreen = () => {
               color="#64748B"
             />
           </TouchableOpacity>
-
           {showTerms && (
             <View style={styles.termsContent}>
               <Text style={styles.contentLabel}>
@@ -329,18 +387,14 @@ const OrderDetailScreen = () => {
                   </Text>
                 ))}
               </View>
-
               <View style={styles.dividerSmall} />
-
               <Text style={styles.sectionHeading}>Layanan ini meliputi:</Text>
               {currentTerms.includes.map((item, index) => (
                 <Text key={`inc-${index}`} style={styles.textCheck}>
                   ✅ {item}
                 </Text>
               ))}
-
               <View style={styles.dividerSmall} />
-
               <Text style={styles.sectionHeading}>
                 Layanan ini tidak termasuk:
               </Text>
@@ -359,7 +413,6 @@ const OrderDetailScreen = () => {
           <Text style={styles.sectionSubtitle}>
             Daftar layanan dari vendor ini
           </Text>
-
           <View style={styles.optionsContainer}>
             {subServices.length > 0 ? (
               subServices.map((item: any) => (
@@ -373,12 +426,14 @@ const OrderDetailScreen = () => {
                   }}
                   quantity={selectedItems[item.id] || 0}
                   onAdd={() =>
+                    !isClosed &&
                     setSelectedItems({
                       ...selectedItems,
                       [item.id]: (selectedItems[item.id] || 0) + 1,
                     })
                   }
                   onRemove={() =>
+                    !isClosed &&
                     setSelectedItems({
                       ...selectedItems,
                       [item.id]: Math.max(0, (selectedItems[item.id] || 0) - 1),
@@ -401,9 +456,10 @@ const OrderDetailScreen = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Jenis Gedung *</Text>
           <View style={styles.row}>
-            {['Rumah', 'Apartemen'].map(type => (
+            {['Rumah', 'Apartemen', 'Kantor', 'Resto'].map(type => (
               <TouchableOpacity
                 key={type}
+                disabled={isClosed}
                 style={[
                   styles.typeBtn,
                   buildingType === type && styles.typeBtnActive,
@@ -470,16 +526,48 @@ const OrderDetailScreen = () => {
           <Text style={styles.totalValue}>
             Rp{(total || 0).toLocaleString('id-ID')}
           </Text>
-          <Text style={styles.minOrder}>Belum termasuk biaya layanan</Text>
+          <TouchableOpacity
+            onPress={() =>
+              showInfoToast(
+                'Biaya operasional untuk pengembangan aplikasi TangerangFast.',
+              )
+            }>
+            <Text
+              style={[
+                styles.minOrder,
+                {color: '#633594', textDecorationLine: 'none'},
+              ]}>
+              Belum termasuk biaya layanan ⓘ
+            </Text>
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity style={styles.btnPesan} onPress={handleNext}>
-          <Text style={styles.btnPesanText}>Lanjutkan</Text>
+
+        <TouchableOpacity
+          style={[styles.btnPesan, isClosed && {backgroundColor: '#94A3B8'}]}
+          onPress={handleNext}>
+          <Text style={styles.btnPesanText}>
+            {isClosed ? 'Mitra Tutup' : 'Lanjutkan'}
+          </Text>
         </TouchableOpacity>
       </View>
+
+      {/* IOS TOAST FALLBACK */}
+      {toastVisible && Platform.OS !== 'android' && (
+        <View
+          style={{
+            position: 'absolute',
+            bottom: 100,
+            alignSelf: 'center',
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            padding: 12,
+            borderRadius: 20,
+          }}>
+          <Text style={{color: '#fff'}}>{toastMsg}</Text>
+        </View>
+      )}
     </View>
   );
 };
-
 const styles = StyleSheet.create({
   section: {padding: 20, borderBottomWidth: 1, borderBottomColor: '#f0f0f0'},
   sectionTitle: {

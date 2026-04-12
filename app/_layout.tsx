@@ -1,7 +1,6 @@
 import NetInfo from '@react-native-community/netinfo';
 import * as Notifications from 'expo-notifications';
 import { Stack, useRouter } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 import { WifiOff } from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
@@ -151,8 +150,8 @@ function RootLayoutContent() {
 
   return (
     <View style={styles.container}>
-      <StatusBar style="light" translucent />
-      <View style={{height: insets.top, backgroundColor: '#633594'}} />
+      {/* <StatusBar style="light" translucent />
+      <View style={{height: insets.top, backgroundColor: '#633594'}} /> */}
       <ConnectionBanner />
       <View style={{flex: 1}}>
         <Stack
