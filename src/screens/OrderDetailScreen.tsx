@@ -141,14 +141,18 @@ const OrderDetailScreen = () => {
     {},
   );
   const [buildingType, setBuildingType] = useState('Rumah');
-
-  // --- STATE WAKTU & TANGGAL ---
   const today = new Date().toISOString().split('T')[0];
-  const [selectedDate, setSelectedDate] = useState(today);
+  const now = new Date();
+  const offset = now.getTimezoneOffset() * 60000;
+  const localISOTime = new Date(now.getTime() - offset)
+    .toISOString()
+    .split('T')[0];
+
+  const [selectedDate, setSelectedDate] = useState(localISOTime);
 
   const getInitialTime = () => {
     const d = new Date();
-    d.setHours(d.getHours() + 2);
+    // d.setHours(d.getHours() + 2); // Hapus atau komentari baris ini
     return {
       h: String(d.getHours()).padStart(2, '0'),
       m: String(d.getMinutes()).padStart(2, '0'),
@@ -232,9 +236,9 @@ const OrderDetailScreen = () => {
     if (params.id) fetchDetailMitra();
   }, [params.id]);
 
-  // --- FUNGSI VALIDASI TUTUP ---
   const checkIsClosed = () => {
     if (!operatingHours || operatingHours.length === 0) return false;
+
     const daysMap = [
       'Minggu',
       'Senin',
@@ -244,17 +248,32 @@ const OrderDetailScreen = () => {
       'Jumat',
       'Sabtu',
     ];
-    const dateObj = new Date(selectedDate);
+
+    // PERBAIKAN: Ambil index hari tanpa konversi ke UTC
+    // selectedDate formatnya "YYYY-MM-DD"
+    const [year, month, day] = selectedDate.split('-').map(Number);
+    const dateObj = new Date(year, month - 1, day); // Membuat date lokal
     const selectedDayName = daysMap[dateObj.getDay()];
 
     const schedule = operatingHours.find((h: any) => h.day === selectedDayName);
+
     if (!schedule || !schedule.active) return true;
 
     const hh = inputHour.padStart(2, '0');
     const mm = inputMinute.padStart(2, '0');
     const userTime = `${hh}:${mm}`;
 
-    return userTime < schedule.open || userTime > schedule.close;
+    // Logika khusus untuk jam tutup melewati tengah malam (seperti hari Senin tutup jam 02:00)
+    const openTime = schedule.open;
+    const closeTime = schedule.close;
+
+    if (closeTime < openTime) {
+      // Jika tutup lewat tengah malam (contoh: buka 08:00 tutup 02:00)
+      return userTime < openTime && userTime > closeTime;
+    }
+
+    // Normal (contoh: buka 08:00 tutup 18:00)
+    return userTime < openTime || userTime > closeTime;
   };
 
   const isClosed = checkIsClosed();

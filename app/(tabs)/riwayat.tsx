@@ -44,26 +44,55 @@ interface PaymentHistoryItem extends Partial<OrderDetail> {
   order_status?: string; // Alias dari SQL: o.status AS order_status
 }
 
-// --- INTERFACES ---
+interface OrderItem {
+  qty: number;
+  nama: string;
+  hargaSatuan: number;
+}
+
 interface OrderDetail {
   id: number;
-  mitra_name: string;
+  customer_id: number; // Dari JSON
+  store_id: number; // Dari JSON
+  service_id: number | null;
+
   status: string;
-  phone_number: string;
   total_price: string | number;
+  discount_amount: string | number; // Dari JSON
+  platform_fee: string | number; // Penting untuk perhitungan
+  service_fee: string | number; // Penting untuk perhitungan
+
   scheduled_date: string;
   scheduled_time: string;
-  proof_image_url?: string;
+  order_date: string; // Dari JSON
+  updated_at?: string; // Dari JSON
+
+  building_type: string; // Untuk rincian biaya
+  address_customer: string;
+  lat_customer: string;
+  lng_customer: string;
+
+  items: OrderItem[]; // Array untuk rincian layanan
+
+  cancelled_by?: 'mitra' | 'customer' | string | null;
+
+  // Data Relasi
+  mitra_name: string;
+  mitra_phone: string;
+  store_name: string; // Nama Toko/Brand
+  customer_name: string;
+  customer_phone: string;
+  customer_fcm?: string; // Token FCM
+
+  // Metadata & Payment (Opsional/Nullable)
+  proof_image_url?: string | null;
+  customer_notes?: string | null;
   payment_method?: string;
   payment_status?: string;
   pdf_url?: string;
   expired_at?: string;
   payment_details?: any;
   partner_reff?: string;
-  mitra_phone: string; // Tambahkan ini
-  customer_name: string; // Tambahkan ini
-  customer_phone: string; // Tambahkan ini
-  address_customer: string;
   already_rated: number | null;
 }
 
@@ -111,6 +140,24 @@ const RiwayatScreen: React.FC = () => {
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [timeLeft, setTimeLeft] = useState('');
 
+  // State untuk mengontrol Modal
+  const [showCancelModal, setShowCancelModal] = useState(false);
+
+  // State untuk menyimpan alasan yang dipilih
+  const [selectedReason, setSelectedReason] = useState<string>('');
+
+  // State loading khusus saat proses pembatalan berlangsung
+  const [isCancelling, setIsCancelling] = useState(false);
+
+  // Daftar alasan pembatalan (bisa ditaruh di luar komponen)
+  const cancelReasons = [
+    'Ingin mengubah jadwal pengerjaan',
+    'Ingin menambah/mengurangi layanan',
+    'Salah memasukkan alamat lokasi',
+    'Mitra tidak merespon',
+    'Lainnya / berubah pikiran',
+  ];
+
   const loadData = useCallback(
     async (isSilent = false) => {
       const targetId = params?.orderId;
@@ -118,7 +165,7 @@ const RiwayatScreen: React.FC = () => {
       // 1. Reset state & Start Loading
       if (!isSilent) {
         if (targetId) {
-          setOrder(null); // Bersihkan detail lama agar tidak "nyangkut"
+          setOrder(null);
           setDetailLoading(true);
         } else if (historyList.length === 0) {
           setLoading(true);
@@ -133,10 +180,9 @@ const RiwayatScreen: React.FC = () => {
           typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
         setUser(parsedUser);
 
-        // Variabel penampung payment history
         let paymentsData: PaymentHistoryItem[] = [];
 
-        // 3. Fetch List & Payment History (Bisa dipanggil bareng detail untuk akurasi data)
+        // 3. Fetch List & Payment History
         const [resOrders, resPayments] = await Promise.all([
           API.get(`/orders/user/${parsedUser.id}`),
           API.get(`/payment/history/${parsedUser.id}`),
@@ -145,25 +191,30 @@ const RiwayatScreen: React.FC = () => {
         paymentsData = resPayments.data.success ? resPayments.data.data : [];
 
         // 4. Update History List (Merged)
+        // 4. Update History List (Merged)
         if (resOrders.data.success) {
           const orders = resOrders.data.data;
           const mergedList: OrderDetail[] = orders.map((ord: any) => {
-            // Cari payment yang benar-benar milik order_id ini (Prioritas ID)
             const payInfo = paymentsData.find(
               p =>
                 Number(p.order_id) === Number(ord.id) ||
                 (ord.partner_reff && p.partner_reff === ord.partner_reff),
             );
 
+            // CARI DATA LAMA DI STATE (Jika sudah ada cancelled_by hasil sinkronisasi sebelumnya)
+            const existingItem = historyList.find(h => h.id === ord.id);
+
             return {
               ...ord,
               payment_method: payInfo?.payment_method || ord.payment_method,
               payment_status: payInfo?.payment_status || ord.payment_status,
+              // CEK DISINI: Gunakan data dari API, jika tidak ada gunakan data lama yang ada di state
+              cancelled_by: ord.cancelled_by || existingItem?.cancelled_by,
               expired_at: (payInfo?.expired_at || ord.expired_at)?.replace(
                 ' ',
                 'T',
               ),
-              id: ord.id, // Pastikan ID order asli tidak tertimpa ID tabel payment
+              id: ord.id,
             } as OrderDetail;
           });
           setHistoryList(mergedList);
@@ -176,14 +227,12 @@ const RiwayatScreen: React.FC = () => {
           if (resDetail.data.success) {
             const ord = resDetail.data.data;
 
-            // Cari info payment spesifik untuk Detail ini
             const currentPayInfo = paymentsData.find(
               p =>
                 Number(p.order_id) === Number(ord.id) ||
                 (ord.partner_reff && p.partner_reff === ord.partner_reff),
             );
 
-            // Robust JSON Parsing untuk payment_details
             let parsedPaymentDetails = null;
             const rawDetails =
               currentPayInfo?.payment_details || ord.payment_details;
@@ -201,7 +250,6 @@ const RiwayatScreen: React.FC = () => {
 
             const finalDetail: OrderDetail = {
               ...ord,
-              // Prioritas data: data dari payment history > data dari order detail
               payment_method:
                 currentPayInfo?.payment_method || ord.payment_method,
               payment_status:
@@ -215,7 +263,19 @@ const RiwayatScreen: React.FC = () => {
                 parsedPaymentDetails?.imageqris ||
                 currentPayInfo?.pdf_url ||
                 ord.pdf_url,
+              cancelled_by: ord.cancelled_by,
             };
+
+            // --- LOGIKA SINKRONISASI KE LIST (SAFE UPDATE) ---
+            if (finalDetail.cancelled_by) {
+              setHistoryList(prev =>
+                prev.map(item =>
+                  item.id === finalDetail.id
+                    ? {...item, cancelled_by: finalDetail.cancelled_by}
+                    : item,
+                ),
+              );
+            }
 
             // 6. Robust Expiry Check
             if (finalDetail.status === 'unpaid' && finalDetail.expired_at) {
@@ -238,7 +298,7 @@ const RiwayatScreen: React.FC = () => {
         setDetailLoading(false);
       }
     },
-    [params?.orderId, historyList.length], // Tambahkan dependency agar useCallback update saat ID berubah
+    [params?.orderId],
   );
 
   useEffect(() => {
@@ -371,18 +431,19 @@ const RiwayatScreen: React.FC = () => {
     return `${parseInt(d)} ${bulan[parseInt(m) - 1]} ${y}`;
   };
 
-  const getStatusLabel = (status: string, expiredAt?: string) => {
-    // Jika statusnya unpaid, cek apakah sudah kadaluwarsa
+  const getStatusLabel = (
+    status: string,
+    expiredAt?: string,
+    cancelledBy?: string | null,
+  ) => {
+    // 1. Cek Kadaluwarsa (Tetap sama)
     if (status === 'unpaid' && expiredAt) {
       const now = new Date().getTime();
-      // Ganti spasi dengan 'T' agar kompatibel dengan ISO format di iOS/Android
       const expiryTime = new Date(expiredAt.replace(' ', 'T')).getTime();
-
-      if (expiryTime <= now) {
-        return 'Kadaluwarsa';
-      }
+      if (expiryTime <= now) return 'Kadaluwarsa';
     }
 
+    // 2. Logika Pemetaan Status
     const map: Record<string, string> = {
       unpaid: 'Menunggu',
       pending: 'Dibayar',
@@ -390,8 +451,15 @@ const RiwayatScreen: React.FC = () => {
       on_the_way: 'Di Jalan',
       working: 'Dikerjakan',
       completed: 'Selesai',
-      cancelled: 'Dibatalkan',
     };
+
+    // 3. Khusus untuk Cancelled, cek siapa pelakunya
+    if (status === 'cancelled') {
+      if (cancelledBy === 'mitra') return 'Dibatalkan Mitra';
+      if (cancelledBy === 'customer') return 'Dibatalkan Anda';
+      if (cancelledBy === 'system') return 'Sistem Membatalkan';
+      return 'Dibatalkan';
+    }
 
     return map[status] || status;
   };
@@ -499,6 +567,63 @@ const RiwayatScreen: React.FC = () => {
       position: 'bottom',
       visibilityTime: 2000,
     });
+  };
+
+  const handleCancelOrder = async () => {
+    if (!order || !selectedReason) {
+      Toast.show({
+        type: 'error',
+        text1: 'Alasan Belum Dipilih',
+        text2: 'Mohon pilih alasan sebelum membatalkan pesanan',
+        position: 'bottom',
+        visibilityTime: 2500,
+      });
+      return;
+    }
+
+    setIsCancelling(true);
+    try {
+      const response = await API.post('/orders/cancel', {
+        orderId: order.id,
+        reason: selectedReason,
+        cancelled_by: 'customer',
+      });
+
+      if (response.data.success) {
+        // 1. Tutup Modal
+        setShowCancelModal(false);
+
+        // 2. Tampilkan Toast Sukses
+        Toast.show({
+          type: 'success',
+          text1: 'Pesanan Dibatalkan',
+          text2: 'Permintaan pembatalan Anda telah berhasil diproses',
+          position: 'bottom',
+          visibilityTime: 3000,
+        });
+
+        // 3. Reset State & Refresh Data
+        setSelectedReason('');
+        loadData(true);
+      } else {
+        Toast.show({
+          type: 'error',
+          text1: 'Gagal Membatalkan',
+          text2: response.data.message || 'Silakan coba beberapa saat lagi',
+          position: 'bottom',
+        });
+      }
+    } catch (error: any) {
+      console.error('Cancel Error:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Kesalahan Koneksi',
+        text2: 'Gagal terhubung ke server. Periksa jaringan Anda.',
+        position: 'bottom',
+      });
+    } finally {
+      setIsCancelling(false);
+    }
   };
 
   const formatPhoneNumber = (
@@ -664,15 +789,6 @@ const RiwayatScreen: React.FC = () => {
         <FlatList
           data={historyList}
           keyExtractor={item => item.id.toString()}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              colors={['#633594']}
-            />
-          }
-          // KUNCI: Jika data kosong, gunakan flex: 1 agar konten (EmptyComponent) bisa ke tengah.
-          // Jika ada data, gunakan padding normal.
           contentContainerStyle={
             historyList.length === 0
               ? {flex: 1, justifyContent: 'center'}
@@ -684,16 +800,20 @@ const RiwayatScreen: React.FC = () => {
               onPress={() => router.setParams({orderId: item.id.toString()})}>
               <View style={{flex: 1}}>
                 <Text style={styles.listMitra}>{item.mitra_name}</Text>
+
                 <View style={styles.rowItem}>
                   <Clock size={12} color="#94A3B8" />
                   <Text style={styles.listDate}>
+                    Jadwal:
                     {formatDate(item.scheduled_date)} •{' '}
                     {formatTime(item.scheduled_time)}
                   </Text>
                 </View>
+
                 <Text style={styles.listPrice}>
                   {formatCurrency(item.total_price)}
                 </Text>
+
                 {item.status === 'unpaid' && item.payment_method && (
                   <View style={styles.payNowBadge}>
                     <Text style={styles.payNowText}>
@@ -702,12 +822,12 @@ const RiwayatScreen: React.FC = () => {
                   </View>
                 )}
               </View>
+
               <View style={styles.listRight}>
                 <View
                   style={[
                     styles.statusBadgeSmall,
                     {
-                      // Memanggil fungsi style berdasarkan status item
                       backgroundColor: getStatusStyle(
                         item.status,
                         item.expired_at,
@@ -718,12 +838,16 @@ const RiwayatScreen: React.FC = () => {
                     style={[
                       styles.statusTextSmall,
                       {
-                        // Memanggil fungsi warna teks berdasarkan status item
                         color: getStatusStyle(item.status, item.expired_at)
                           .text,
                       },
                     ]}>
-                    {getStatusLabel(item.status, item.expired_at)}
+                    {/* cancelled_by akan terupdate otomatis jika fungsi loadData tadi dijalankan */}
+                    {getStatusLabel(
+                      item.status,
+                      item.expired_at,
+                      item.cancelled_by,
+                    )}
                   </Text>
                 </View>
                 <ChevronRight size={18} color="#CBD5E1" />
@@ -769,9 +893,9 @@ const RiwayatScreen: React.FC = () => {
                   <Text style={styles.orderMitraName}>{order.mitra_name}</Text>
                   <View
                     style={[
-                      styles.statusBadgeMain,
+                      styles.statusBadgeSmall,
                       {
-                        // Mengambil background dinamis berdasarkan status
+                        // Memanggil fungsi style berdasarkan status item
                         backgroundColor: getStatusStyle(
                           order.status,
                           order.expired_at,
@@ -780,14 +904,17 @@ const RiwayatScreen: React.FC = () => {
                     ]}>
                     <Text
                       style={[
-                        styles.statusBadgeMainText,
+                        styles.statusTextSmall,
                         {
-                          // Mengambil warna teks dinamis berdasarkan status
                           color: getStatusStyle(order.status, order.expired_at)
                             .text,
                         },
                       ]}>
-                      {getStatusLabel(order.status, order.expired_at)}
+                      {getStatusLabel(
+                        order.status,
+                        order.expired_at,
+                        order.cancelled_by,
+                      )}
                     </Text>
                   </View>
                 </View>
@@ -920,7 +1047,6 @@ const RiwayatScreen: React.FC = () => {
                           </View>
                         )}
 
-                        {/* TOTAL BAYAR: CONTENT BETWEEN */}
                         <View
                           style={{
                             marginTop: 15,
@@ -966,7 +1092,11 @@ const RiwayatScreen: React.FC = () => {
                                 color: '#1E293B',
                                 marginRight: 8,
                               }}>
-                              {formatCurrency(order.total_price)}
+                              {formatCurrency(
+                                Number(order.total_price) +
+                                  Number(order.service_fee) +
+                                  Number(order.platform_fee),
+                              )}
                             </Text>
                           </View>
                         </View>
@@ -1101,13 +1231,120 @@ const RiwayatScreen: React.FC = () => {
               </View>
 
               <View style={styles.cardInfo}>
-                <View style={styles.priceRow}>
-                  <Text style={styles.priceLabel}>Total Bayar</Text>
-                  <Text style={styles.priceValue}>
-                    {formatCurrency(order.total_price)}
+                {/* Bagian Layanan / Items */}
+
+                {/* Area Detail Biaya Tambahan (Gunakan Background Halus) */}
+                <View style={styles.feeContainer}>
+                  <View style={styles.priceRowSmall}>
+                    <Text style={styles.feeLabel}>
+                      Tipe Bangunan ({order.building_type})
+                    </Text>
+                  </View>
+
+                  <View style={styles.priceRowSmall}>
+                    <Text style={styles.feeLabel}>Harga Layanan</Text>
+                    <Text style={styles.feeValue}>
+                      {formatCurrency(order.total_price)}
+                    </Text>
+                  </View>
+
+                  <View style={styles.priceRowSmall}>
+                    <Text style={styles.feeLabel}>Biaya Layanan</Text>
+                    <Text style={styles.feeValue}>
+                      {formatCurrency(order.platform_fee)}
+                    </Text>
+                  </View>
+
+                  <View style={styles.priceRowSmall}>
+                    <Text style={styles.feeLabel}>Biaya Admin</Text>
+                    <Text style={styles.feeValue}>
+                      {formatCurrency(order.service_fee)}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Total Akhir */}
+                <View
+                  style={[styles.priceRow, {marginTop: 15, marginBottom: 0}]}>
+                  <Text style={styles.totalLabel}>Total Pembayaran</Text>
+                  <Text style={styles.totalValue}>
+                    {formatCurrency(
+                      Number(order.total_price) +
+                        Number(order.platform_fee) +
+                        Number(order.service_fee),
+                    )}
                   </Text>
                 </View>
               </View>
+
+              {['pending'].includes(order.status) && (
+                <TouchableOpacity
+                  style={styles.btnCancelOutline}
+                  onPress={() => setShowCancelModal(true)}>
+                  <Text style={styles.textCancel}>Batalkan Pesanan</Text>
+                </TouchableOpacity>
+              )}
+              <Modal visible={showCancelModal} transparent animationType="fade">
+                <View style={styles.modalOverlay}>
+                  <View style={styles.cancelContent}>
+                    <Text style={styles.modalTitle}>Batalkan Pesanan?</Text>
+                    <Text style={styles.modalSub}>
+                      Mohon beritahu kami alasan pembatalan Anda:
+                    </Text>
+
+                    {cancelReasons.map(reason => (
+                      <TouchableOpacity
+                        key={reason}
+                        style={styles.reasonOption}
+                        onPress={() => setSelectedReason(reason)}
+                        activeOpacity={0.7} // Memberikan feedback sentuhan yang lebih halus
+                      >
+                        <View
+                          style={[
+                            styles.radioCircle,
+                            selectedReason === reason && {
+                              borderColor: '#633594',
+                            }, // Berubah warna saat terpilih
+                          ]}>
+                          {selectedReason === reason && (
+                            <View style={styles.radioInner} />
+                          )}
+                        </View>
+                        <Text
+                          style={[
+                            styles.reasonText,
+                            selectedReason === reason && {
+                              color: '#1E293B',
+                              fontWeight: '600',
+                            }, // Teks lebih tegas saat terpilih
+                          ]}>
+                          {reason}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+
+                    <View style={styles.modalActions}>
+                      <TouchableOpacity
+                        style={styles.btnKeep}
+                        onPress={() => setShowCancelModal(false)}>
+                        <Text style={styles.textKeep}>Pertahankan</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[
+                          styles.btnConfirmCancel,
+                          !selectedReason && {opacity: 0.5},
+                        ]}
+                        disabled={!selectedReason}
+                        onPress={handleCancelOrder}>
+                        <Text style={styles.textConfirmCancel}>
+                          Ya, Batalkan
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+              </Modal>
             </ScrollView>
           ) : (
             <View style={{alignItems: 'center', marginTop: 50}}>
@@ -1244,22 +1481,69 @@ const styles = StyleSheet.create({
   emptyText: {marginTop: 15, color: '#94A3B8'},
   card: {backgroundColor: '#fff', borderRadius: 24, padding: 20, elevation: 2},
   cardInfo: {
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     padding: 20,
-    marginTop: 15,
-    marginBottom: 40,
-    borderWidth: 1,
-    borderColor: '#E2E8F0', // Warna abu-abu yang sedikit lebih tegas agar terlihat
-    borderRadius: 12, // Membuat sudut melengkung agar lebih modern
-
-    // --- SHADOW UNTUK IOS ---
+    borderRadius: 16,
+    marginVertical: 10,
+    // Shadow lembut
+    elevation: 2,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-
-    // --- SHADOW UNTUK ANDROID ---
-    elevation: 3,
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+  },
+  priceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  priceRowSmall: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  itemTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1E293B',
+  },
+  itemSub: {
+    fontSize: 12,
+    color: '#94A3B8',
+    marginTop: 2,
+  },
+  priceValue: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1E293B',
+  },
+  feeContainer: {
+    backgroundColor: '#F8FAFC', // Abu-abu sangat muda (Slate 50)
+    padding: 12,
+    borderRadius: 12,
+    borderStyle: 'dashed',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  feeLabel: {
+    fontSize: 13,
+    color: '#64748B',
+  },
+  feeValue: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#475569',
+  },
+  totalLabel: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  totalValue: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#633594', // Biru Brand
   },
   orderMitraName: {fontSize: 18, fontWeight: '800'},
   orderSchedule: {fontSize: 13, color: '#64748B', marginTop: 5},
@@ -1323,13 +1607,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   completeBtnText: {color: '#fff', fontWeight: '800'},
-  priceRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 15,
-  },
+
   priceLabel: {color: '#64748B'},
-  priceValue: {fontWeight: '800', color: '#1E293B', fontSize: 18},
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.6)',
@@ -1573,4 +1852,79 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#94A3B8',
   },
+  btnCancelOutline: {
+    marginTop: 20,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    alignItems: 'center',
+  },
+  textCancel: {
+    color: '#94A3B8',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+
+  cancelContent: {
+    backgroundColor: '#FFF',
+    borderRadius: 20,
+    padding: 24,
+  },
+
+  modalSub: {
+    fontSize: 14,
+    color: '#64748B',
+    textAlign: 'center',
+    marginVertical: 12,
+    lineHeight: 20,
+  },
+  reasonOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F8FAFC',
+  },
+  radioCircle: {
+    height: 20,
+    width: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#CBD5E1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  radioInner: {
+    height: 10,
+    width: 10,
+    borderRadius: 5,
+    backgroundColor: '#EF4444',
+  },
+  reasonText: {
+    fontSize: 14,
+    color: '#475569',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    marginTop: 24,
+    gap: 12,
+  },
+  btnKeep: {
+    flex: 1,
+    padding: 14,
+    borderRadius: 12,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+  },
+  btnConfirmCancel: {
+    flex: 1,
+    padding: 14,
+    borderRadius: 12,
+    backgroundColor: '#EF4444',
+    alignItems: 'center',
+  },
+  textKeep: {color: '#475569', fontWeight: '700'},
+  textConfirmCancel: {color: '#FFF', fontWeight: '700'},
 });
