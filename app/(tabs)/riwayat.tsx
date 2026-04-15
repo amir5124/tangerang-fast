@@ -457,7 +457,7 @@ const RiwayatScreen: React.FC = () => {
     if (status === 'cancelled') {
       if (cancelledBy === 'mitra') return 'Dibatalkan Mitra';
       if (cancelledBy === 'customer') return 'Dibatalkan Anda';
-      if (cancelledBy === 'system') return 'Sistem Membatalkan';
+      if (cancelledBy === 'system') return 'Dibatalkan Sistem';
       return 'Dibatalkan';
     }
 
@@ -649,6 +649,21 @@ const RiwayatScreen: React.FC = () => {
     console.log('🚀 [FORMAT_PHONE] Hasil Akhir (siap dikirim):', cleaned);
 
     return cleaned;
+  };
+
+  const handleHelpCenter = () => {
+    const phoneNumber = '628211074757'; // Pastikan menggunakan kode negara tanpa tanda +
+    const message =
+      'Halo Pusat Bantuan TangerangFast, saya butuh bantuan terkait pesanan saya.';
+    const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+
+    Linking.canOpenURL(url).then(supported => {
+      if (supported) {
+        Linking.openURL(url);
+      } else {
+        alert('WhatsApp tidak terinstal atau browser tidak mendukung.');
+      }
+    });
   };
 
   const checkOrderStatus = async () => {
@@ -1203,13 +1218,13 @@ const RiwayatScreen: React.FC = () => {
                   )}
                 {order.status !== 'unpaid' && (
                   <View style={styles.actionArea}>
+                    {/* BAGIAN 1: Tombol Hubungi Mitra (Hanya muncul jika pesanan sedang berjalan) */}
                     {order.status !== 'completed' &&
                       order.status !== 'cancelled' &&
                       !order.proof_image_url && (
                         <TouchableOpacity
                           style={styles.waBtn}
                           onPress={() => {
-                            // Kita gunakan mitra_phone karena kita sedang di aplikasi Customer (ingin hubungi Mitra)
                             const cleanPhone = formatPhoneNumber(
                               order.mitra_phone,
                             );
@@ -1223,9 +1238,36 @@ const RiwayatScreen: React.FC = () => {
                             }
                           }}>
                           <MessageSquare size={20} color="#64748B" />
-                          <Text style={styles.waBtnText}>Hubungi Mitra</Text>
+                          <Text style={styles.waBtnText}>Hubungi Kami</Text>
                         </TouchableOpacity>
                       )}
+
+                    {/* BAGIAN 2: Tombol Pusat Bantuan (Selalu muncul selama status bukan unpaid) */}
+                    <TouchableOpacity
+                      style={{
+                        backgroundColor: '#633594',
+                        paddingVertical: 14,
+                        paddingHorizontal: 20,
+                        borderRadius: 16,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginTop: 10,
+                        shadowColor: '#000',
+                        shadowOffset: {width: 0, height: 2},
+                        shadowOpacity: 0.1,
+                        shadowRadius: 3,
+                        elevation: 3,
+                      }}
+                      onPress={handleHelpCenter}>
+                      <Text
+                        style={{
+                          color: 'white',
+                          fontWeight: 'bold',
+                          fontSize: 14,
+                        }}>
+                        Pusat Bantuan
+                      </Text>
+                    </TouchableOpacity>
                   </View>
                 )}
               </View>
@@ -1253,6 +1295,11 @@ const RiwayatScreen: React.FC = () => {
                     <Text style={styles.feeValue}>
                       {formatCurrency(order.platform_fee)}
                     </Text>
+                  </View>
+
+                  <View style={styles.priceRowSmall}>
+                    <Text style={styles.feeLabel}>Metode Pembayaran</Text>
+                    <Text style={styles.feeValue}>{order.payment_method}</Text>
                   </View>
 
                   <View style={styles.priceRowSmall}>

@@ -150,9 +150,6 @@ function RootLayoutContent() {
 
   return (
     <View style={styles.container}>
-      {/* <StatusBar style="light" translucent />
-      <View style={{height: insets.top, backgroundColor: '#633594'}} /> */}
-      <ConnectionBanner />
       <View style={{flex: 1}}>
         <Stack
           screenOptions={{
@@ -170,6 +167,16 @@ function RootLayoutContent() {
             }}
           />
         </Stack>
+        <View
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 999,
+          }}>
+          <ConnectionBanner />
+        </View>
       </View>
       <View style={{height: insets.bottom, backgroundColor: '#fff'}} />
       <Toast config={toastConfig} position="top" topOffset={insets.top + 10} />

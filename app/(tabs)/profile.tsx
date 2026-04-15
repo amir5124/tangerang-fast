@@ -321,7 +321,7 @@ const MenuItem = ({icon, label, onPress}: any) => (
 );
 
 const styles = StyleSheet.create({
-  mainWrapper: {flex: 1, backgroundColor: '#F8FAFC'},
+  mainWrapper: {flex: 1, backgroundColor: '#FFF'},
   container: {flex: 1, backgroundColor: '#FFFFFF'},
   loadingContainer: {
     flex: 1,
@@ -331,9 +331,20 @@ const styles = StyleSheet.create({
   },
   customHeader: {
     backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-    elevation: 3,
+    // Gunakan border yang sangat tipis
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#E2E8F0',
+
+    // --- SHADOW UNTUK IOS ---
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.05, // Tipis saja agar tidak kotor
+    shadowRadius: 2,
+
+    // --- SHADOW UNTUK ANDROID ---
+    // Elevation 2 atau 3 sudah cukup.
+    // Jika terlalu tinggi, bayangan Android terlihat "patah"
+    elevation: 2,
   },
   headerContent: {
     height: 56,

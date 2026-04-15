@@ -214,18 +214,13 @@ const styles = StyleSheet.create({
   },
   customHeader: {
     backgroundColor: '#FFF',
-    // --- BORDER (Work on Android & iOS) ---
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9', // Warna abu-abu sangat muda agar elegan
 
     // --- SHADOW UNTUK IOS ---
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 4,
-
-    // --- SHADOW UNTUK ANDROID ---
-    elevation: 3,
   },
   headerContent: {
     height: 56,

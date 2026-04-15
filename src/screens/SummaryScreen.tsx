@@ -59,10 +59,6 @@ const SummaryScreen = () => {
 
         // Simpan ke state
         setBiayaLayanan(feeConverted);
-
-        // Jika ada garis merah di 'fee', itu karena variabelnya tidak dipakai setelah di-assign.
-        // Langsung saja masukkan ke setBiayaLayanan seperti di bawah ini:
-        // setBiayaLayanan(parseInt(res.value, 10));
       }
     } catch (error) {
       console.error('Gagal mengambil biaya layanan:', error);
