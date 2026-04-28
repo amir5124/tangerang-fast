@@ -52,9 +52,15 @@ const SummaryScreen = () => {
 
       const res = response.data;
 
-      // 2. Pastikan pengecekan success dan value sesuai response API
-      if (res && res.success === true && res.value) {
-        // 3. Konversi string ke number dengan benar
+      // MODIFIKASI DI SINI:
+      // Kita cek apakah res.value ada (bukan null/undefined), walaupun nilainya "0"
+      if (
+        res &&
+        res.success === true &&
+        res.value !== undefined &&
+        res.value !== null
+      ) {
+        // Gunakan Number() agar desimal seperti "0.00" juga terkonversi dengan aman
         const feeConverted = parseInt(res.value, 10);
 
         // Simpan ke state
@@ -62,8 +68,8 @@ const SummaryScreen = () => {
       }
     } catch (error) {
       console.error('Gagal mengambil biaya layanan:', error);
-      // Fallback jika API error agar aplikasi tidak crash atau menampilkan angka aneh
-      setBiayaLayanan(11000);
+      // Fallback yang aman, jangan gunakan angka keras seperti 11000 jika ingin default 0
+      setBiayaLayanan(0);
     }
   };
 
@@ -621,7 +627,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     flex: 1,
   },
-inputContainer: {
+  inputContainer: {
     flexDirection: 'row',
     backgroundColor: '#F3F4F6',
     borderRadius: 12,
@@ -639,7 +645,7 @@ inputContainer: {
     color: '#333',
     // Khusus Web agar tidak ada outline biru saat diklik
     ...Platform.select({
-      web: { outlineStyle: 'none' } as any,
+      web: {outlineStyle: 'none'} as any,
       default: {},
     }),
   },
@@ -653,9 +659,9 @@ inputContainer: {
     minWidth: 80, // Memberikan lebar minimum agar tombol tidak gepeng
   },
   applyBtnText: {
-    color: '#fff', 
-    fontWeight: 'bold', 
-    fontSize: 14 // Ukuran teks disesuaikan
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 14, // Ukuran teks disesuaikan
   },
 });
 

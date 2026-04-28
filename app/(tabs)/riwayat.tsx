@@ -120,7 +120,7 @@ const steps = [
 ];
 
 const RiwayatScreen: React.FC = () => {
-  const params = useLocalSearchParams<{orderId?: string}>();
+  const params = useLocalSearchParams<{ orderId?: string }>();
   const router = useRouter();
 
   const [user, setUser] = useState<any>(null);
@@ -271,7 +271,7 @@ const RiwayatScreen: React.FC = () => {
               setHistoryList(prev =>
                 prev.map(item =>
                   item.id === finalDetail.id
-                    ? {...item, cancelled_by: finalDetail.cancelled_by}
+                    ? { ...item, cancelled_by: finalDetail.cancelled_by }
                     : item,
                 ),
               );
@@ -391,7 +391,7 @@ const RiwayatScreen: React.FC = () => {
       }
       if (params.orderId) {
         setOrder(null);
-        router.setParams({orderId: ''});
+        router.setParams({ orderId: '' });
         return true;
       }
       return false;
@@ -511,20 +511,20 @@ const RiwayatScreen: React.FC = () => {
     // Definisi warna berdasarkan status
     switch (currentStatus) {
       case 'unpaid':
-        return {bg: '#FEF3C7', text: '#D97706'}; // Kuning (Amber)
+        return { bg: '#FEF3C7', text: '#D97706' }; // Kuning (Amber)
       case 'pending':
-        return {bg: '#E0E7FF', text: '#4338CA'}; // Indigo
+        return { bg: '#E0E7FF', text: '#4338CA' }; // Indigo
       case 'accepted':
       case 'working':
       case 'on_the_way':
-        return {bg: '#DBEAFE', text: '#1D4ED8'}; // Biru
+        return { bg: '#DBEAFE', text: '#1D4ED8' }; // Biru
       case 'completed':
-        return {bg: '#DCFCE7', text: '#15803D'}; // Hijau
+        return { bg: '#DCFCE7', text: '#15803D' }; // Hijau
       case 'cancelled':
       case 'expired':
-        return {bg: '#FEE2E2', text: '#B91C1C'}; // Merah
+        return { bg: '#FEE2E2', text: '#B91C1C' }; // Merah
       default:
-        return {bg: '#F1F5F9', text: '#475569'}; // Abu-abu (Default)
+        return { bg: '#F1F5F9', text: '#475569' }; // Abu-abu (Default)
     }
   };
 
@@ -780,7 +780,7 @@ const RiwayatScreen: React.FC = () => {
               <Ionicons name="arrow-back" size={24} color="#000" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Riwayat Pesanan</Text>
-            <View style={{width: 40}} />
+            <View style={{ width: 40 }} />
           </View>
         </View>
       ) : (
@@ -788,13 +788,13 @@ const RiwayatScreen: React.FC = () => {
           <TouchableOpacity
             onPress={() => {
               setOrder(null);
-              router.setParams({orderId: ''});
+              router.setParams({ orderId: '' });
             }}
             style={styles.backBtn}>
             <ArrowLeft size={24} color="#1E293B" />
           </TouchableOpacity>
           <Text style={styles.headerTitleDetail}>Progres Pesanan</Text>
-          <View style={{width: 40}} />
+          <View style={{ width: 40 }} />
         </View>
       )}
 
@@ -806,14 +806,14 @@ const RiwayatScreen: React.FC = () => {
           keyExtractor={item => item.id.toString()}
           contentContainerStyle={
             historyList.length === 0
-              ? {flex: 1, justifyContent: 'center'}
-              : {padding: 15, paddingBottom: 100}
+              ? { flex: 1, justifyContent: 'center' }
+              : { padding: 15, paddingBottom: 100 }
           }
-          renderItem={({item}) => (
+          renderItem={({ item }) => (
             <TouchableOpacity
               style={styles.listCard}
-              onPress={() => router.setParams({orderId: item.id.toString()})}>
-              <View style={{flex: 1}}>
+              onPress={() => router.setParams({ orderId: item.id.toString() })}>
+              <View style={{ flex: 1 }}>
                 <Text style={styles.listMitra}>{item.mitra_name}</Text>
 
                 <View style={styles.rowItem}>
@@ -873,9 +873,9 @@ const RiwayatScreen: React.FC = () => {
             loading ? (
               <ActivityIndicator size="large" color="#633594" />
             ) : (
-              <View style={{alignItems: 'center', justifyContent: 'center'}}>
+              <View style={{ alignItems: 'center', justifyContent: 'center' }}>
                 <Inbox size={60} color="#CBD5E1" />
-                <Text style={[styles.emptyText, {marginTop: 10}]}>
+                <Text style={[styles.emptyText, { marginTop: 10 }]}>
                   Belum ada riwayat
                 </Text>
               </View>
@@ -884,12 +884,12 @@ const RiwayatScreen: React.FC = () => {
         />
       ) : (
         /* VIEW DETAIL */
-        <View style={{flex: 1}}>
+        <View style={{ flex: 1 }}>
           {detailLoading ? (
             <View
-              style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+              style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
               <ActivityIndicator size="large" color="#633594" />
-              <Text style={{marginTop: 10, color: '#64748b'}}>
+              <Text style={{ marginTop: 10, color: '#64748b' }}>
                 Mengambil data...
               </Text>
             </View>
@@ -902,7 +902,7 @@ const RiwayatScreen: React.FC = () => {
                   colors={['#633594']}
                 />
               }
-              contentContainerStyle={{padding: 15, paddingBottom: 100}}>
+              contentContainerStyle={{ padding: 15, paddingBottom: 100 }}>
               <View style={styles.card}>
                 <View style={styles.rowBetween}>
                   <Text style={styles.orderMitraName}>{order.mitra_name}</Text>
@@ -957,7 +957,7 @@ const RiwayatScreen: React.FC = () => {
                       <Text
                         style={[
                           styles.timerValue,
-                          timeLeft === 'EXPIRED' && {color: '#EF4444'},
+                          timeLeft === 'EXPIRED' && { color: '#EF4444' },
                         ]}>
                         {timeLeft || '--:--:--'}
                       </Text>
@@ -1013,7 +1013,7 @@ const RiwayatScreen: React.FC = () => {
                             <View style={styles.qrBorder}>
                               {memoizedQrUrl ? (
                                 <Image
-                                  source={{uri: memoizedQrUrl}}
+                                  source={{ uri: memoizedQrUrl }}
                                   style={styles.qrisImage}
                                   resizeMode="contain"
                                 />
@@ -1021,7 +1021,7 @@ const RiwayatScreen: React.FC = () => {
                                 <ActivityIndicator
                                   size="large"
                                   color="#633594"
-                                  style={{padding: 40}}
+                                  style={{ padding: 40 }}
                                 />
                               )}
                             </View>
@@ -1048,7 +1048,7 @@ const RiwayatScreen: React.FC = () => {
                                 onPress={() =>
                                   copyToClipboard(
                                     order.payment_details?.virtual_account ||
-                                      order.payment_details?.va_number,
+                                    order.payment_details?.va_number,
                                   )
                                 }>
                                 <Ionicons
@@ -1076,7 +1076,7 @@ const RiwayatScreen: React.FC = () => {
 
                             // --- SHADOW UNTUK IOS ---
                             shadowColor: '#000',
-                            shadowOffset: {width: 0, height: 2},
+                            shadowOffset: { width: 0, height: 2 },
                             shadowOpacity: 0.1,
                             shadowRadius: 4,
 
@@ -1108,9 +1108,10 @@ const RiwayatScreen: React.FC = () => {
                                 marginRight: 8,
                               }}>
                               {formatCurrency(
-                                Number(order.total_price) +
-                                  Number(order.service_fee) +
-                                  Number(order.platform_fee),
+                                Number(order.total_price || 0) +
+                                Number(order.service_fee || 0) +
+                                Number(order.platform_fee || 0) -
+                                Number(order.discount_amount || 0)
                               )}
                             </Text>
                           </View>
@@ -1119,10 +1120,10 @@ const RiwayatScreen: React.FC = () => {
                         <Text
                           style={[
                             styles.poweredBy,
-                            {textAlign: 'center', marginTop: 15},
+                            { textAlign: 'center', marginTop: 15 },
                           ]}>
                           Powered by{' '}
-                          <Text style={{fontWeight: 'bold'}}>LinkQu</Text>
+                          <Text style={{ fontWeight: 'bold' }}>LinkQu</Text>
                         </Text>
                       </>
                     )}
@@ -1137,7 +1138,7 @@ const RiwayatScreen: React.FC = () => {
                         <View
                           style={[
                             styles.dot,
-                            {backgroundColor: isActive ? '#633594' : '#E2E8F0'},
+                            { backgroundColor: isActive ? '#633594' : '#E2E8F0' },
                           ]}>
                           {isActive && <CheckCircle2 size={12} color="#fff" />}
                         </View>
@@ -1200,7 +1201,7 @@ const RiwayatScreen: React.FC = () => {
                     <TouchableOpacity
                       style={[
                         styles.completeBtn,
-                        {marginTop: 20},
+                        { marginTop: 20 },
                         // Ubah warna tombol jadi abu-abu jika sudah diberi rating
                         order.already_rated !== null && {
                           backgroundColor: '#ccc',
@@ -1253,7 +1254,7 @@ const RiwayatScreen: React.FC = () => {
                         justifyContent: 'center',
                         marginTop: 10,
                         shadowColor: '#000',
-                        shadowOffset: {width: 0, height: 2},
+                        shadowOffset: { width: 0, height: 2 },
                         shadowOpacity: 0.1,
                         shadowRadius: 3,
                         elevation: 3,
@@ -1275,7 +1276,7 @@ const RiwayatScreen: React.FC = () => {
               <View style={styles.cardInfo}>
                 {/* Bagian Layanan / Items */}
 
-                {/* Area Detail Biaya Tambahan (Gunakan Background Halus) */}
+                {/* Area Detail Biaya Tambahan */}
                 <View style={styles.feeContainer}>
                   <View style={styles.priceRowSmall}>
                     <Text style={styles.feeLabel}>
@@ -1297,6 +1298,18 @@ const RiwayatScreen: React.FC = () => {
                     </Text>
                   </View>
 
+                  {/* --- MENAMPILKAN DISKON JIKA ADA --- */}
+                  {Number(order.discount_amount) > 0 && (
+                    <View style={styles.priceRowSmall}>
+                      <Text style={[styles.feeLabel, { color: '#e74c3c', fontWeight: 'bold' }]}>
+                        Potongan Harga (Voucher)
+                      </Text>
+                      <Text style={[styles.feeValue, { color: '#e74c3c', fontWeight: 'bold' }]}>
+                        -{formatCurrency(order.discount_amount)}
+                      </Text>
+                    </View>
+                  )}
+
                   <View style={styles.priceRowSmall}>
                     <Text style={styles.feeLabel}>Metode Pembayaran</Text>
                     <Text style={styles.feeValue}>{order.payment_method}</Text>
@@ -1310,15 +1323,15 @@ const RiwayatScreen: React.FC = () => {
                   </View>
                 </View>
 
-                {/* Total Akhir */}
-                <View
-                  style={[styles.priceRow, {marginTop: 15, marginBottom: 0}]}>
+                {/* Total Akhir (Sudah dikurangi diskon) */}
+                <View style={[styles.priceRow, { marginTop: 15, marginBottom: 0 }]}>
                   <Text style={styles.totalLabel}>Total Pembayaran</Text>
                   <Text style={styles.totalValue}>
                     {formatCurrency(
                       Number(order.total_price) +
-                        Number(order.platform_fee) +
-                        Number(order.service_fee),
+                      Number(order.platform_fee) +
+                      Number(order.service_fee) -
+                      Number(order.discount_amount) // Mengurangi total
                     )}
                   </Text>
                 </View>
@@ -1380,7 +1393,7 @@ const RiwayatScreen: React.FC = () => {
                       <TouchableOpacity
                         style={[
                           styles.btnConfirmCancel,
-                          !selectedReason && {opacity: 0.5},
+                          !selectedReason && { opacity: 0.5 },
                         ]}
                         disabled={!selectedReason}
                         onPress={handleCancelOrder}>
@@ -1394,8 +1407,8 @@ const RiwayatScreen: React.FC = () => {
               </Modal>
             </ScrollView>
           ) : (
-            <View style={{alignItems: 'center', marginTop: 50}}>
-              <Text style={{color: '#ef4444'}}>
+            <View style={{ alignItems: 'center', marginTop: 50 }}>
+              <Text style={{ color: '#ef4444' }}>
                 Gagal memuat detail pesanan.
               </Text>
             </View>
@@ -1464,8 +1477,8 @@ const RiwayatScreen: React.FC = () => {
 export default RiwayatScreen;
 
 const styles = StyleSheet.create({
-  safeArea: {flex: 1, backgroundColor: '#FFF'},
-  center: {flex: 1, justifyContent: 'center', alignItems: 'center'},
+  safeArea: { flex: 1, backgroundColor: '#FFF' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   centerEmpty: {
     flex: 1,
     justifyContent: 'center',
@@ -1487,8 +1500,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
   },
-  headerTitleDetail: {fontSize: 16, fontWeight: '700', color: '#1E293B'},
-  backBtn: {padding: 5},
+  headerTitleDetail: { fontSize: 16, fontWeight: '700', color: '#1E293B' },
+  backBtn: { padding: 5 },
   listCard: {
     backgroundColor: '#fff',
     padding: 16,
@@ -1501,32 +1514,32 @@ const styles = StyleSheet.create({
 
     // --- SHADOW UNTUK IOS ---
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
 
     // --- SHADOW UNTUK ANDROID ---
     elevation: 3,
   },
-  listMitra: {fontSize: 15, fontWeight: '700', color: '#1E293B'},
-  listDate: {fontSize: 12, color: '#64748B', marginLeft: 5},
-  listPrice: {fontSize: 14, fontWeight: '700', color: '#633594', marginTop: 5},
-  rowItem: {flexDirection: 'row', alignItems: 'center'},
+  listMitra: { fontSize: 15, fontWeight: '700', color: '#1E293B' },
+  listDate: { fontSize: 12, color: '#64748B', marginLeft: 5 },
+  listPrice: { fontSize: 14, fontWeight: '700', color: '#633594', marginTop: 5 },
+  rowItem: { flexDirection: 'row', alignItems: 'center' },
   rowBetween: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  listRight: {alignItems: 'flex-end'},
+  listRight: { alignItems: 'flex-end' },
   statusBadgeSmall: {
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
     marginBottom: 8,
   },
-  statusTextSmall: {fontSize: 10, fontWeight: '800'},
-  emptyText: {marginTop: 15, color: '#94A3B8'},
-  card: {backgroundColor: '#fff', borderRadius: 24, padding: 20, elevation: 2},
+  statusTextSmall: { fontSize: 10, fontWeight: '800' },
+  emptyText: { marginTop: 15, color: '#94A3B8' },
+  card: { backgroundColor: '#fff', borderRadius: 24, padding: 20, elevation: 2 },
   cardInfo: {
     backgroundColor: '#FFFFFF',
     padding: 20,
@@ -1535,7 +1548,7 @@ const styles = StyleSheet.create({
     // Shadow lembut
     elevation: 2,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 10,
   },
@@ -1592,18 +1605,18 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#633594', // Biru Brand
   },
-  orderMitraName: {fontSize: 18, fontWeight: '800'},
-  orderSchedule: {fontSize: 13, color: '#64748B', marginTop: 5},
+  orderMitraName: { fontSize: 18, fontWeight: '800' },
+  orderSchedule: { fontSize: 13, color: '#64748B', marginTop: 5 },
   statusBadgeMain: {
     backgroundColor: '#F3E5F5',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 10,
   },
-  statusBadgeMainText: {color: '#633594', fontSize: 11, fontWeight: '800'},
-  divider: {height: 1, backgroundColor: '#F1F5F9', marginVertical: 20},
-  stepRow: {flexDirection: 'row'},
-  indicatorCol: {alignItems: 'center', marginRight: 15, width: 22},
+  statusBadgeMainText: { color: '#633594', fontSize: 11, fontWeight: '800' },
+  divider: { height: 1, backgroundColor: '#F1F5F9', marginVertical: 20 },
+  stepRow: { flexDirection: 'row' },
+  indicatorCol: { alignItems: 'center', marginRight: 15, width: 22 },
   dot: {
     width: 22,
     height: 22,
@@ -1611,10 +1624,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  line: {width: 2, flex: 1, backgroundColor: '#E2E8F0'},
-  stepContent: {flex: 1, paddingBottom: 25},
-  stepTitle: {fontSize: 14},
-  stepDesc: {fontSize: 12, color: '#64748B'},
+  line: { width: 2, flex: 1, backgroundColor: '#E2E8F0' },
+  stepContent: { flex: 1, paddingBottom: 25 },
+  stepTitle: { fontSize: 14 },
+  stepDesc: { fontSize: 12, color: '#64748B' },
   proofContainer: {
     marginTop: 10,
     backgroundColor: '#F8FAFC',
@@ -1629,14 +1642,14 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     gap: 8,
   },
-  proofTitle: {fontSize: 14, fontWeight: '700'},
+  proofTitle: { fontSize: 14, fontWeight: '700' },
   proofImage: {
     width: '100%',
     height: 240,
     borderRadius: 14,
     backgroundColor: '#F1F5F9',
   },
-  actionArea: {marginTop: 25},
+  actionArea: { marginTop: 25 },
   waBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1646,22 +1659,22 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 16,
   },
-  waBtnText: {marginLeft: 8, color: '#633594', fontWeight: '700'},
+  waBtnText: { marginLeft: 8, color: '#633594', fontWeight: '700' },
   completeBtn: {
     backgroundColor: '#633594',
     padding: 16,
     borderRadius: 16,
     alignItems: 'center',
   },
-  completeBtnText: {color: '#fff', fontWeight: '800'},
+  completeBtnText: { color: '#fff', fontWeight: '800' },
 
-  priceLabel: {color: '#64748B'},
+  priceLabel: { color: '#64748B' },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.6)',
     justifyContent: 'flex-end',
   },
-  bottomSheetContainer: {width: '100%'},
+  bottomSheetContainer: { width: '100%' },
   modalContent: {
     backgroundColor: '#fff',
     borderTopLeftRadius: 25,
@@ -1705,9 +1718,9 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
   },
-  submitText: {color: '#fff', fontWeight: '800'},
-  cancelBtn: {marginTop: 16},
-  cancelBtnText: {textAlign: 'center', color: '#94A3B8', fontWeight: '600'},
+  submitText: { color: '#fff', fontWeight: '800' },
+  cancelBtn: { marginTop: 16 },
+  cancelBtnText: { textAlign: 'center', color: '#94A3B8', fontWeight: '600' },
   customHeader: {
     backgroundColor: '#FFF',
     borderBottomWidth: 1,
@@ -1715,7 +1728,7 @@ const styles = StyleSheet.create({
 
     // --- SHADOW UNTUK IOS ---
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
 
@@ -1729,7 +1742,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     justifyContent: 'space-between',
   },
-  backButton: {padding: 5},
+  backButton: { padding: 5 },
   headerTitle: {
     color: '#000',
     fontSize: 18,
@@ -1749,7 +1762,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     gap: 4,
   },
-  payNowText: {fontSize: 11, color: '#854D0E', fontWeight: '700'},
+  payNowText: { fontSize: 11, color: '#854D0E', fontWeight: '700' },
 
   paymentBox: {
     backgroundColor: '#F8FAFC',
@@ -1871,7 +1884,7 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
     elevation: 3,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
@@ -1904,11 +1917,12 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    backgroundColor: '#633594',
+    color: '#FFF',
     alignItems: 'center',
   },
   textCancel: {
-    color: '#94A3B8',
+    color: '#FFF',
     fontWeight: '600',
     fontSize: 14,
   },
@@ -1947,7 +1961,7 @@ const styles = StyleSheet.create({
     height: 10,
     width: 10,
     borderRadius: 5,
-    backgroundColor: '#EF4444',
+    backgroundColor: '#633594',
   },
   reasonText: {
     fontSize: 14,
@@ -1969,9 +1983,9 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 14,
     borderRadius: 12,
-    backgroundColor: '#EF4444',
+    backgroundColor: '#633594',
     alignItems: 'center',
   },
-  textKeep: {color: '#475569', fontWeight: '700'},
-  textConfirmCancel: {color: '#FFF', fontWeight: '700'},
+  textKeep: { color: '#475569', fontWeight: '700' },
+  textConfirmCancel: { color: '#FFF', fontWeight: '700' },
 });
