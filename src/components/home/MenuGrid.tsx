@@ -57,14 +57,14 @@ export const MenuGrid = () => {
   ];
 
   const categories = [
-    {id: 1, title: 'Perbaikan\nAC', category: 'ac', key: 'icon_ac'},
+    { id: 1, title: 'Perbaikan\nAC', category: 'ac', key: 'icon_ac' },
     {
       id: 2,
       title: 'Jasa\nKebersihan',
       category: 'cleaning',
       key: 'icon_cleaning',
     },
-    {id: 3, title: 'Sedot\nWC', category: 'wc', key: 'icon_wc'},
+    { id: 3, title: 'Sedot\nWC', category: 'wc', key: 'icon_wc' },
     {
       id: 4,
       title: 'ART\nBabysitter',
@@ -77,7 +77,7 @@ export const MenuGrid = () => {
       category: 'bangunan',
       key: 'icon_bangunan',
     },
-    {id: 6, title: 'Tukang\nKebun', category: 'kebun', key: 'icon_kebun'},
+    { id: 6, title: 'Tukang\nKebun', category: 'kebun', key: 'icon_kebun' },
     // {
     //   id: 7,
     //   title: 'Layanan\nKorporasi',
@@ -98,26 +98,26 @@ export const MenuGrid = () => {
       case 'ac':
         router.push({
           pathname: '/order-detail',
-          params: {id: '11', user_id: '15', title: 'TangerangFast'},
-          // params: {id: '16', user_id: '25', title: 'TangerangFast'},
+          // params: {id: '11', user_id: '15', title: 'TangerangFast'},
+          params: { id: '16', user_id: '25', title: 'TangerangFast' },
         });
         break;
       case 'cleaning':
         router.push({
           pathname: '/order-detail',
-          params: {id: '19', user_id: '38', title: 'TangerangFast Service'},
+          params: { id: '19', user_id: '38', title: 'TangerangFast Service' },
         });
         break;
       case 'wc':
         router.push({
           pathname: '/order-detail',
-          params: {id: '22', user_id: '58', title: 'Vendor Rijit'},
+          params: { id: '22', user_id: '58', title: 'Vendor Rijit' },
         });
         break;
       case 'art':
         router.push({
           pathname: '/order-detail',
-          params: {id: '23', user_id: '59', title: 'Vendor ART'},
+          params: { id: '23', user_id: '59', title: 'Vendor ART' },
         });
         break;
       default:
@@ -130,24 +130,24 @@ export const MenuGrid = () => {
       <View style={styles.container}>
         {/* Skeleton Header */}
         <View style={styles.sectionHeader}>
-          <Shimmer style={{width: 120, height: 20, borderRadius: 4}} />
+          <Shimmer style={{ width: 120, height: 20, borderRadius: 4 }} />
         </View>
 
         {/* Skeleton Jasa Terpopuler */}
         <View style={styles.popularRow}>
-          <Shimmer style={[styles.popularImage, {width: '48%', height: 110}]} />
-          <Shimmer style={[styles.popularImage, {width: '48%', height: 110}]} />
+          <Shimmer style={[styles.popularImage, { width: '48%', height: 110 }]} />
+          <Shimmer style={[styles.popularImage, { width: '48%', height: 110 }]} />
         </View>
 
         {/* Skeleton Kategori Grid */}
-        <View style={[styles.sectionHeader, {marginTop: 35}]}>
-          <Shimmer style={{width: 100, height: 20, borderRadius: 4}} />
+        <View style={[styles.sectionHeader, { marginTop: 35 }]}>
+          <Shimmer style={{ width: 100, height: 20, borderRadius: 4 }} />
         </View>
 
         <View style={styles.categoryGrid}>
           {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
             <View key={i} style={styles.categoryItem}>
-              <Shimmer style={[styles.categoryCard, {width: '100%'}]} />
+              <Shimmer style={[styles.categoryCard, { width: '100%' }]} />
             </View>
           ))}
         </View>
@@ -169,14 +169,14 @@ export const MenuGrid = () => {
             style={styles.popularCard}
             activeOpacity={1}
             onPress={() => handlePress(item.category)}>
-            <Image source={{uri: item.image}} style={styles.popularImage} />
+            <Image source={{ uri: item.image }} style={styles.popularImage} />
             <Text style={styles.popularText}>{item.title}</Text>
           </TouchableOpacity>
         ))}
       </View>
 
       {/* Section: Kategori */}
-      <View style={[styles.sectionHeader, {marginTop: 35}]}>
+      <View style={[styles.sectionHeader, { marginTop: 35 }]}>
         <Text style={styles.sectionTitle}>Kategori Layanan</Text>
       </View>
 
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
     borderColor: '#f0f0f0',
     elevation: 3,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
   },

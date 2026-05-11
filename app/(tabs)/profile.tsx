@@ -28,8 +28,8 @@ interface Transaction {
 }
 
 interface WalletResponse {
-  user: {id: string; name: string; role: string};
-  wallet: {balance: number; transactions: Transaction[]};
+  user: { id: string; name: string; role: string };
+  wallet: { balance: number; transactions: Transaction[] };
 }
 
 export default function ProfileScreen() {
@@ -103,7 +103,7 @@ export default function ProfileScreen() {
   const logoutAction = async () => {
     try {
       const fcmToken = await storage.get('fcmToken');
-      await API.post('/auth/logout', {fcm_token: fcmToken});
+      await API.post('/auth/logout', { fcm_token: fcmToken });
     } catch (error) {
       console.log('Logout error bypass...');
     } finally {
@@ -146,7 +146,7 @@ export default function ProfileScreen() {
 
     // 2. Jika URL sudah lengkap (http/https)
     if (path.startsWith('http')) {
-      return {uri: path.replace('http://', 'https://')};
+      return { uri: path.replace('http://', 'https://') };
     }
 
     // 3. Logika Pintar untuk Path Relatif
@@ -168,7 +168,7 @@ export default function ProfileScreen() {
     // Debugging: Muncul di console log untuk cek URL mana yang salah
     // console.log("Final Profile URI:", finalUri);
 
-    return {uri: finalUri};
+    return { uri: finalUri };
   };
 
   if (loading && !refreshing) {
@@ -189,7 +189,7 @@ export default function ProfileScreen() {
             <Ionicons name="arrow-back" size={24} color="#000" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Profil Saya</Text>
-          <View style={{width: 40}} />
+          <View style={{ width: 40 }} />
         </View>
       </View>
 
@@ -237,7 +237,7 @@ export default function ProfileScreen() {
             <View style={styles.statIconCircle}>
               <Ionicons name="wallet-outline" size={20} color="#633594" />
             </View>
-            <View style={{flex: 1}}>
+            <View style={{ flex: 1 }}>
               <Text style={styles.wideStatLabel}>Saldo Wallet</Text>
               <Text style={styles.wideStatValue}>
                 {walletData ? formatRupiah(walletData.wallet.balance) : 'Rp 0'}
@@ -286,14 +286,14 @@ export default function ProfileScreen() {
         </View>
 
         <Text style={styles.versionText}>TangerangFast • v1.1.0</Text>
-        <View style={{height: 40}} />
+        <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 // Sub-komponen tetap sama
-const InfoItem = ({icon, label, value}: any) => (
+const InfoItem = ({ icon, label, value }: any) => (
   <View style={styles.infoItem}>
     <View style={styles.iconCircle}>
       <Ionicons name={icon} size={18} color="#633594" />
@@ -305,7 +305,7 @@ const InfoItem = ({icon, label, value}: any) => (
   </View>
 );
 
-const MenuItem = ({icon, label, onPress}: any) => (
+const MenuItem = ({ icon, label, onPress }: any) => (
   <TouchableOpacity
     style={styles.menuItem}
     activeOpacity={0.6}
@@ -321,8 +321,8 @@ const MenuItem = ({icon, label, onPress}: any) => (
 );
 
 const styles = StyleSheet.create({
-  mainWrapper: {flex: 1, backgroundColor: '#FFF'},
-  container: {flex: 1, backgroundColor: '#FFFFFF'},
+  mainWrapper: { flex: 1, backgroundColor: '#FFF' },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
 
     // --- SHADOW UNTUK IOS ---
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05, // Tipis saja agar tidak kotor
     shadowRadius: 2,
 
@@ -353,7 +353,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     justifyContent: 'space-between',
   },
-  backButton: {padding: 5},
+  backButton: { padding: 5 },
   headerTitle: {
     color: '#000',
     fontSize: 18,
@@ -367,7 +367,7 @@ const styles = StyleSheet.create({
     paddingVertical: 30,
     backgroundColor: '#FFF',
   },
-  avatarWrapper: {position: 'relative', marginBottom: 15},
+  avatarWrapper: { position: 'relative', marginBottom: 15 },
   avatar: {
     width: 100,
     height: 100,
@@ -389,7 +389,7 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: '#FFF',
   },
-  userNameText: {fontSize: 22, fontWeight: '800', color: '#1E293B'},
+  userNameText: { fontSize: 22, fontWeight: '800', color: '#1E293B' },
   infoCard: {
     backgroundColor: '#FFF',
     marginHorizontal: 20,
@@ -399,7 +399,7 @@ const styles = StyleSheet.create({
     borderColor: '#F1F5F9',
     elevation: 5,
   },
-  infoItem: {flexDirection: 'row', alignItems: 'center', gap: 15},
+  infoItem: { flexDirection: 'row', alignItems: 'center', gap: 15 },
   iconCircle: {
     width: 40,
     height: 40,
@@ -408,10 +408,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  infoLabel: {fontSize: 12, color: '#94A3B8', fontWeight: '500'},
-  infoValue: {fontSize: 14, fontWeight: '600', color: '#1E293B', marginTop: 2},
-  infoDivider: {height: 1, backgroundColor: '#F8FAFC', marginVertical: 15},
-  menuGroup: {paddingHorizontal: 20, marginTop: 30, backgroundColor: '#FFF'},
+  infoLabel: { fontSize: 12, color: '#94A3B8', fontWeight: '500' },
+  infoValue: { fontSize: 14, fontWeight: '600', color: '#1E293B', marginTop: 2 },
+  infoDivider: { height: 1, backgroundColor: '#F8FAFC', marginVertical: 15 },
+  menuGroup: { paddingHorizontal: 20, marginTop: 30, backgroundColor: '#FFF' },
   groupLabel: {
     fontSize: 13,
     fontWeight: '700',
@@ -428,7 +428,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F8FAFC',
   },
-  menuLeft: {flexDirection: 'row', alignItems: 'center', gap: 15},
+  menuLeft: { flexDirection: 'row', alignItems: 'center', gap: 15 },
   menuIconBg: {
     width: 38,
     height: 38,
@@ -437,7 +437,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  menuLabel: {fontSize: 15, fontWeight: '600', color: '#334155'},
+  menuLabel: { fontSize: 15, fontWeight: '600', color: '#334155' },
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -448,8 +448,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: '#FFF1F0',
   },
-  logoutText: {fontSize: 15, fontWeight: '700', color: '#FF3B30'},
-  fullStatsContainer: {paddingHorizontal: 20, marginTop: 25},
+  logoutText: { fontSize: 15, fontWeight: '700', color: '#FF3B30' },
+  fullStatsContainer: { paddingHorizontal: 20, marginTop: 25 },
   wideStatItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -468,7 +468,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 15,
   },
-  wideStatLabel: {fontSize: 12, color: '#64748B', fontWeight: '600'},
+  wideStatLabel: { fontSize: 12, color: '#64748B', fontWeight: '600' },
   wideStatValue: {
     fontSize: 20,
     fontWeight: '900',
