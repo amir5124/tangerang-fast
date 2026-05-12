@@ -77,7 +77,7 @@ export const MenuGrid = () => {
       category: 'bangunan',
       key: 'icon_bangunan',
     },
-    { id: 6, title: 'Tukang\nKebun', category: 'kebun', key: 'icon_kebun' },
+    { id: 6, title: 'Jasa\nLaundry', category: 'kebun', key: 'icon_kebun' },
     // {
     //   id: 7,
     //   title: 'Layanan\nKorporasi',

@@ -60,11 +60,11 @@ const toastConfig: ToastConfig = {
       {...props}
       style={[
         styles.toastBase,
-        {borderLeftColor: '#EF4444', borderLeftWidth: 4},
+        { borderLeftColor: '#EF4444', borderLeftWidth: 4 },
       ]}
       contentContainerStyle={styles.toastContent}
       text1Style={styles.toastText1}
-      text2Style={[styles.toastText2, {color: '#FF9494'}]}
+      text2Style={[styles.toastText2, { color: '#FF9494' }]}
     />
   ),
 };
@@ -81,7 +81,7 @@ const ConnectionBanner = () => {
   if (isConnected) return null;
   return (
     <View style={styles.offlineBanner}>
-      <WifiOff size={14} color="#FFF" style={{marginRight: 8}} />
+      <WifiOff size={14} color="#FFF" style={{ marginRight: 8 }} />
       <Text style={styles.offlineText}>
         Mode Offline: Periksa koneksi internet Anda
       </Text>
@@ -94,6 +94,31 @@ function RootLayoutContent() {
   const router = useRouter();
   const notificationListener = useRef<any>(null);
   const responseListener = useRef<any>(null);
+
+  // --- LISTENER SUARA NOTIFIKASI DARI SERVICE WORKER (Web Only) ---
+  // Service Worker tidak punya akses Audio API, maka ia mengirim sinyal
+  // postMessage ke tab aktif, lalu tab ini yang memutar suaranya.
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
+
+    const handleSwMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'PLAY_NOTIFICATION_SOUND') {
+        const audio = new Audio('/assets/sounds/notification.mp3');
+        audio.volume = 1.0;
+        audio.play().catch(() => {
+          // Browser memblokir autoplay jika user belum pernah berinteraksi dengan halaman
+          console.warn('[Layout] Autoplay suara diblokir browser.');
+        });
+      }
+    };
+
+    navigator.serviceWorker.addEventListener('message', handleSwMessage);
+
+    return () => {
+      navigator.serviceWorker.removeEventListener('message', handleSwMessage);
+    };
+  }, []);
 
   useEffect(() => {
     // A. Registrasi/Pengecekan Token saat App Terbuka
@@ -117,7 +142,7 @@ function RootLayoutContent() {
     // C. Listener Native Foreground
     notificationListener.current =
       Notifications.addNotificationReceivedListener(notification => {
-        const {title, body, data} = notification.request.content;
+        const { title, body, data } = notification.request.content;
         Toast.show({
           type: 'success',
           text1: title || 'Informasi Baru',
@@ -143,21 +168,21 @@ function RootLayoutContent() {
     if (data?.orderId) {
       router.replace({
         pathname: '/(tabs)/riwayat',
-        params: {orderId: data.orderId},
+        params: { orderId: data.orderId },
       });
     }
   };
 
   return (
     <View style={styles.container}>
-      <View style={{flex: 1}}>
+      <View style={{ flex: 1 }}>
         <Stack
           screenOptions={{
             headerShown: false,
-            contentStyle: {backgroundColor: '#fff'},
+            contentStyle: { backgroundColor: '#fff' },
           }}>
           <Stack.Screen name="index" />
-          <Stack.Screen name="(tabs)" options={{animation: 'fade'}} />
+          <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
           <Stack.Screen
             name="edit-profile"
             options={{
@@ -178,7 +203,7 @@ function RootLayoutContent() {
           <ConnectionBanner />
         </View>
       </View>
-      <View style={{height: insets.bottom, backgroundColor: '#fff'}} />
+      <View style={{ height: insets.bottom, backgroundColor: '#fff' }} />
       <Toast config={toastConfig} position="top" topOffset={insets.top + 10} />
     </View>
   );
@@ -193,7 +218,7 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({
-  container: {flex: 1, backgroundColor: '#633594'},
+  container: { flex: 1, backgroundColor: '#633594' },
   offlineBanner: {
     backgroundColor: '#EF4444',
     flexDirection: 'row',
@@ -201,7 +226,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
   },
-  offlineText: {color: '#FFF', fontSize: 12, fontWeight: '600'},
+  offlineText: { color: '#FFF', fontSize: 12, fontWeight: '600' },
   toastBase: {
     backgroundColor: '#1E1E1E',
     borderRadius: 12,
@@ -210,7 +235,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     elevation: 10,
   },
-  toastContent: {paddingHorizontal: 20},
-  toastText1: {fontSize: 14, fontWeight: '700', color: '#FFF'},
-  toastText2: {fontSize: 12, color: '#A1A1AA', marginTop: 2},
+  toastContent: { paddingHorizontal: 20 },
+  toastText1: { fontSize: 14, fontWeight: '700', color: '#FFF' },
+  toastText2: { fontSize: 12, color: '#A1A1AA', marginTop: 2 },
 });

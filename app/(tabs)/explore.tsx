@@ -1,4 +1,4 @@
-import { FontAwesome, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { FontAwesome, Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -30,12 +30,23 @@ interface ChatItem {
   is_order_data?: boolean; // Flag untuk membedakan data order asli vs notif biasa
 }
 
-const steps = [
-  { id: 'accepted', title: 'Diterima' },
-  { id: 'on_the_way', title: 'Di Jalan' },
-  { id: 'working', title: 'Proses' },
-  { id: 'completed', title: 'Selesai' },
-];
+// --- HELPER: Label & warna badge status order ---
+const getStatusBadge = (status: string | undefined): { label: string; color: string; bg: string } => {
+  switch (status) {
+    case 'accepted':
+      return { label: 'Diterima', color: '#1D4ED8', bg: '#DBEAFE' };
+    case 'on_the_way':
+      return { label: 'Sedang Di Jalan', color: '#92400E', bg: '#FEF3C7' };
+    case 'working':
+      return { label: 'Sedang Dikerjakan', color: '#065F46', bg: '#D1FAE5' };
+    case 'completed':
+      return { label: 'Selesai', color: '#166534', bg: '#DCFCE7' };
+    case 'pending':
+      return { label: 'Menunggu Konfirmasi', color: '#6B7280', bg: '#F3F4F6' };
+    default:
+      return { label: 'Diproses', color: '#6B7280', bg: '#F3F4F6' };
+  }
+};
 
 const ExploreScreen: React.FC = () => {
   const router = useRouter();
@@ -72,15 +83,6 @@ const ExploreScreen: React.FC = () => {
     }
   };
 
-  const getStatusWeight = (status: string | undefined) => {
-    if (!status) return 0;
-    const weights: Record<string, number> = {
-      accepted: 1, on_the_way: 2, working: 3, completed: 4,
-      unpaid: 0, pending: 0, cancelled: -1
-    };
-    return weights[status] || 0;
-  };
-
   const loadAllData = async () => {
     try {
       // 1. Ambil data User
@@ -112,7 +114,7 @@ const ExploreScreen: React.FC = () => {
           .map((o: any) => ({
             id: `order-${o.id}`,
             title: `Pesanan TFAST${o.id}`,
-            message: `Status: ${o.store_name || 'Mitra Sedang Menangani'}`,
+            message: o.store_name || 'Pesanan kamu saat ini',
             type: 'order',
             is_read: 1,
             created_at: o.updated_at || o.order_date,
@@ -181,7 +183,7 @@ const ExploreScreen: React.FC = () => {
             </TouchableOpacity>
             <TouchableOpacity style={styles.featureItemContainer}>
               <View style={[styles.iconCircle, { backgroundColor: '#FFBB33' }]}>
-                <Ionicons name="help" size={30} color="#fff" />
+                <MaterialIcons name="question-answer" size={30} color="#fff" />
               </View>
               <Text style={styles.featureLabel}>FAQ</Text>
             </TouchableOpacity>
@@ -197,13 +199,13 @@ const ExploreScreen: React.FC = () => {
           ) : combinedChat.length > 0 ? (
             combinedChat.map((item) => {
               const config = getIconConfig(item.type);
-              const curWeight = getStatusWeight(item.status_order);
+
+              // Badge status khusus untuk item order
+              const badge = item.type === 'order' ? getStatusBadge(item.status_order) : null;
 
               return (
                 <View key={item.id} style={styles.cardWrapper}>
-                  <TouchableOpacity
-                    style={styles.chatCard}
-                  >
+                  <TouchableOpacity style={styles.chatCard}>
                     <View style={[styles.avatarCircle, { backgroundColor: config.color }]}>
                       {config.family === 'Ionicons' ? (
                         <Ionicons name={config.name as any} size={24} color="#fff" />
@@ -213,45 +215,31 @@ const ExploreScreen: React.FC = () => {
                     </View>
                     <View style={styles.chatContentContainer}>
                       <View style={styles.chatContent}>
+                        {/* Baris atas: judul + tanggal */}
                         <View style={styles.chatHeaderRow}>
                           <Text style={styles.chatName}>{item.title}</Text>
                           <Text style={styles.chatTime}>
                             {new Date(item.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit' })}
                           </Text>
                         </View>
+                        {/* Baris bawah: pesan + badge status (order) atau dot unread (notif) */}
                         <View style={styles.chatHeaderRow}>
                           <Text style={styles.chatMessage} numberOfLines={1}>{item.message}</Text>
-                          {item.is_read === 0 && <View style={styles.dotOrange} />}
+                          {badge ? (
+                            // Badge status untuk pesanan
+                            <View style={[styles.statusBadge, { backgroundColor: badge.bg }]}>
+                              <Text style={[styles.statusBadgeText, { color: badge.color }]}>
+                                {badge.label}
+                              </Text>
+                            </View>
+                          ) : (
+                            // Dot orange untuk notif yang belum dibaca
+                            item.is_read === 0 && <View style={styles.dotOrange} />
+                          )}
                         </View>
                       </View>
                     </View>
                   </TouchableOpacity>
-
-                  {/* STEPPER TRACKING - Muncul untuk Pesanan Aktif */}
-                  {item.type === 'order' && curWeight > 0 && (
-                    <View style={styles.stepperContainer}>
-                      <View style={styles.stepperLineRow}>
-                        {steps.map((step, index) => {
-                          const isActive = curWeight !== -1 && index + 1 <= curWeight;
-                          return (
-                            <View key={step.id} style={styles.stepItem}>
-                              <View style={styles.stepIndicator}>
-                                {index !== 0 && (
-                                  <View style={[styles.connector, { backgroundColor: index < curWeight ? '#633594' : '#E2E8F0' }]} />
-                                )}
-                                <View style={[styles.stepDot, { backgroundColor: isActive ? '#633594' : '#E2E8F0' }]}>
-                                  {isActive && <Ionicons name="checkmark" size={8} color="#fff" />}
-                                </View>
-                              </View>
-                              <Text style={[styles.stepLabel, { color: isActive ? '#633594' : '#94A3B8' }]}>
-                                {step.title}
-                              </Text>
-                            </View>
-                          );
-                        })}
-                      </View>
-                    </View>
-                  )}
                   <View style={styles.separator} />
                 </View>
               );
@@ -261,8 +249,6 @@ const ExploreScreen: React.FC = () => {
           )}
         </View>
       </ScrollView>
-
-
     </SafeAreaView>
   );
 };
@@ -296,20 +282,23 @@ const styles = StyleSheet.create({
   chatHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   chatName: { fontSize: 15, fontWeight: '700', color: '#1E293B' },
   chatTime: { fontSize: 11, color: '#94A3B8' },
-  chatMessage: { fontSize: 13, color: '#64748B', marginTop: 2, flex: 1 },
+  chatMessage: { fontSize: 13, color: '#64748B', marginTop: 2, flex: 1, marginRight: 8 },
   dotOrange: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#F39233' },
   separator: { height: 1, backgroundColor: '#F1F5F9', marginTop: 12 },
 
-  // Stepper Chat Styles
-  stepperContainer: { marginLeft: 60, marginTop: 12, paddingRight: 10 },
-  stepperLineRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  stepItem: { flex: 1, alignItems: 'center' },
-  stepIndicator: { flexDirection: 'row', alignItems: 'center', width: '100%', justifyContent: 'center' },
-  stepDot: { width: 14, height: 14, borderRadius: 7, zIndex: 2, justifyContent: 'center', alignItems: 'center' },
-  connector: { height: 2, flex: 1, position: 'absolute', left: '-50%', right: '50%', zIndex: 1 },
-  stepLabel: { fontSize: 8, fontWeight: 'bold', marginTop: 4 },
+  // Badge status order
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 20,
+    alignSelf: 'flex-start',
+    marginTop: 2,
+  },
+  statusBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
 
-  fab: { position: 'absolute', right: 20, bottom: 20, width: 56, height: 56, borderRadius: 28, backgroundColor: '#008917', justifyContent: 'center', alignItems: 'center', elevation: 5 },
   emptyText: { textAlign: 'center', color: '#94A3B8', marginTop: 40 }
 });
 

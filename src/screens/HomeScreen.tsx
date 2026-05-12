@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Dimensions,
   Image,
@@ -15,6 +15,7 @@ import { BannerSlider } from '../components/home/BannerSlider';
 
 const { width } = Dimensions.get('window');
 const IMAGE_BASE_URL = 'https://backend.tangerangfast.online';
+const CARD_WIDTH = width * 0.55 + 15; // Lebar kartu + margin kanan
 
 interface PromoState {
   image: string | null;
@@ -40,12 +41,23 @@ export default function HomeScreen() {
     description: 'Memuat promo terbaru untukmu...',
   });
 
+  // Ref untuk Auto Slide
+  const scrollRef = useRef<ScrollView>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
+
   const fetchReviews = async () => {
     try {
       const response = await api.get('/reviews/latest-all');
-      console.log(response, "se")
       if (response.data.success) {
-        setReviews(response.data.latest_comments || []);
+        // Tambahkan ": Review[]" di sini agar TS tahu ini adalah array ulasan
+        const data: Review[] = response.data.latest_comments || [];
+
+        // Filter sekarang tidak akan merah karena TS sudah tahu 'v' dan 't' punya 'review_id'
+        const uniqueData = data.filter((v, i, a) =>
+          a.findIndex(t => t.review_id === v.review_id) === i
+        );
+
+        setReviews(uniqueData);
       }
     } catch (error) {
       console.error('Gagal mengambil review terbaru:', error);
@@ -84,9 +96,33 @@ export default function HomeScreen() {
     fetchReviews();
   }, []);
 
+  // Logika Auto Slide untuk Review
+  useEffect(() => {
+    if (reviews.length > 0) {
+      const interval = setInterval(() => {
+        let nextIndex = currentIndex + 1;
+
+        // Jika sudah mencapai akhir, kembali ke awal
+        if (nextIndex >= reviews.length) {
+          nextIndex = 0;
+        }
+
+        scrollRef.current?.scrollTo({
+          x: nextIndex * CARD_WIDTH,
+          animated: true,
+        });
+
+        setCurrentIndex(nextIndex);
+      }, 3000); // Geser setiap 3 detik
+
+      return () => clearInterval(interval);
+    }
+  }, [currentIndex, reviews.length]);
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await Promise.all([fetchPromoAssets(), fetchReviews()]);
+    setCurrentIndex(0); // Reset index saat refresh
     setRefreshing(false);
   }, []);
 
@@ -130,9 +166,16 @@ export default function HomeScreen() {
           <View style={styles.reviewSection}>
             <Text style={styles.sectionTitle}>Apa Kata Mereka</Text>
             <ScrollView
+              ref={scrollRef}
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.reviewScroll}
+              onMomentumScrollEnd={(e) => {
+                // Update index jika user menggeser manual
+                const contentOffset = e.nativeEvent.contentOffset.x;
+                const newIndex = Math.round(contentOffset / CARD_WIDTH);
+                setCurrentIndex(newIndex);
+              }}
             >
               {reviews.map((item) => (
                 <View key={item.review_id} style={styles.reviewCard}>
@@ -160,7 +203,9 @@ export default function HomeScreen() {
         )}
 
         <View style={styles.promoSection}>
-          <Text style={styles.sectionTitle}>Promo Spesial Untukmu</Text>
+          <Text style={[styles.sectionTitle, { marginLeft: -15 }]}>
+            Promo Spesial Untukmu
+          </Text>
 
           <View style={styles.promoCard}>
             {promoData.image ? (
@@ -203,7 +248,6 @@ const styles = StyleSheet.create({
   mainContent: {
     marginTop: 10,
   },
-  // Style Baru untuk Review Section
   reviewSection: {
     marginTop: 0,
     marginBottom: 10,
@@ -211,11 +255,11 @@ const styles = StyleSheet.create({
   reviewScroll: {
     paddingLeft: 20,
     paddingRight: 10,
-    paddingTop: 35, // Ruang untuk foto yang nongol ke atas
+    paddingTop: 35,
     paddingBottom: 15,
   },
   reviewCard: {
-    width: width * 0.55, // Lebar card 55% dari layar
+    width: width * 0.55,
     backgroundColor: '#f9f9f9',
     borderRadius: 20,
     padding: 15,
@@ -229,7 +273,7 @@ const styles = StyleSheet.create({
   },
   profileContainer: {
     position: 'absolute',
-    top: -35, // Membuat foto menggantung di atas
+    top: -35,
     width: 70,
     height: 70,
     borderRadius: 35,
@@ -245,7 +289,7 @@ const styles = StyleSheet.create({
     resizeMode: 'cover',
   },
   reviewContent: {
-    marginTop: 35, // Jarak agar teks tidak tertutup foto
+    marginTop: 35,
     alignItems: 'center',
   },
   customerName: {
@@ -269,7 +313,6 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     lineHeight: 18,
   },
-  // Style Promo Tetap Sama
   promoSection: {
     paddingHorizontal: 20,
     marginTop: 10,

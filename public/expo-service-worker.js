@@ -17,6 +17,24 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 /**
+ * HELPER: Kirim pesan ke semua tab/window yang aktif
+ * agar tab yang terbuka bisa memainkan suara notifikasi.
+ * Service Worker tidak punya akses langsung ke Audio API,
+ * maka kita delegasikan ke halaman melalui postMessage.
+ */
+const playNotificationSound = async () => {
+    const allClients = await clients.matchAll({
+        type: 'window',
+        includeUncontrolled: true,
+    });
+
+    // Kirim sinyal ke semua tab yang terbuka
+    for (const client of allClients) {
+        client.postMessage({ type: 'PLAY_NOTIFICATION_SOUND' });
+    }
+};
+
+/**
  * 3. Handle Background Messages
  * Fungsi ini terpanggil ketika browser dalam keadaan tertutup atau tab tidak aktif.
  */
@@ -32,7 +50,12 @@ messaging.onBackgroundMessage((payload) => {
         vibrate: [200, 100, 200],
         tag: 'order-update', // Mengelompokkan notifikasi agar tidak menumpuk
         data: payload.data,  // Menyimpan data tambahan (seperti orderId)
+        // Catatan: properti 'sound' pada showNotification tidak didukung di browser desktop.
+        // Suara diputar via postMessage ke tab aktif (lihat playNotificationSound).
     };
+
+    // Kirim sinyal suara ke semua tab yang sedang terbuka
+    playNotificationSound();
 
     // Menampilkan banner notifikasi ke sistem operasi
     return self.registration.showNotification(notificationTitle, notificationOptions);

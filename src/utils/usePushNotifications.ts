@@ -21,11 +21,11 @@ export async function registerForPushNotificationsAsync(): Promise<
 
   try {
     // 1. CEK IZIN (Native & Web memiliki cara berbeda, tapi Expo membungkusnya dengan baik)
-    const {status: existingStatus} = await Notifications.getPermissionsAsync();
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
 
     if (existingStatus !== 'granted') {
-      const {status} = await Notifications.requestPermissionsAsync();
+      const { status } = await Notifications.requestPermissionsAsync();
       finalStatus = status;
     }
 
@@ -70,7 +70,7 @@ export async function registerForPushNotificationsAsync(): Promise<
             importance: Notifications.AndroidImportance.MAX,
             vibrationPattern: [0, 250, 250, 250],
             lightColor: '#633594',
-            sound: 'default',
+            sound: 'notification',
           });
         }
         console.log('✅ Native FCM Token:', token);

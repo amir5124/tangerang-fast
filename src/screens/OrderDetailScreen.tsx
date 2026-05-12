@@ -50,6 +50,13 @@ const SERVICE_TERMS_DATA = {
       'Penanganan kebocoran pipa di dalam tembok (bobok tembok)',
       'Pengerjaan di ketinggian ekstrim (Lantai 2+ tanpa akses aman)',
     ],
+    notes: [
+      'Untuk memudahkan proses pemesanan, Tangerang Fast menyediakan estimasi waktu pengerjaan sebagai berikut:',
+      '• Pagi : 08.00 – 11.00',
+      '• Siang : 11.00 – 14.00',
+      '• Sore : 14.00 – 16.00',
+      'Waktu kedatangan dan pengerjaan akan menyesuaikan ketersediaan jadwal teknisi atau pekerja di area customer.',
+    ],
   },
   CLEANING: {
     equipmentLabel: 'Peralatan dan perlengkapan (Apabila pesan dengan Alat):',
@@ -72,6 +79,8 @@ const SERVICE_TERMS_DATA = {
       'Pembersihan kerak, noda berat, lumut, atau jamur',
       'Pembersihan area taman, garasi, dan gudang lama',
     ],
+    // Kamu bisa mengosongkan atau menambah note khusus cleaning di sini jika perlu
+    notes: [],
   },
   SEDOT_WC: {
     equipmentLabel: 'Armada dan Peralatan (Sudah Termasuk):',
@@ -93,6 +102,9 @@ const SERVICE_TERMS_DATA = {
       'Bongkar pasang keramik permanen (Jika lubang tidak tersedia)',
       'Pembuatan septic tank baru atau resapan baru',
       'Perbaikan struktur septic tank yang runtuh/rusak berat',
+    ],
+    notes: [
+      'Ketersediaan teknisi dan mobil akan diinformasikan setelah proses pemesanan selesai.'
     ],
   },
   ART_BABYSITTER: {
@@ -120,6 +132,7 @@ const SERVICE_TERMS_DATA = {
       'Tindakan medis khusus atau pengobatan darurat',
       'Biaya lembur di luar jam operasional yang disepakati',
     ],
+    notes: [],
   },
 };
 
@@ -149,6 +162,13 @@ const OrderDetailScreen = () => {
     .split('T')[0];
 
   const [selectedDate, setSelectedDate] = useState(localISOTime);
+
+  // Tambahkan helper function ini (letakkan bersama helper lainnya)
+  const isTimeHidden = () => {
+    const titleStr =
+      typeof params.title === 'string' ? decodeURIComponent(params.title) : '';
+    return titleStr === 'TangerangFast' || titleStr === 'Vendor Rijit';
+  };
 
   const getInitialTime = () => {
     const d = new Date();
@@ -314,28 +334,28 @@ const OrderDetailScreen = () => {
       namaToko: params.title,
       layananTerpilih: selectedLayanan,
       jenisGedung: buildingType,
-      jadwal: {tanggal: selectedDate, waktu: `${inputHour}:${inputMinute}`},
+      jadwal: { tanggal: selectedDate, waktu: `${inputHour}:${inputMinute}` },
       totalPembayaran: total,
       ratingMitra: params.rating,
     };
 
     router.push({
       pathname: '/contact-detail',
-      params: {prevPayload: JSON.stringify(orderData)},
+      params: { prevPayload: JSON.stringify(orderData) },
     });
   };
 
   if (isLoading) {
     return (
-      <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" color="#633594" />
-        <Text style={{marginTop: 10, color: '#666'}}>Mohon tunggu...</Text>
+        <Text style={{ marginTop: 10, color: '#666' }}>Mohon tunggu...</Text>
       </View>
     );
   }
 
   return (
-    <View style={{flex: 1, backgroundColor: '#fff'}}>
+    <View style={{ flex: 1, backgroundColor: '#fff' }}>
       {/* HEADER */}
       <View style={styles.customHeader}>
         <View style={styles.headerContent}>
@@ -349,7 +369,7 @@ const OrderDetailScreen = () => {
               ? params.title.toUpperCase()
               : 'DETAIL PESANAN'}
           </Text>
-          <View style={{width: 34}} />
+          <View style={{ width: 34 }} />
         </View>
       </View>
 
@@ -379,8 +399,8 @@ const OrderDetailScreen = () => {
       {/* OVERLAY PADA SCROLLVIEW JIKA TUTUP */}
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{paddingBottom: 120}}
-        style={isClosed ? {opacity: 0.6} : null}>
+        contentContainerStyle={{ paddingBottom: 120 }}
+        style={isClosed ? { opacity: 0.6 } : null}>
         {/* ACCORDION SYARAT & KETENTUAN */}
         <View style={styles.termsSection}>
           <TouchableOpacity
@@ -422,6 +442,15 @@ const OrderDetailScreen = () => {
                   ❌ {item}
                 </Text>
               ))}
+              <View style={styles.dividerSmall} />
+              <Text style={styles.sectionHeading}>
+                Note:
+              </Text>
+              {currentTerms.notes.map((item, index) => (
+                <Text key={`exc-${index}`} style={styles.textCross}>
+                  {item}
+                </Text>
+              ))}
             </View>
           )}
         </View>
@@ -461,9 +490,9 @@ const OrderDetailScreen = () => {
                 />
               ))
             ) : (
-              <View style={{padding: 30, alignItems: 'center'}}>
+              <View style={{ padding: 30, alignItems: 'center' }}>
                 <Ionicons name="alert-circle-outline" size={40} color="#ccc" />
-                <Text style={{color: '#999', marginTop: 10}}>
+                <Text style={{ color: '#999', marginTop: 10 }}>
                   Belum ada daftar layanan.
                 </Text>
               </View>
@@ -497,28 +526,30 @@ const OrderDetailScreen = () => {
         </View>
 
         {/* 3. WAKTU */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            Pukul berapa membutuhkan layanan *
-          </Text>
-          <View style={styles.timeInputContainer}>
-            <TextInput
-              style={styles.timeInput}
-              value={inputHour}
-              onChangeText={t => setInputHour(t.replace(/[^0-9]/g, ''))}
-              keyboardType="number-pad"
-              maxLength={2}
-            />
-            <Text style={styles.timeSeparator}>:</Text>
-            <TextInput
-              style={styles.timeInput}
-              value={inputMinute}
-              onChangeText={t => setInputMinute(t.replace(/[^0-9]/g, ''))}
-              keyboardType="number-pad"
-              maxLength={2}
-            />
+        {!isTimeHidden() && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>
+              Pukul berapa membutuhkan layanan *
+            </Text>
+            <View style={styles.timeInputContainer}>
+              <TextInput
+                style={styles.timeInput}
+                value={inputHour}
+                onChangeText={t => setInputHour(t.replace(/[^0-9]/g, ''))}
+                keyboardType="number-pad"
+                maxLength={2}
+              />
+              <Text style={styles.timeSeparator}>:</Text>
+              <TextInput
+                style={styles.timeInput}
+                value={inputMinute}
+                onChangeText={t => setInputMinute(t.replace(/[^0-9]/g, ''))}
+                keyboardType="number-pad"
+                maxLength={2}
+              />
+            </View>
           </View>
-        </View>
+        )}
 
         {/* 4. KALENDER */}
         <View style={styles.section}>
@@ -527,7 +558,7 @@ const OrderDetailScreen = () => {
             minDate={today}
             onDayPress={(day: any) => setSelectedDate(day.dateString)}
             markedDates={{
-              [selectedDate]: {selected: true, selectedColor: '#633594'},
+              [selectedDate]: { selected: true, selectedColor: '#633594' },
             }}
             theme={{
               todayTextColor: '#633594',
@@ -540,7 +571,7 @@ const OrderDetailScreen = () => {
 
       {/* BOTTOM BAR */}
       <View style={styles.bottomBar}>
-        <View style={{flex: 1}}>
+        <View style={{ flex: 1 }}>
           <Text style={styles.totalLabel}>Total Estimasi</Text>
           <Text style={styles.totalValue}>
             Rp{(total || 0).toLocaleString('id-ID')}
@@ -554,7 +585,7 @@ const OrderDetailScreen = () => {
             <Text
               style={[
                 styles.minOrder,
-                {color: '#633594', textDecorationLine: 'none'},
+                { color: '#633594', textDecorationLine: 'none' },
               ]}>
               Belum termasuk biaya layanan ⓘ
             </Text>
@@ -562,7 +593,7 @@ const OrderDetailScreen = () => {
         </View>
 
         <TouchableOpacity
-          style={[styles.btnPesan, isClosed && {backgroundColor: '#94A3B8'}]}
+          style={[styles.btnPesan, isClosed && { backgroundColor: '#94A3B8' }]}
           onPress={handleNext}>
           <Text style={styles.btnPesanText}>
             {isClosed ? 'Mitra Tutup' : 'Lanjutkan'}
@@ -581,28 +612,28 @@ const OrderDetailScreen = () => {
             padding: 12,
             borderRadius: 20,
           }}>
-          <Text style={{color: '#fff'}}>{toastMsg}</Text>
+          <Text style={{ color: '#fff' }}>{toastMsg}</Text>
         </View>
       )}
     </View>
   );
 };
 const styles = StyleSheet.create({
-  section: {padding: 20, borderBottomWidth: 1, borderBottomColor: '#f0f0f0'},
+  section: { padding: 20, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
   sectionTitle: {
     fontWeight: 'bold',
     fontSize: 15,
     marginBottom: 5,
     color: '#1F2937',
   },
-  sectionSubtitle: {fontSize: 12, color: '#6B7280', marginBottom: 15},
+  sectionSubtitle: { fontSize: 12, color: '#6B7280', marginBottom: 15 },
   optionsContainer: {
     borderWidth: 1,
     borderColor: '#F3F4F6',
     borderRadius: 12,
     overflow: 'hidden',
   },
-  row: {flexDirection: 'row', gap: 12},
+  row: { flexDirection: 'row', gap: 12 },
   typeBtn: {
     flex: 1,
     padding: 12,
@@ -611,9 +642,9 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
   },
-  typeBtnActive: {borderColor: '#633594', backgroundColor: '#F5F3FF'},
-  typeBtnText: {color: '#4B5563', fontSize: 14},
-  typeBtnTextActive: {color: '#633594', fontWeight: 'bold'},
+  typeBtnActive: { borderColor: '#633594', backgroundColor: '#F5F3FF' },
+  typeBtnText: { color: '#4B5563', fontSize: 14 },
+  typeBtnTextActive: { color: '#633594', fontWeight: 'bold' },
   timeInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -654,16 +685,16 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 10,
   },
-  totalLabel: {fontSize: 11, color: '#6B7280', textTransform: 'uppercase'},
-  totalValue: {fontSize: 20, fontWeight: 'bold', color: '#633594'},
-  minOrder: {fontSize: 10, color: '#EF4444', marginTop: 2},
+  totalLabel: { fontSize: 11, color: '#6B7280', textTransform: 'uppercase' },
+  totalValue: { fontSize: 20, fontWeight: 'bold', color: '#633594' },
+  minOrder: { fontSize: 10, color: '#EF4444', marginTop: 2 },
   btnPesan: {
     backgroundColor: '#633594',
     paddingVertical: 14,
     paddingHorizontal: 30,
     borderRadius: 12,
   },
-  btnPesanText: {color: '#fff', fontWeight: 'bold', fontSize: 16},
+  btnPesanText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
   customHeader: {
     backgroundColor: '#633594',
     // Tinggi header standar biasanya 56-60 (di luar safe area)
