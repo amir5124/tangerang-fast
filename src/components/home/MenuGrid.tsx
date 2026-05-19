@@ -1,8 +1,9 @@
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, Image, Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Shimmer } from '../../components/home/Shimmer';
 import api from '../../utils/api';
+const { width: windowWidth } = Dimensions.get('window');
 
 // Base URL untuk gambar dari backend
 const IMAGE_BASE_URL = 'https://backend.tangerangfast.online';
@@ -11,8 +12,8 @@ export const MenuGrid = () => {
   const router = useRouter();
   const [dbAssets, setDbAssets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
 
-  // Ambil data assets dari database saat komponen dimuat
   useEffect(() => {
     const loadAssets = async () => {
       try {
@@ -27,127 +28,53 @@ export const MenuGrid = () => {
     loadAssets();
   }, []);
 
-  // Fungsi Helper untuk mendapatkan URL gambar berdasarkan key_name
-  const getImageUrl = (keyName: string, defaultUrl: string) => {
-    const asset = dbAssets.find(a => a.key_name === keyName);
-    return asset?.image_url
-      ? `${IMAGE_BASE_URL}${asset.image_url}`
-      : defaultUrl;
-  };
-
-  const popularServices = [
-    {
-      id: 1,
-      title: 'Service AC',
-      image: getImageUrl(
-        'popular_service_1',
-        'https://res.cloudinary.com/dgsdmgcc7/image/upload/v1769957885/ac_i3fgtf.jpg',
-      ),
-      category: 'ac',
-    },
-    {
-      id: 2,
-      title: 'Cleaning Service',
-      image: getImageUrl(
-        'popular_service_2',
-        'https://res.cloudinary.com/dgsdmgcc7/image/upload/v1765960038/clean_ndmyx7.jpg',
-      ),
-      category: 'cleaning',
-    },
+  // Filter Jasa Terpopuler untuk Modal "All"
+  const popularServices = dbAssets.filter(asset =>
+    asset.key_name?.includes('popular_service')
+  );
+  // Filter Kategori Menu Utama
+  const menuOrder = [
+    'icon_ac',
+    'icon_cleaning',
+    'icon_wc',
+    'icon_rigid',
+    'icon_kebun',
+    'icon_korporasi',
+    'icon_bangunan'
   ];
 
-  const categories = [
-    { id: 1, title: 'Perbaikan\nAC', category: 'ac', key: 'icon_ac' },
-    {
-      id: 2,
-      title: 'Jasa\nKebersihan',
-      category: 'cleaning',
-      key: 'icon_cleaning',
-    },
-    { id: 3, title: 'Sedot\nWC', category: 'wc', key: 'icon_wc' },
-    {
-      id: 4,
-      title: 'ART\nBabysitter',
-      category: 'art',
-      key: 'icon_rigid',
-    },
-    {
-      id: 5,
-      title: 'Tukang\nBangunan',
-      category: 'bangunan',
-      key: 'icon_bangunan',
-    },
-    { id: 6, title: 'Jasa\nLaundry', category: 'kebun', key: 'icon_kebun' },
-    // {
-    //   id: 7,
-    //   title: 'Layanan\nKorporasi',
-    //   category: 'korporasi',
-    //   key: 'icon_korporasi',
-    // },
-    // {id: 8, title: 'Ojek\nOnline', category: 'ojek', key: 'icon_ojek'},
-  ];
+  const categories = menuOrder.map(key => dbAssets.find(a => a.key_name === key)).filter(Boolean);
 
-  const handlePress = (category: string) => {
-    const restricted = ['bangunan', 'kebun', 'korporasi', 'ojek', 'rigid'];
+  const handlePress = (keyName: string) => {
+    const navigationMap: any = {
+      'icon_ac': { pathname: '/order-detail', params: { id: '16', user_id: '25', title: 'TangerangFast' } },
+      'icon_cleaning': { pathname: '/order-detail', params: { id: '19', user_id: '38', title: 'TangerangFast Service' } },
+      'icon_wc': { pathname: '/order-detail', params: { id: '22', user_id: '58', title: 'Vendor Rijit' } },
+      'icon_rigid': { pathname: '/order-detail', params: { id: '23', user_id: '59', title: 'Vendor ART' } },
+    };
 
-    if (restricted.includes(category)) {
+    const restrictedKeys = ['icon_bangunan', 'icon_kebun', 'icon_korporasi', 'icon_ojek'];
+
+    if (restrictedKeys.includes(keyName)) {
       return router.push('/belum-tersedia');
     }
 
-    switch (category) {
-      case 'ac':
-        router.push({
-          pathname: '/order-detail',
-          // params: {id: '11', user_id: '15', title: 'TangerangFast'},
-          params: { id: '16', user_id: '25', title: 'TangerangFast' },
-        });
-        break;
-      case 'cleaning':
-        router.push({
-          pathname: '/order-detail',
-          params: { id: '19', user_id: '38', title: 'TangerangFast Service' },
-        });
-        break;
-      case 'wc':
-        router.push({
-          pathname: '/order-detail',
-          params: { id: '22', user_id: '58', title: 'Vendor Rijit' },
-        });
-        break;
-      case 'art':
-        router.push({
-          pathname: '/order-detail',
-          params: { id: '23', user_id: '59', title: 'Vendor ART' },
-        });
-        break;
-      default:
-        console.log('Navigasi ke kategori:', category);
+    const target = navigationMap[keyName];
+    if (target) {
+      router.push(target);
     }
   };
 
   if (loading) {
     return (
       <View style={styles.container}>
-        {/* Skeleton Header */}
         <View style={styles.sectionHeader}>
           <Shimmer style={{ width: 120, height: 20, borderRadius: 4 }} />
         </View>
-
-        {/* Skeleton Jasa Terpopuler */}
-        <View style={styles.popularRow}>
-          <Shimmer style={[styles.popularImage, { width: '48%', height: 110 }]} />
-          <Shimmer style={[styles.popularImage, { width: '48%', height: 110 }]} />
-        </View>
-
-        {/* Skeleton Kategori Grid */}
-        <View style={[styles.sectionHeader, { marginTop: 35 }]}>
-          <Shimmer style={{ width: 100, height: 20, borderRadius: 4 }} />
-        </View>
-
         <View style={styles.categoryGrid}>
           {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
             <View key={i} style={styles.categoryItem}>
-              <Shimmer style={[styles.categoryCard, { width: '100%' }]} />
+              <Shimmer style={[styles.categoryCard, { width: '100%', height: 85 }]} />
             </View>
           ))}
         </View>
@@ -157,26 +84,7 @@ export const MenuGrid = () => {
 
   return (
     <View style={styles.container}>
-      {/* Section: Jasa Terpopuler */}
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Jasa Terpopuler</Text>
-      </View>
-
-      <View style={styles.popularRow}>
-        {popularServices.map(item => (
-          <TouchableOpacity
-            key={item.id}
-            style={styles.popularCard}
-            activeOpacity={1}
-            onPress={() => handlePress(item.category)}>
-            <Image source={{ uri: item.image }} style={styles.popularImage} />
-            <Text style={styles.popularText}>{item.title}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Section: Kategori */}
-      <View style={[styles.sectionHeader, { marginTop: 35 }]}>
+      <View style={[styles.sectionHeader, { marginTop: 20 }]}>
         <Text style={styles.sectionTitle}>Kategori Layanan</Text>
       </View>
 
@@ -185,23 +93,70 @@ export const MenuGrid = () => {
           <TouchableOpacity
             key={item.id}
             style={styles.categoryItem}
-            activeOpacity={1}
-            onPress={() => handlePress(item.category)}>
+            activeOpacity={0.8}
+            onPress={() => handlePress(item.key_name)}>
+            {/* Background pembungkus diubah ke putih */}
             <View style={styles.categoryCard}>
               <Image
-                source={{
-                  uri: getImageUrl(
-                    item.key,
-                    'https://kilaugroup.co.id/placeholder.png',
-                  ),
-                }}
+                source={{ uri: `${IMAGE_BASE_URL}${item.image_url}` }}
                 style={styles.categoryIcon}
               />
-              <Text style={styles.categoryText}>{item.title}</Text>
+              {/* Nama menu ditampilkan penuh, tidak di-split */}
+              <Text style={styles.categoryText}>
+                {item.key_name === 'icon_bangunan' ? 'Toko' : item.display_name}
+              </Text>
             </View>
           </TouchableOpacity>
         ))}
+
+        <TouchableOpacity
+          style={styles.categoryItem}
+          activeOpacity={0.8}
+          onPress={() => setShowModal(true)}>
+          <View style={styles.categoryCard}>
+            <Image
+              source={{ uri: 'https://cdn-icons-png.flaticon.com/512/2311/2311523.png' }}
+              style={styles.categoryIcon}
+            />
+            <Text style={styles.categoryText}>All</Text>
+          </View>
+        </TouchableOpacity>
       </View>
+
+      <Modal
+        visible={showModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowModal(false)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setShowModal(false)}>
+          <View style={styles.bottomSheet}>
+            <View style={styles.dragHandle} />
+            <Text style={styles.modalTitle}>Semua Layanan</Text>
+            <View style={styles.modalGrid}>
+              {popularServices.map(item => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={styles.modalItem}
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    setShowModal(false);
+                    handlePress(item.key_name);
+                  }}>
+                  <View style={styles.modalIconWrapper}>
+                    <Image
+                      source={{ uri: `${IMAGE_BASE_URL}${item.image_url}` }}
+                      style={styles.modalIcon}
+                    />
+                  </View>
+                  <Text style={styles.modalText} numberOfLines={2}>
+                    {item.display_name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 };
@@ -223,70 +178,115 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#633594',
   },
-  seeAll: {
-    color: '#28a745',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  popularRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 20,
-  },
-  popularCard: {
-    width: '48%',
-    backgroundColor: '#fff',
-  },
-  popularImage: {
-    width: '100%',
-    height: 110,
-    borderRadius: 12,
-    backgroundColor: '#f8f8f8',
-  },
-  popularText: {
-    textAlign: 'center',
-    marginTop: 10,
-    fontWeight: '600',
-    color: '#333',
-    fontSize: 14,
-  },
   categoryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'flex-start', // Tetap flex-start agar sejajar rapi
+    justifyContent: 'flex-start', // Rata kiri, jarak antar card diatur oleh 'gap'
     marginTop: 20,
+    paddingHorizontal: 0, // Jarak di sisi kanan-kiri layar utama
+
+    // KUNCI MENAMBAHKAN JARAK:
+    gap: 12, // Menambahkan jarak 12px horizontal dan vertikal antar card secara otomatis
   },
   categoryItem: {
-    width: '33.3%', // Diubah ke 33.3% agar menjadi 3 kolom per baris
-    padding: 8, // Padding sedikit diperbesar agar antar card ada jarak manis
-    marginBottom: 5,
+    // Diubah ke 22% agar sisa space-nya pas diisi oleh properti gap di atas
+    width: '22%',
+    // marginBottom: 12, <-- Bisa dihapus karena sudah diatur otomatis oleh 'gap' vertikal
   },
   categoryCard: {
     backgroundColor: '#fff',
-    borderRadius: 12,
-    paddingVertical: 10,
+    borderRadius: 15,
     alignItems: 'center',
-    height: 95, // Tinggi tetap sama sesuai permintaan Anda
     justifyContent: 'center',
+    aspectRatio: 1,
+    padding: 10,
+
+    // Shadow & Border
     borderWidth: 1,
-    borderColor: '#f0f0f0',
+    borderColor: '#f5f5f5',
     elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
   },
   categoryIcon: {
-    width: 45, // Ukuran icon bisa dinaikkan sedikit karena ruang lebih luas
-    height: 45,
-    marginBottom: 8,
+    width: 40,
+    height: 40,
+    marginBottom: 6,
     resizeMode: 'contain',
   },
   categoryText: {
     textAlign: 'center',
-    fontSize: 11, // Ukuran font dinaikkan dari 9 ke 11 agar lebih jelas
+    fontSize: 10,
     color: '#444',
+    fontWeight: '700',
+    paddingHorizontal: 2,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  bottomSheet: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+    minHeight: '60%',
+  },
+  dragHandle: {
+    width: 40,
+    height: 5,
+    backgroundColor: '#ccc',
+    borderRadius: 10,
+    alignSelf: 'center',
+    marginVertical: 15,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 25,
+    color: '#333',
+    textAlign: 'left',
+  },
+  modalGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-start',
+  },
+  modalItem: {
+    width: '25%',
+    alignItems: 'center',
+    marginBottom: 20,
+    paddingHorizontal: 5,
+  },
+  modalIconWrapper: {
+    width: '100%',
+    aspectRatio: 1,
+    backgroundColor: '#fff',
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
+  },
+  modalIcon: {
+    width: '70%',
+    height: '70%',
+    resizeMode: 'contain',
+  },
+  modalText: {
+    marginTop: 8,
+    fontSize: 10,
     fontWeight: '600',
-    lineHeight: 14,
+    color: '#444',
+    textAlign: 'center',
   },
 });

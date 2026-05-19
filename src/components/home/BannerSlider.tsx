@@ -1,20 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Dimensions,
   Image,
   NativeScrollEvent,
   NativeSyntheticEvent,
   ScrollView,
   StyleSheet,
   View,
+  useWindowDimensions, // Ganti dengan ini
 } from 'react-native';
-import API from '../../utils/api'; 
-import { Shimmer } from '../../components/home/Shimmer';
+import API from '../../utils/api';
+import { BannerShimmer } from './BannerShimmer';
 
-const {width: PAGE_WIDTH} = Dimensions.get('window');
-
-// Definisikan tipe data sesuai tabel app_assets
 interface BannerData {
   id: number;
   image_url: string;
@@ -23,30 +19,26 @@ interface BannerData {
 }
 
 export const BannerSlider = () => {
+  const { width: PAGE_WIDTH } = useWindowDimensions(); // Hook untuk mendapatkan width dinamis
   const [banners, setBanners] = useState<BannerData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [containerHeight, setContainerHeight] = useState(220);
 
   const scrollViewRef = useRef<ScrollView>(null);
   const autoPlayTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // --- FETCH DATA DARI BACKEND ---
   const fetchBanners = async () => {
     try {
       setIsLoading(true);
       const response = await API.get('/assets');
-
-      // Ganti dengan domain backend Anda
       const BASE_URL = 'https://backend.tangerangfast.online';
 
       const formattedData = response.data
-        // 1. Filter berdasarkan key_name yang mengandung kata 'banner'
-        // karena kolom category Anda saat ini masih null
         .filter(
           (item: BannerData) =>
             item.key_name && item.key_name.toLowerCase().includes('banner'),
         )
-        // 2. Rakit URL gambar agar menjadi URL lengkap
         .map((item: BannerData) => ({
           ...item,
           image_url: item.image_url.startsWith('http')
@@ -55,6 +47,16 @@ export const BannerSlider = () => {
         }));
 
       setBanners(formattedData);
+
+      // Get dimensions of first image to set container height
+      if (formattedData.length > 0) {
+        Image.getSize(formattedData[0].image_url, (width, height) => {
+          const aspectRatio = height / width;
+          const calculatedHeight = PAGE_WIDTH * aspectRatio;
+          setContainerHeight(calculatedHeight);
+        });
+      }
+
     } catch (error) {
       console.error('Error Fetch Banners:', error);
     } finally {
@@ -66,7 +68,27 @@ export const BannerSlider = () => {
     fetchBanners();
   }, []);
 
-  // --- LOGIKA AUTOPLAY ---
+  // Update height ketika width berubah (device rotation)
+  useEffect(() => {
+    if (banners.length > 0 && banners[0]?.image_url) {
+      Image.getSize(banners[0].image_url, (width, height) => {
+        const aspectRatio = height / width;
+        const calculatedHeight = PAGE_WIDTH * aspectRatio;
+        setContainerHeight(calculatedHeight);
+      });
+    }
+  }, [PAGE_WIDTH, banners]);
+
+  // Reset scroll position when width changes
+  useEffect(() => {
+    if (scrollViewRef.current && banners.length > 0) {
+      scrollViewRef.current.scrollTo({
+        x: activeIndex * PAGE_WIDTH,
+        animated: false,
+      });
+    }
+  }, [PAGE_WIDTH, activeIndex, banners.length]);
+
   useEffect(() => {
     if (banners.length > 0) {
       startAutoPlay();
@@ -81,7 +103,6 @@ export const BannerSlider = () => {
       if (nextIndex >= banners.length) {
         nextIndex = 0;
       }
-
       scrollViewRef.current?.scrollTo({
         x: nextIndex * PAGE_WIDTH,
         animated: true,
@@ -102,27 +123,17 @@ export const BannerSlider = () => {
     setActiveIndex(Math.round(index));
   };
 
-  // Tampilkan loading jika data belum siap
+  // Loading state
   if (isLoading) {
-    return (
-     <View style={styles.container}>
-      {/* Shimmer berbentuk kotak banner */}
-      <Shimmer style={styles.image} />
-      {/* Shimmer untuk dots */}
-      <View style={[styles.dotRow, { bottom: 15 }]}>
-        {[1, 2, 3].map(i => (
-          <Shimmer key={i} style={[styles.dot, { width: 10, backgroundColor: '#E1E9EE' }]} />
-        ))}
-      </View>
-    </View>
-    );
+    return <BannerShimmer height={containerHeight} />;
   }
 
-  // Jika data kosong, sembunyikan slider
+  // Empty state
   if (banners.length === 0) return null;
 
+  // Actual banner slider
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { height: containerHeight }]}>
       <ScrollView
         ref={scrollViewRef}
         horizontal
@@ -132,22 +143,25 @@ export const BannerSlider = () => {
         scrollEventThrottle={16}
         onTouchStart={stopAutoPlay}
         onTouchEnd={startAutoPlay}
-        style={styles.scrollView}>
-        {banners.map(item => (
-          <View key={item.id.toString()} style={styles.slide}>
-            {/* Sesuaikan uri dengan kolom image_url dari database */}
-            <Image source={{uri: item.image_url}} style={styles.image} />
+        decelerationRate="fast">
+        {banners.map((item, index) => (
+          <View key={item.id.toString()} style={[styles.slide, { width: PAGE_WIDTH }]}>
+            <Image
+              source={{ uri: item.image_url }}
+              style={{ width: PAGE_WIDTH, height: containerHeight, resizeMode: 'cover' }}
+            />
           </View>
         ))}
       </ScrollView>
 
+      {/* Dots Indicator */}
       <View style={styles.dotRow}>
         {banners.map((_, i) => (
           <View
             key={i}
             style={[
               styles.dot,
-              activeIndex === i ? styles.active : styles.inactive,
+              activeIndex === i ? styles.activeDot : styles.inactiveDot,
             ]}
           />
         ))}
@@ -158,39 +172,33 @@ export const BannerSlider = () => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#fff',
-    // Menghilangkan paddingVertical jika ingin benar-benar menempel ke atas/bawah
-    paddingVertical: 0,
+    backgroundColor: '#f5f5f5',
+    position: 'relative',
   },
-  scrollView: {width: PAGE_WIDTH},
   slide: {
-    width: PAGE_WIDTH,
-    paddingHorizontal: 0, // Width 100% tanpa jarak samping
-  },
-  image: {
-    width: PAGE_WIDTH, // Menggunakan PAGE_WIDTH agar presisi
-    height: 220, // Tinggi disesuaikan agar proporsional di layar lebar
-    borderRadius: 0, // Radius dihilangkan
-    resizeMode: 'cover',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   dotRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    position: 'absolute', // Menaruh dots di atas gambar agar lebih hemat ruang
-    bottom: 15, // Jarak dari bawah gambar
-    width: '100%',
+    alignItems: 'center',
+    position: 'absolute',
+    bottom: 12,
+    left: 0,
+    right: 0,
   },
   dot: {
-    height: 4,
-    borderRadius: 2,
-    marginHorizontal: 3,
+    height: 8,
+    borderRadius: 4,
+    marginHorizontal: 4,
   },
-  active: {
-    width: 16,
-    backgroundColor: '#fff', // Putih agar terlihat di atas gambar
+  activeDot: {
+    width: 24,
+    backgroundColor: '#FFFFFF',
   },
-  inactive: {
-    width: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)', // Transparan putih
+  inactiveDot: {
+    width: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
   },
 });

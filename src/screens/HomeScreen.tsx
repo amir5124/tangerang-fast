@@ -1,21 +1,20 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Dimensions,
   Image,
   RefreshControl,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
+  useWindowDimensions, // Tambahkan ini
 } from 'react-native';
 import { MenuGrid } from '../../src/components/home/MenuGrid';
 import api from '../../src/utils/api';
 import { BannerSlider } from '../components/home/BannerSlider';
 
-const { width } = Dimensions.get('window');
 const IMAGE_BASE_URL = 'https://backend.tangerangfast.online';
-const CARD_WIDTH = width * 0.55 + 15; // Lebar kartu + margin kanan
 
 interface PromoState {
   image: string | null;
@@ -32,31 +31,73 @@ interface Review {
   store_name?: string;
 }
 
+interface Voucher {
+  id: number;
+  code: string;
+  description: string;
+  image_url: string;
+  discount_type: string;
+  discount_percent: number;
+  max_discount_amount: string;
+  min_purchase: string;
+  is_active: number;
+  usage_limit: number;
+  expired_at: string | null;
+  created_at: string;
+}
+
 export default function HomeScreen() {
+  const { width: screenWidth } = useWindowDimensions(); // Untuk responsive
+
+  // Hitung dimensi responsive
+  const CARD_WIDTH = screenWidth * 0.55 + 15;
+  const VOUCHER_CARD_WIDTH = screenWidth * 0.90;
+  const PADDING_LEFT = 20;
+  const VOUCHER_CARD_MARGIN = 12;
+  const VOUCHER_ITEM_WIDTH = VOUCHER_CARD_WIDTH + VOUCHER_CARD_MARGIN;
+  const RIGHT_PADDING = screenWidth - VOUCHER_CARD_WIDTH;
+
   const [refreshing, setRefreshing] = useState(false);
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [vouchers, setVouchers] = useState<Voucher[]>([]);
+  const [voucherIndex, setVoucherIndex] = useState(0);
   const [promoData, setPromoData] = useState<PromoState>({
     image: null,
     title: 'Promo Spesial',
     description: 'Memuat promo terbaru untukmu...',
   });
 
-  // Ref untuk Auto Slide
   const scrollRef = useRef<ScrollView>(null);
+  const voucherScrollRef = useRef<ScrollView>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  // Reset scroll position when screen width changes
+  useEffect(() => {
+    if (scrollRef.current && reviews.length > 0) {
+      scrollRef.current.scrollTo({
+        x: currentIndex * CARD_WIDTH,
+        animated: false,
+      });
+    }
+  }, [screenWidth, currentIndex, reviews.length, CARD_WIDTH]);
+
+  useEffect(() => {
+    if (voucherScrollRef.current && vouchers.length > 0) {
+      voucherScrollRef.current.scrollTo({
+        x: voucherIndex * VOUCHER_ITEM_WIDTH,
+        animated: false,
+      });
+    }
+  }, [screenWidth, voucherIndex, vouchers.length, VOUCHER_ITEM_WIDTH]);
 
   const fetchReviews = async () => {
     try {
       const response = await api.get('/reviews/latest-all');
       if (response.data.success) {
-        // Tambahkan ": Review[]" di sini agar TS tahu ini adalah array ulasan
         const data: Review[] = response.data.latest_comments || [];
-
-        // Filter sekarang tidak akan merah karena TS sudah tahu 'v' dan 't' punya 'review_id'
         const uniqueData = data.filter((v, i, a) =>
           a.findIndex(t => t.review_id === v.review_id) === i
         );
-
         setReviews(uniqueData);
       }
     } catch (error) {
@@ -91,38 +132,57 @@ export default function HomeScreen() {
     }
   };
 
+  const fetchVouchers = async () => {
+    const res = await api.get('/voucher');
+    setVouchers(res.data.data || []);
+  };
+
   useEffect(() => {
     fetchPromoAssets();
     fetchReviews();
+    fetchVouchers();
   }, []);
 
-  // Logika Auto Slide untuk Review
+  // Auto Slide Review
   useEffect(() => {
     if (reviews.length > 0) {
       const interval = setInterval(() => {
         let nextIndex = currentIndex + 1;
-
-        // Jika sudah mencapai akhir, kembali ke awal
         if (nextIndex >= reviews.length) {
           nextIndex = 0;
         }
-
         scrollRef.current?.scrollTo({
           x: nextIndex * CARD_WIDTH,
           animated: true,
         });
-
         setCurrentIndex(nextIndex);
-      }, 3000); // Geser setiap 3 detik
+      }, 3000);
 
       return () => clearInterval(interval);
     }
-  }, [currentIndex, reviews.length]);
+  }, [currentIndex, reviews.length, CARD_WIDTH]);
+
+  // Auto Slide Voucher
+  useEffect(() => {
+    if (vouchers.length > 0) {
+      const interval = setInterval(() => {
+        const nextIndex = (voucherIndex + 1) % vouchers.length;
+        voucherScrollRef.current?.scrollTo({
+          x: nextIndex * VOUCHER_ITEM_WIDTH,
+          animated: true,
+        });
+        setVoucherIndex(nextIndex);
+      }, 3500);
+
+      return () => clearInterval(interval);
+    }
+  }, [voucherIndex, vouchers.length, VOUCHER_ITEM_WIDTH]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([fetchPromoAssets(), fetchReviews()]);
-    setCurrentIndex(0); // Reset index saat refresh
+    await Promise.all([fetchPromoAssets(), fetchReviews(), fetchVouchers()]);
+    setCurrentIndex(0);
+    setVoucherIndex(0);
     setRefreshing(false);
   }, []);
 
@@ -171,14 +231,13 @@ export default function HomeScreen() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.reviewScroll}
               onMomentumScrollEnd={(e) => {
-                // Update index jika user menggeser manual
                 const contentOffset = e.nativeEvent.contentOffset.x;
                 const newIndex = Math.round(contentOffset / CARD_WIDTH);
                 setCurrentIndex(newIndex);
               }}
             >
               {reviews.map((item) => (
-                <View key={item.review_id} style={styles.reviewCard}>
+                <View key={item.review_id} style={[styles.reviewCard, { width: screenWidth * 0.55 }]}>
                   <View style={styles.profileContainer}>
                     <Image
                       source={
@@ -193,7 +252,7 @@ export default function HomeScreen() {
                     <Text style={styles.customerName} numberOfLines={1}>{item.full_name}</Text>
                     <RenderStars count={item.rating} />
                     <Text style={styles.commentText} numberOfLines={3}>
-                      “{item.comment}”
+                      "{item.comment}"
                     </Text>
                   </View>
                 </View>
@@ -202,31 +261,59 @@ export default function HomeScreen() {
           </View>
         )}
 
-        <View style={styles.promoSection}>
-          <Text style={[styles.sectionTitle, { marginLeft: -15 }]}>
-            Promo Spesial Untukmu
-          </Text>
+        {/* --- SECTION VOUCHER SLIDER MODERN --- */}
+        {vouchers.length > 0 && (
+          <View style={styles.voucherSection}>
+            <Text style={styles.sectionTitle}>Promo Spesial Untukmu</Text>
 
-          <View style={styles.promoCard}>
-            {promoData.image ? (
-              <Image
-                source={{ uri: promoData.image }}
-                style={styles.promoImageContent}
-              />
-            ) : (
-              <View
-                style={[styles.promoImageContent, { backgroundColor: '#f0f0f0' }]}
-              />
-            )}
+            <ScrollView
+              ref={voucherScrollRef}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              snapToInterval={VOUCHER_ITEM_WIDTH}
+              decelerationRate="fast"
+              snapToAlignment="start"
+              disableIntervalMomentum={true}
+              contentContainerStyle={[styles.contentContainer, { paddingRight: RIGHT_PADDING }]}
+              onMomentumScrollEnd={(e) => {
+                const contentOffset = e.nativeEvent.contentOffset.x;
+                const newIndex = Math.round(contentOffset / VOUCHER_ITEM_WIDTH);
+                setVoucherIndex(Math.max(0, Math.min(newIndex, vouchers.length - 1)));
+              }}
+            >
+              {vouchers.map((item) => (
+                <View key={item.id} style={[styles.voucherCard, { width: VOUCHER_CARD_WIDTH }]}>
+                  <Image
+                    source={{ uri: `${IMAGE_BASE_URL}${item.image_url}` }}
+                    style={styles.voucherImage}
+                    resizeMode="cover"
+                  />
+                </View>
+              ))}
+            </ScrollView>
 
-            <View style={styles.promoTextContainer}>
-              <Text style={styles.promoTitle}>{promoData.title}</Text>
-              <Text style={styles.promoDescription}>
-                {promoData.description}
-              </Text>
+            {/* Dots Indicator */}
+            <View style={styles.dotsContainer}>
+              {vouchers.map((_, index) => (
+                <TouchableOpacity
+                  key={index}
+                  onPress={() => {
+                    voucherScrollRef.current?.scrollTo({
+                      x: index * VOUCHER_ITEM_WIDTH,
+                      animated: true,
+                    });
+                    setVoucherIndex(index);
+                  }}
+                  style={[
+                    styles.dot,
+                    index === voucherIndex ? styles.dotActive : styles.dotInactive,
+                  ]}
+                />
+              ))}
             </View>
           </View>
-        </View>
+        )}
+
       </ScrollView>
     </View>
   );
@@ -259,7 +346,6 @@ const styles = StyleSheet.create({
     paddingBottom: 15,
   },
   reviewCard: {
-    width: width * 0.55,
     backgroundColor: '#f9f9f9',
     borderRadius: 20,
     padding: 15,
@@ -313,10 +399,48 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     lineHeight: 18,
   },
-  promoSection: {
-    paddingHorizontal: 20,
+
+  // ---- Voucher Section ----
+  voucherSection: {
     marginTop: 10,
-    paddingBottom: 80,
+    paddingBottom: 30,
+  },
+  contentContainer: {
+    paddingLeft: 20,
+    paddingBottom: 10,
+  },
+  voucherCard: {
+    marginRight: 12,
+    borderRadius: 15,
+    overflow: 'hidden',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    backgroundColor: '#fff',
+  },
+  voucherImage: {
+    width: '100%',
+    aspectRatio: 5 / 2,
+  },
+  dotsContainer: {
+    flexDirection: 'row',
+    marginTop: 12,
+    paddingLeft: 20,
+  },
+  dot: {
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
+  },
+  dotActive: {
+    width: 20,
+    backgroundColor: '#633594',
+  },
+  dotInactive: {
+    width: 8,
+    backgroundColor: '#D0B8E8',
   },
   sectionTitle: {
     fontSize: 18,
@@ -324,34 +448,5 @@ const styles = StyleSheet.create({
     color: '#633594',
     marginBottom: 15,
     paddingHorizontal: 20,
-  },
-  promoCard: {
-    backgroundColor: '#fff',
-    borderRadius: 15,
-    overflow: 'hidden',
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-  },
-  promoImageContent: {
-    width: '100%',
-    aspectRatio: 16 / 9,
-    resizeMode: 'cover',
-  },
-  promoTextContainer: {
-    padding: 15,
-  },
-  promoTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-    marginBottom: 6,
-  },
-  promoDescription: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 20,
   },
 });

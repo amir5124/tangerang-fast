@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, ViewStyle } from 'react-native';
+import { Animated, ViewStyle } from 'react-native';
 
 export const Shimmer = ({ style }: { style: ViewStyle | ViewStyle[] }) => {
   const pulseAnim = useRef(new Animated.Value(0.3)).current;
