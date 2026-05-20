@@ -46,22 +46,35 @@ export const MenuGrid = () => {
   const categories = menuOrder.map(key => dbAssets.find(a => a.key_name === key)).filter(Boolean);
 
   const handlePress = (keyName: string) => {
+    // Mapping untuk navigasi ke halaman spesifik
     const navigationMap: any = {
-      'icon_ac': { pathname: '/order-detail', params: { id: '16', user_id: '25', title: 'TangerangFast' } },
-      'icon_cleaning': { pathname: '/order-detail', params: { id: '19', user_id: '38', title: 'TangerangFast Service' } },
-      'icon_wc': { pathname: '/order-detail', params: { id: '22', user_id: '58', title: 'Vendor Rijit' } },
-      'icon_rigid': { pathname: '/order-detail', params: { id: '23', user_id: '59', title: 'Vendor ART' } },
+      'icon_ac': { pathname: '/service-ac' },
+      'icon_cleaning': { pathname: '/cleaning-service' },
+      'icon_wc': { pathname: '/sedot-wc' },
+      // 'icon_rigid': { pathname: '/order-detail', params: { id: '23', user_id: '59', title: 'Vendor ART' } },
     };
 
-    const restrictedKeys = ['icon_bangunan', 'icon_kebun', 'icon_korporasi', 'icon_ojek'];
+    // Daftar menu yang belum tersedia
+    const unavailableKeys = ['icon_bangunan', 'icon_kebun', 'icon_korporasi', 'icon_ojek', 'icon_rigid'];
 
-    if (restrictedKeys.includes(keyName)) {
+    // Cek apakah menu belum tersedia
+    if (unavailableKeys.includes(keyName)) {
       return router.push('/belum-tersedia');
     }
 
+    // Cek apakah ada mapping untuk menu tersebut
     const target = navigationMap[keyName];
     if (target) {
-      router.push(target);
+      // Jika target memiliki params, gunakan push dengan params
+      if (target.params) {
+        router.push(target);
+      } else {
+        // Jika tidak ada params, langsung arahkan ke pathname
+        router.push(target.pathname);
+      }
+    } else {
+      // Jika tidak ada mapping, arahkan ke belum-tersedia
+      router.push('/belum-tersedia');
     }
   };
 
@@ -181,17 +194,13 @@ const styles = StyleSheet.create({
   categoryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'flex-start', // Rata kiri, jarak antar card diatur oleh 'gap'
+    justifyContent: 'flex-start',
     marginTop: 20,
-    paddingHorizontal: 0, // Jarak di sisi kanan-kiri layar utama
-
-    // KUNCI MENAMBAHKAN JARAK:
-    gap: 12, // Menambahkan jarak 12px horizontal dan vertikal antar card secara otomatis
+    paddingHorizontal: 0,
+    gap: 12,
   },
   categoryItem: {
-    // Diubah ke 22% agar sisa space-nya pas diisi oleh properti gap di atas
     width: '22%',
-    // marginBottom: 12, <-- Bisa dihapus karena sudah diatur otomatis oleh 'gap' vertikal
   },
   categoryCard: {
     backgroundColor: '#fff',
@@ -200,8 +209,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     aspectRatio: 1,
     padding: 10,
-
-    // Shadow & Border
     borderWidth: 1,
     borderColor: '#f5f5f5',
     elevation: 3,

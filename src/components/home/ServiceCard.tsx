@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -16,7 +17,11 @@ interface ServiceCardProps {
     statusLabel: string;
     imageUrl: string;
     isVerified?: boolean;
-    onPress: () => void;
+    vendorId: string | number;
+    userId: string | number;
+    services: string;
+    category: string; // <-- TAMBAHKAN PROP category
+    onPress?: () => void; // Ubah menjadi optional karena kita akan handle sendiri
 }
 
 export const ServiceCard = ({
@@ -30,8 +35,13 @@ export const ServiceCard = ({
     statusLabel,
     imageUrl,
     isVerified,
+    vendorId,
+    userId,
+    services,
+    category, // <-- TAMBAHKAN INI
     onPress
 }: ServiceCardProps) => {
+    const router = useRouter();
 
     const statusBg = isOpen ? '#DCFCE7' : '#FEE2E2';
     const statusColor = isOpen ? '#15803D' : '#991B1B';
@@ -49,12 +59,33 @@ export const ServiceCard = ({
         return `${BASE_URL}${finalPath}`;
     };
 
+    const handlePress = () => {
+        if (!isOpen) return;
+
+        // Gunakan onPress dari props jika ada,否则 gunakan navigasi internal dengan category
+        if (onPress) {
+            onPress();
+        } else {
+            router.push({
+                pathname: '/order-detail',
+                params: {
+                    id: vendorId,
+                    user_id: userId,
+                    title: vendorName,
+                    services: services || "",
+                    rating: rating,
+                    category: category // <-- KIRIMKAN CATEGORY
+                }
+            });
+        }
+    };
+
     return (
         <TouchableOpacity
             style={styles.card}
-            onPress={onPress}
+            onPress={handlePress}
             activeOpacity={0.85}
-            disabled={!isOpen} // Opsional: Matikan klik pada seluruh kartu jika tutup
+            disabled={!isOpen}
         >
             {/* Header: Nama Toko */}
             <View style={styles.headerRow}>
@@ -115,10 +146,10 @@ export const ServiceCard = ({
                     <TouchableOpacity
                         style={[
                             styles.orderButton,
-                            !isOpen && { backgroundColor: '#CBD5E1' } // Background abu-abu jika tutup
+                            !isOpen && { backgroundColor: '#CBD5E1' }
                         ]}
-                        onPress={onPress}
-                        disabled={!isOpen} // Menonaktifkan tombol klik
+                        onPress={handlePress}
+                        disabled={!isOpen}
                     >
                         <Text style={styles.orderButtonText}>
                             {isOpen ? 'Pesan' : 'Tutup'}

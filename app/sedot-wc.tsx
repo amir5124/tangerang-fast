@@ -13,13 +13,13 @@ import {
     Text,
     View
 } from 'react-native';
-import { ServiceCard } from '../components/home/ServiceCard';
-import { ServiceCardSkeleton } from '../components/home/ServiceCardSkeleton';
-import API from '../utils/api';
+import { ServiceCard } from '../src/components/home/ServiceCard';
+import { ServiceCardSkeleton } from '../src/components/home/ServiceCardSkeleton';
+import API from '../src/utils/api';
 
 const BASE_URL = 'https://backend.tangerangfast.online';
 
-const CleaningServiceScreen = () => {
+const ServiceWcScreen = () => {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -36,7 +36,7 @@ const CleaningServiceScreen = () => {
         return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
     };
 
-    // Fungsi cek status buka sesuai format Service AC (Array schedule)
+    // Fungsi untuk mengecek status buka/tutup berdasarkan jam operasional
     const checkOpenStatus = (operatingHours: string | any[]) => {
         try {
             if (!operatingHours) return { isOpen: false, statusLabel: 'Tutup' };
@@ -50,7 +50,9 @@ const CleaningServiceScreen = () => {
             const daysMap = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
             const now = new Date();
             const currentDayName = daysMap[now.getDay()];
-            const currentTimeInt = (now.getHours() * 100) + now.getMinutes();
+
+            // Konversi waktu sekarang ke menit untuk perbandingan yang lebih akurat
+            const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
             const today = schedule.find(item => item.day === currentDayName);
 
@@ -58,15 +60,32 @@ const CleaningServiceScreen = () => {
                 return { isOpen: false, statusLabel: 'Tutup (Libur)' };
             }
 
-            const openTimeInt = parseInt(today.open.replace(':', ''));
-            const closeTimeInt = parseInt(today.close.replace(':', ''));
+            // Parse waktu buka dan tutup
+            const parseTimeToMinutes = (timeStr: string) => {
+                const [hours, minutes] = timeStr.split(':').map(Number);
+                return hours * 60 + minutes;
+            };
 
-            if (currentTimeInt >= openTimeInt && currentTimeInt <= closeTimeInt) {
-                return { isOpen: true, statusLabel: 'Buka' };
+            const openMinutes = parseTimeToMinutes(today.open);
+            const closeMinutes = parseTimeToMinutes(today.close);
+
+            let isOpen = false;
+
+            // Handle kasus tutup melewati tengah malam (contoh: 22:00 - 02:00)
+            if (closeMinutes < openMinutes) {
+                // Jika sekarang setelah buka ATAU sebelum tutup (melewati tengah malam)
+                isOpen = currentMinutes >= openMinutes || currentMinutes <= closeMinutes;
             } else {
-                return { isOpen: false, statusLabel: 'Tutup' };
+                // Kasus normal (buka dan tutup di hari yang sama)
+                isOpen = currentMinutes >= openMinutes && currentMinutes <= closeMinutes;
             }
+
+            return {
+                isOpen: isOpen,
+                statusLabel: isOpen ? 'Buka' : 'Tutup'
+            };
         } catch (e) {
+            console.error('Error parsing operating hours:', e);
             return { isOpen: false, statusLabel: 'Tutup' };
         }
     };
@@ -84,7 +103,6 @@ const CleaningServiceScreen = () => {
 
                 if (Platform.OS === 'web') {
                     try {
-                        // FIX: Menghapus header User-Agent agar tidak error di Web
                         const res = await axios.get(
                             `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${userLat}&lon=${userLon}`
                         );
@@ -103,7 +121,8 @@ const CleaningServiceScreen = () => {
                 }
             }
 
-            const response = await API.get('/mitra', { params: { category: 'cleaning' } });
+            // Filter untuk kategori WC/Sedot WC
+            const response = await API.get('/mitra', { params: { category: 'wc' } });
 
             const processed = response.data.map((item: any) => {
                 const distNum = userLat !== 0
@@ -152,7 +171,7 @@ const CleaningServiceScreen = () => {
         <View style={{ flex: 1, backgroundColor: '#fff' }}>
             <Stack.Screen
                 options={{
-                    headerTitle: "Cleaning Service",
+                    headerTitle: "Sedot WC",
                     headerShown: true,
                     headerTintColor: '#fff',
                     headerStyle: { backgroundColor: '#633594' },
@@ -163,7 +182,7 @@ const CleaningServiceScreen = () => {
                 <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchData(); }} />
             }>
                 <Image
-                    source={{ uri: 'https://res.cloudinary.com/dgsdmgcc7/image/upload/v1769362154/WhatsApp_Image_2026-01-25_at_21.44.58_zspvbv.jpg' }}
+                    source={{ uri: 'https://res.cloudinary.com/dgsdmgcc7/image/upload/v1769338997/WhatsApp_Image_2026-01-25_at_14.59.14_yrbtgo.jpg' }}
                     style={styles.banner}
                 />
 
@@ -180,6 +199,12 @@ const CleaningServiceScreen = () => {
                 <View style={{ paddingBottom: 30 }}>
                     {isLoading ? (
                         <View><ServiceCardSkeleton /><ServiceCardSkeleton /></View>
+                    ) : mitraList.length === 0 ? (
+                        <View style={styles.emptyContainer}>
+                            <Ionicons name="alert-circle-outline" size={60} color="#ccc" />
+                            <Text style={styles.emptyText}>Belum ada mitra sedot WC</Text>
+                            <Text style={styles.emptySubText}>Di daerah Anda saat ini</Text>
+                        </View>
                     ) : (
                         mitraList.map((item) => (
                             <ServiceCard
@@ -197,7 +222,7 @@ const CleaningServiceScreen = () => {
                                 vendorId={item.id}
                                 userId={item.user_id}
                                 services={item.services || ""}
-                                category="cleaning"  // <-- TAMBAHKAN INI
+                                category="wc"
                             />
                         ))
                     )}
@@ -208,11 +233,51 @@ const CleaningServiceScreen = () => {
 };
 
 const styles = StyleSheet.create({
-    banner: { width: '100%', aspectRatio: 16 / 7 },
+    banner: { width: '100%', aspectRatio: 16 / 6 },
     locationBox: { padding: 16 },
     locationTitle: { fontWeight: '800', fontSize: 14, marginLeft: 4, color: '#1E293B' },
     addressText: { fontSize: 13, color: '#64748B', marginTop: 4, marginLeft: 22 },
     divider: { height: 8, backgroundColor: '#F8F9FA' },
+    emptyContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 60,
+        paddingHorizontal: 20,
+    },
+    emptyText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#666',
+        marginTop: 16,
+        textAlign: 'center',
+    },
+    emptySubText: {
+        fontSize: 14,
+        color: '#999',
+        marginTop: 8,
+        textAlign: 'center',
+    },
+    customHeader: {
+        backgroundColor: '#633594',
+    },
+    headerContent: {
+        height: 56,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 15,
+        justifyContent: 'space-between',
+    },
+    backButton: {
+        padding: 5,
+    },
+    headerTitle: {
+        color: '#fff',
+        fontSize: 18,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        flex: 1,
+        marginRight: 10,
+    },
 });
 
-export default CleaningServiceScreen;
+export default ServiceWcScreen;

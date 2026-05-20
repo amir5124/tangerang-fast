@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import axios from 'axios'; // Pastikan axios terinstall untuk geocoding web
+import axios from 'axios';
 import * as Location from 'expo-location';
 import { Stack, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -36,6 +36,7 @@ const ServiceAcScreen = () => {
         return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
     };
 
+    // Fungsi untuk mengecek status buka/tutup berdasarkan jam operasional
     const checkOpenStatus = (operatingHours: string | any[]) => {
         try {
             if (!operatingHours) return { isOpen: false, statusLabel: 'Tutup' };
@@ -49,7 +50,9 @@ const ServiceAcScreen = () => {
             const daysMap = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
             const now = new Date();
             const currentDayName = daysMap[now.getDay()];
-            const currentTimeInt = (now.getHours() * 100) + now.getMinutes();
+
+            // Konversi waktu sekarang ke menit untuk perbandingan yang lebih akurat
+            const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
             const today = schedule.find(item => item.day === currentDayName);
 
@@ -57,15 +60,32 @@ const ServiceAcScreen = () => {
                 return { isOpen: false, statusLabel: 'Tutup (Libur)' };
             }
 
-            const openTimeInt = parseInt(today.open.replace(':', ''));
-            const closeTimeInt = parseInt(today.close.replace(':', ''));
+            // Parse waktu buka dan tutup
+            const parseTimeToMinutes = (timeStr: string) => {
+                const [hours, minutes] = timeStr.split(':').map(Number);
+                return hours * 60 + minutes;
+            };
 
-            if (currentTimeInt >= openTimeInt && currentTimeInt <= closeTimeInt) {
-                return { isOpen: true, statusLabel: 'Buka' };
+            const openMinutes = parseTimeToMinutes(today.open);
+            const closeMinutes = parseTimeToMinutes(today.close);
+
+            let isOpen = false;
+
+            // Handle kasus tutup melewati tengah malam (contoh: 22:00 - 02:00)
+            if (closeMinutes < openMinutes) {
+                // Jika sekarang setelah buka ATAU sebelum tutup (melewati tengah malam)
+                isOpen = currentMinutes >= openMinutes || currentMinutes <= closeMinutes;
             } else {
-                return { isOpen: false, statusLabel: 'Tutup' };
+                // Kasus normal (buka dan tutup di hari yang sama)
+                isOpen = currentMinutes >= openMinutes && currentMinutes <= closeMinutes;
             }
+
+            return {
+                isOpen: isOpen,
+                statusLabel: isOpen ? 'Buka' : 'Tutup'
+            };
         } catch (e) {
+            console.error('Error parsing operating hours:', e);
             return { isOpen: false, statusLabel: 'Tutup' };
         }
     };
@@ -144,6 +164,7 @@ const ServiceAcScreen = () => {
         }
     };
 
+
     useEffect(() => { fetchData(); }, []);
 
     return (
@@ -154,7 +175,7 @@ const ServiceAcScreen = () => {
                     headerShown: true,
                     headerTintColor: '#fff',
                     headerStyle: { backgroundColor: '#633594' },
-                    headerTitleAlign: 'center', // <-- Tambahkan baris ini
+                    headerTitleAlign: 'center',
                 }}
             />
             <ScrollView refreshControl={
@@ -178,7 +199,14 @@ const ServiceAcScreen = () => {
                 <View style={{ paddingBottom: 30 }}>
                     {isLoading ? (
                         <View><ServiceCardSkeleton /><ServiceCardSkeleton /></View>
+                    ) : mitraList.length === 0 ? (
+                        <View style={styles.emptyContainer}>
+                            <Ionicons name="alert-circle-outline" size={60} color="#ccc" />
+                            <Text style={styles.emptyText}>Belum ada mitra cleaning service</Text>
+                            <Text style={styles.emptySubText}>Di daerah Anda saat ini</Text>
+                        </View>
                     ) : (
+                        // Di dalam return, pada map mitraList
                         mitraList.map((item) => (
                             <ServiceCard
                                 key={item.id.toString()}
@@ -192,16 +220,10 @@ const ServiceAcScreen = () => {
                                 statusLabel={item.statusLabel}
                                 imageUrl={item.store_logo_url}
                                 isVerified={item.is_verified === 1}
-                                onPress={() => router.push({
-                                    pathname: '/order-detail',
-                                    params: {
-                                        id: item.id,
-                                        user_id: item.user_id,
-                                        title: item.store_name,
-                                        services: item.services || "",
-                                        rating: item.average_rating
-                                    }
-                                })}
+                                vendorId={item.id}
+                                userId={item.user_id}
+                                services={item.services || ""}
+                                category="ac"
                             />
                         ))
                     )}
@@ -217,9 +239,27 @@ const styles = StyleSheet.create({
     locationTitle: { fontWeight: '800', fontSize: 14, marginLeft: 4, color: '#1E293B' },
     addressText: { fontSize: 13, color: '#64748B', marginTop: 4, marginLeft: 22 },
     divider: { height: 8, backgroundColor: '#F8F9FA' },
+    emptyContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 60,
+        paddingHorizontal: 20,
+    },
+    emptyText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#666',
+        marginTop: 16,
+        textAlign: 'center',
+    },
+    emptySubText: {
+        fontSize: 14,
+        color: '#999',
+        marginTop: 8,
+        textAlign: 'center',
+    },
     customHeader: {
         backgroundColor: '#633594',
-        // Tinggi header standar biasanya 56-60 (di luar safe area)
     },
     headerContent: {
         height: 56,
@@ -237,7 +277,7 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         textAlign: 'center',
         flex: 1,
-        marginRight: 10, // Menyeimbangkan posisi karena ada tombol back
+        marginRight: 10,
     },
 });
 

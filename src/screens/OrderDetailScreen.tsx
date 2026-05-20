@@ -79,7 +79,6 @@ const SERVICE_TERMS_DATA = {
       'Pembersihan kerak, noda berat, lumut, atau jamur',
       'Pembersihan area taman, garasi, dan gudang lama',
     ],
-    // Kamu bisa mengosongkan atau menambah note khusus cleaning di sini jika perlu
     notes: [],
   },
   SEDOT_WC: {
@@ -150,29 +149,31 @@ const OrderDetailScreen = () => {
   const [toastMsg, setToastMsg] = useState('');
 
   // --- STATE TRANSAKSI ---
-  const [selectedItems, setSelectedItems] = useState<Record<string, number>>(
-    {},
-  );
+  const [selectedItems, setSelectedItems] = useState<Record<string, number>>({});
   const [buildingType, setBuildingType] = useState('Rumah');
   const today = new Date().toISOString().split('T')[0];
   const now = new Date();
   const offset = now.getTimezoneOffset() * 60000;
-  const localISOTime = new Date(now.getTime() - offset)
-    .toISOString()
-    .split('T')[0];
+  const localISOTime = new Date(now.getTime() - offset).toISOString().split('T')[0];
 
   const [selectedDate, setSelectedDate] = useState(localISOTime);
 
-  // Tambahkan helper function ini (letakkan bersama helper lainnya)
+  // Ambil kategori dari params (dikirim dari halaman list vendor)
+  const vendorCategory = (params.category as string) || '';
+
+  // Helper function untuk cek apakah waktu harus di-hidden (untuk AC dan Sedot WC)
   const isTimeHidden = () => {
-    const titleStr =
-      typeof params.title === 'string' ? decodeURIComponent(params.title) : '';
-    return titleStr === 'TangerangFast' || titleStr === 'Vendor Rijit';
+    // Untuk kategori AC dan WC, waktu di-hidden/disabled
+    return vendorCategory === 'ac' || vendorCategory === 'wc';
+  };
+
+  // Helper function untuk cek apakah ini vendor AC Service
+  const isACServiceVendor = () => {
+    return vendorCategory === 'ac';
   };
 
   const getInitialTime = () => {
     const d = new Date();
-    // d.setHours(d.getHours() + 2); // Hapus atau komentari baris ini
     return {
       h: String(d.getHours()).padStart(2, '0'),
       m: String(d.getMinutes()).padStart(2, '0'),
@@ -197,13 +198,20 @@ const OrderDetailScreen = () => {
 
   // --- LOGIKA PENENTUAN SYARAT & KETENTUAN DINAMIS ---
   const getActiveTerms = () => {
-    const titleStr =
-      typeof params.title === 'string' ? decodeURIComponent(params.title) : '';
-    if (titleStr === 'TangerangFast Service')
-      return SERVICE_TERMS_DATA.CLEANING;
+    const titleStr = typeof params.title === 'string' ? decodeURIComponent(params.title) : '';
+
+    // Prioritas berdasarkan kategori
+    if (vendorCategory === 'ac') return SERVICE_TERMS_DATA.AC_SERVICE;
+    if (vendorCategory === 'cleaning') return SERVICE_TERMS_DATA.CLEANING;
+    if (vendorCategory === 'wc') return SERVICE_TERMS_DATA.SEDOT_WC;
+    if (vendorCategory === 'art') return SERVICE_TERMS_DATA.ART_BABYSITTER;
+
+    // Fallback berdasarkan title
+    if (titleStr === 'TangerangFast Service') return SERVICE_TERMS_DATA.CLEANING;
     if (titleStr === 'TangerangFast') return SERVICE_TERMS_DATA.AC_SERVICE;
     if (titleStr === 'Vendor Rijit') return SERVICE_TERMS_DATA.SEDOT_WC;
     if (titleStr === 'Vendor ART') return SERVICE_TERMS_DATA.ART_BABYSITTER;
+
     return SERVICE_TERMS_DATA.CLEANING;
   };
 
@@ -257,22 +265,15 @@ const OrderDetailScreen = () => {
   }, [params.id]);
 
   const checkIsClosed = () => {
+    // Jika waktu di-hidden (AC/WC), tidak perlu cek jam operasional
+    if (isTimeHidden()) return false;
+
     if (!operatingHours || operatingHours.length === 0) return false;
 
-    const daysMap = [
-      'Minggu',
-      'Senin',
-      'Selasa',
-      'Rabu',
-      'Kamis',
-      'Jumat',
-      'Sabtu',
-    ];
+    const daysMap = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 
-    // PERBAIKAN: Ambil index hari tanpa konversi ke UTC
-    // selectedDate formatnya "YYYY-MM-DD"
     const [year, month, day] = selectedDate.split('-').map(Number);
-    const dateObj = new Date(year, month - 1, day); // Membuat date lokal
+    const dateObj = new Date(year, month - 1, day);
     const selectedDayName = daysMap[dateObj.getDay()];
 
     const schedule = operatingHours.find((h: any) => h.day === selectedDayName);
@@ -283,16 +284,13 @@ const OrderDetailScreen = () => {
     const mm = inputMinute.padStart(2, '0');
     const userTime = `${hh}:${mm}`;
 
-    // Logika khusus untuk jam tutup melewati tengah malam (seperti hari Senin tutup jam 02:00)
     const openTime = schedule.open;
     const closeTime = schedule.close;
 
     if (closeTime < openTime) {
-      // Jika tutup lewat tengah malam (contoh: buka 08:00 tutup 02:00)
       return userTime < openTime && userTime > closeTime;
     }
 
-    // Normal (contoh: buka 08:00 tutup 18:00)
     return userTime < openTime || userTime > closeTime;
   };
 
@@ -323,9 +321,7 @@ const OrderDetailScreen = () => {
     }
 
     if (isClosed) {
-      return showInfoToast(
-        '🛑 Jadwal yang dipilih di luar jam operasional mitra.',
-      );
+      return showInfoToast('🛑 Jadwal yang dipilih di luar jam operasional mitra.');
     }
 
     const orderData = {
@@ -359,9 +355,7 @@ const OrderDetailScreen = () => {
       {/* HEADER */}
       <View style={styles.customHeader}>
         <View style={styles.headerContent}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.backButton}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#fff" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>
@@ -373,8 +367,8 @@ const OrderDetailScreen = () => {
         </View>
       </View>
 
-      {/* BANNER NOTIFIKASI TUTUP */}
-      {isClosed && (
+      {/* BANNER NOTIFIKASI TUTUP - Hanya untuk yang tidak di-hidden */}
+      {isClosed && !isTimeHidden() && (
         <View
           style={{
             backgroundColor: '#FFF1F2',
@@ -400,7 +394,8 @@ const OrderDetailScreen = () => {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 120 }}
-        style={isClosed ? { opacity: 0.6 } : null}>
+        style={isClosed && !isTimeHidden() ? { opacity: 0.6 } : null}>
+
         {/* ACCORDION SYARAT & KETENTUAN */}
         <View style={styles.termsSection}>
           <TouchableOpacity
@@ -416,40 +411,26 @@ const OrderDetailScreen = () => {
           </TouchableOpacity>
           {showTerms && (
             <View style={styles.termsContent}>
-              <Text style={styles.contentLabel}>
-                {currentTerms.equipmentLabel}
-              </Text>
+              <Text style={styles.contentLabel}>{currentTerms.equipmentLabel}</Text>
               <View style={styles.bulletList}>
                 {currentTerms.equipment.map((item, index) => (
-                  <Text key={index} style={styles.bulletItem}>
-                    • {item}
-                  </Text>
+                  <Text key={index} style={styles.bulletItem}>• {item}</Text>
                 ))}
               </View>
               <View style={styles.dividerSmall} />
               <Text style={styles.sectionHeading}>Layanan ini meliputi:</Text>
               {currentTerms.includes.map((item, index) => (
-                <Text key={`inc-${index}`} style={styles.textCheck}>
-                  ✅ {item}
-                </Text>
+                <Text key={`inc-${index}`} style={styles.textCheck}>✅ {item}</Text>
               ))}
               <View style={styles.dividerSmall} />
-              <Text style={styles.sectionHeading}>
-                Layanan ini tidak termasuk:
-              </Text>
+              <Text style={styles.sectionHeading}>Layanan ini tidak termasuk:</Text>
               {currentTerms.excludes.map((item, index) => (
-                <Text key={`exc-${index}`} style={styles.textCross}>
-                  ❌ {item}
-                </Text>
+                <Text key={`exc-${index}`} style={styles.textCross}>❌ {item}</Text>
               ))}
               <View style={styles.dividerSmall} />
-              <Text style={styles.sectionHeading}>
-                Note:
-              </Text>
+              <Text style={styles.sectionHeading}>Note:</Text>
               {currentTerms.notes.map((item, index) => (
-                <Text key={`exc-${index}`} style={styles.textCross}>
-                  {item}
-                </Text>
+                <Text key={`exc-${index}`} style={styles.textCross}>{item}</Text>
               ))}
             </View>
           )}
@@ -458,9 +439,7 @@ const OrderDetailScreen = () => {
         {/* 1. PILIH JASA LAYANAN */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Pilih Jasa Layanan*</Text>
-          <Text style={styles.sectionSubtitle}>
-            Daftar layanan dari vendor ini
-          </Text>
+          <Text style={styles.sectionSubtitle}>Daftar layanan dari vendor ini</Text>
           <View style={styles.optionsContainer}>
             {subServices.length > 0 ? (
               subServices.map((item: any) => (
@@ -492,9 +471,7 @@ const OrderDetailScreen = () => {
             ) : (
               <View style={{ padding: 30, alignItems: 'center' }}>
                 <Ionicons name="alert-circle-outline" size={40} color="#ccc" />
-                <Text style={{ color: '#999', marginTop: 10 }}>
-                  Belum ada daftar layanan.
-                </Text>
+                <Text style={{ color: '#999', marginTop: 10 }}>Belum ada daftar layanan.</Text>
               </View>
             )}
           </View>
@@ -507,17 +484,11 @@ const OrderDetailScreen = () => {
             {['Rumah', 'Apartemen', 'Kantor', 'Resto'].map(type => (
               <TouchableOpacity
                 key={type}
-                disabled={isClosed}
-                style={[
-                  styles.typeBtn,
-                  buildingType === type && styles.typeBtnActive,
-                ]}
+                disabled={isClosed && !isTimeHidden()}
+                style={[styles.typeBtn, buildingType === type && styles.typeBtnActive]}
                 onPress={() => setBuildingType(type)}>
                 <Text
-                  style={[
-                    styles.typeBtnText,
-                    buildingType === type && styles.typeBtnTextActive,
-                  ]}>
+                  style={[styles.typeBtnText, buildingType === type && styles.typeBtnTextActive]}>
                   {type}
                 </Text>
               </TouchableOpacity>
@@ -525,12 +496,10 @@ const OrderDetailScreen = () => {
           </View>
         </View>
 
-        {/* 3. WAKTU */}
+        {/* 3. WAKTU - HANYA UNTUK KATEGORI YANG TIDAK DI-HIDDEN (CLEANING, ART) */}
         {!isTimeHidden() && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>
-              Pukul berapa membutuhkan layanan *
-            </Text>
+            <Text style={styles.sectionTitle}>Pukul berapa membutuhkan layanan *</Text>
             <View style={styles.timeInputContainer}>
               <TextInput
                 style={styles.timeInput}
@@ -548,6 +517,28 @@ const OrderDetailScreen = () => {
                 maxLength={2}
               />
             </View>
+          </View>
+        )}
+
+        {/* NOTES KHUSUS UNTUK VENDOR AC SERVICE */}
+        {isACServiceVendor() && (
+          <View style={styles.notesSection}>
+            <View style={styles.notesContainer}>
+              <Ionicons name="information-circle-outline" size={20} color="#633594" />
+              <Text style={styles.notesTitle}>Informasi Penting</Text>
+            </View>
+            <Text style={styles.notesText}>
+              • Teknisi akan menghubungi Anda maksimal 1x24 jam untuk konfirmasi jadwal kunjungan
+            </Text>
+            <Text style={styles.notesText}>
+              • Waktu kunjungan akan disesuaikan dengan jadwal teknisi di area Anda
+            </Text>
+            <Text style={styles.notesText}>
+              • Pastikan nomor telepon yang terdaftar aktif dan dapat dihubungi
+            </Text>
+            <Text style={styles.notesText}>
+              • Estimasi waktu pengerjaan: Pagi (08.00-11.00), Siang (11.00-14.00), Sore (14.00-16.00)
+            </Text>
           </View>
         )}
 
@@ -573,30 +564,22 @@ const OrderDetailScreen = () => {
       <View style={styles.bottomBar}>
         <View style={{ flex: 1 }}>
           <Text style={styles.totalLabel}>Total Estimasi</Text>
-          <Text style={styles.totalValue}>
-            Rp{(total || 0).toLocaleString('id-ID')}
-          </Text>
+          <Text style={styles.totalValue}>Rp{(total || 0).toLocaleString('id-ID')}</Text>
           <TouchableOpacity
             onPress={() =>
-              showInfoToast(
-                'Biaya operasional untuk pengembangan aplikasi TangerangFast.',
-              )
+              showInfoToast('Biaya operasional untuk pengembangan aplikasi TangerangFast.')
             }>
-            <Text
-              style={[
-                styles.minOrder,
-                { color: '#633594', textDecorationLine: 'none' },
-              ]}>
+            <Text style={[styles.minOrder, { color: '#633594', textDecorationLine: 'none' }]}>
               Belum termasuk biaya layanan ⓘ
             </Text>
           </TouchableOpacity>
         </View>
 
         <TouchableOpacity
-          style={[styles.btnPesan, isClosed && { backgroundColor: '#94A3B8' }]}
+          style={[styles.btnPesan, (isClosed && !isTimeHidden()) && { backgroundColor: '#94A3B8' }]}
           onPress={handleNext}>
           <Text style={styles.btnPesanText}>
-            {isClosed ? 'Mitra Tutup' : 'Lanjutkan'}
+            {(isClosed && !isTimeHidden()) ? 'Mitra Tutup' : 'Lanjutkan'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -618,6 +601,7 @@ const OrderDetailScreen = () => {
     </View>
   );
 };
+
 const styles = StyleSheet.create({
   section: { padding: 20, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
   sectionTitle: {
@@ -697,7 +681,6 @@ const styles = StyleSheet.create({
   btnPesanText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
   customHeader: {
     backgroundColor: '#633594',
-    // Tinggi header standar biasanya 56-60 (di luar safe area)
   },
   headerContent: {
     height: 56,
@@ -706,77 +689,55 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     justifyContent: 'space-between',
   },
-  backButton: {
-    padding: 5,
-  },
+  backButton: { padding: 5 },
   headerTitle: {
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
     textAlign: 'center',
     flex: 1,
-    marginRight: 10, // Menyeimbangkan posisi karena ada tombol back
+    marginRight: 10,
   },
   termsSection: {
     backgroundColor: '#FFFFFF',
     marginTop: 16,
-    marginHorizontal: 16, // Agar tidak mentok ke pinggir layar
-    borderRadius: 16, // Gojek style menggunakan corner yang bulat
-
-    // --- SHADOW UNTUK IOS ---
+    marginHorizontal: 16,
+    borderRadius: 16,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.05, // Sangat tipis (halus)
-    shadowRadius: 10, // Blur yang luas
-
-    // --- SHADOW UNTUK ANDROID ---
-    elevation: 2, // Elevasi rendah agar tetap terlihat clean
-
-    overflow: 'hidden', // Penting agar header yang bulat tidak terpotong
-    borderWidth: Platform.OS === 'ios' ? 1 : 0, // Border tipis hanya di iOS sebagai pengganti elevation
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+    overflow: 'hidden',
+    borderWidth: Platform.OS === 'ios' ? 1 : 0,
     borderColor: '#F1F5F9',
   },
-
   termsHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
-    // Gunakan warna putih bersih atau abu-abu sangat muda
     backgroundColor: '#FFFFFF',
   },
-
-  // Tambahan untuk konten di dalamnya agar terlihat modern
   termsContent: {
     padding: 16,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderTopColor: '#F8FAFC', // Divider halus antara header dan konten
+    borderTopColor: '#F8FAFC',
   },
   termsTitle: {
     fontSize: 15,
     fontWeight: '600',
     color: '#1E293B',
   },
-
   contentLabel: {
     fontSize: 14,
     fontWeight: 'bold',
     color: '#475569',
     marginBottom: 8,
   },
-  bulletList: {
-    paddingLeft: 8,
-    marginBottom: 12,
-  },
-  bulletItem: {
-    fontSize: 13,
-    color: '#64748B',
-    lineHeight: 20,
-  },
+  bulletList: { paddingLeft: 8, marginBottom: 12 },
+  bulletItem: { fontSize: 13, color: '#64748B', lineHeight: 20 },
   sectionHeading: {
     fontSize: 14,
     fontWeight: 'bold',
@@ -784,22 +745,36 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 6,
   },
-  textCheck: {
-    fontSize: 13,
-    color: '#334155',
-    marginBottom: 4,
-    lineHeight: 18,
+  textCheck: { fontSize: 13, color: '#334155', marginBottom: 4, lineHeight: 18 },
+  textCross: { fontSize: 13, color: '#64748B', marginBottom: 4, lineHeight: 18 },
+  dividerSmall: { height: 1, backgroundColor: '#F1F5F9', marginVertical: 12 },
+  // Style untuk notes section
+  notesSection: {
+    marginHorizontal: 20,
+    marginVertical: 16,
+    padding: 16,
+    backgroundColor: '#F0F9FF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
   },
-  textCross: {
-    fontSize: 13,
-    color: '#64748B',
-    marginBottom: 4,
-    lineHeight: 18,
+  notesContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 8,
   },
-  dividerSmall: {
-    height: 1,
-    backgroundColor: '#F1F5F9',
-    marginVertical: 12,
+  notesTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#633594',
+  },
+  notesText: {
+    fontSize: 12,
+    color: '#475569',
+    marginBottom: 8,
+    lineHeight: 18,
+    paddingLeft: 4,
   },
 });
 
