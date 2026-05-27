@@ -2,16 +2,16 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TextStyle,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TextStyle,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
@@ -34,7 +34,7 @@ const ContactDetailScreen = () => {
   const [phone, setPhone] = useState('');
   const [note, setNote] = useState('');
   const [location, setLocation] = useState('');
-  const [coordinates, setCoordinates] = useState({lat: null, lng: null});
+  const [coordinates, setCoordinates] = useState({ lat: null, lng: null });
   const [addressDetail, setAddressDetail] = useState('');
 
   // State Autocomplete
@@ -136,7 +136,7 @@ const ContactDetailScreen = () => {
 
     if (Platform.OS === 'web' && autocompleteService.current) {
       autocompleteService.current.getPlacePredictions(
-        {input: text, componentRestrictions: {country: 'id'}},
+        { input: text, componentRestrictions: { country: 'id' } },
         (results: any) => setPredictions(results || []),
       );
     } else {
@@ -158,7 +158,7 @@ const ContactDetailScreen = () => {
     setLoading(true);
 
     if (Platform.OS === 'web' && placesService.current) {
-      placesService.current.getDetails({placeId}, (result: any) => {
+      placesService.current.getDetails({ placeId }, (result: any) => {
         if (result?.geometry) {
           setCoordinates({
             lat: result.geometry.location.lat(),
@@ -217,12 +217,12 @@ const ContactDetailScreen = () => {
 
     router.push({
       pathname: '/summary-screen',
-      params: {finalPayload: JSON.stringify(finalPayload)},
+      params: { finalPayload: JSON.stringify(finalPayload) },
     });
   };
 
   return (
-    <View style={{flex: 1, backgroundColor: '#fff'}}>
+    <View style={{ flex: 1, backgroundColor: '#fff' }}>
       <View style={[styles.customHeader]}>
         <View style={styles.headerContent}>
           <TouchableOpacity
@@ -231,18 +231,18 @@ const ContactDetailScreen = () => {
             <Ionicons name="arrow-back" size={24} color="#fff" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Detail Kontak & Lokasi</Text>
-          <View style={{width: 40}} />
+          <View style={{ width: 40 }} />
         </View>
       </View>
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{flex: 1}}
+        style={{ flex: 1 }}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
         <ScrollView
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="always"
-          contentContainerStyle={{paddingBottom: 20}}>
+          contentContainerStyle={{ paddingBottom: 20 }}>
           <View style={styles.alertBox}>
             <Ionicons name="checkmark-circle" size={20} color="#22C55E" />
             <Text style={styles.alertText}>
@@ -256,7 +256,7 @@ const ContactDetailScreen = () => {
               <ActivityIndicator
                 size="small"
                 color="#633594"
-                style={{marginBottom: 10}}
+                style={{ marginBottom: 10 }}
               />
             )}
 
@@ -312,7 +312,7 @@ const ContactDetailScreen = () => {
             <View
               style={[
                 styles.inputWrapper,
-                {height: 80, alignItems: 'flex-start', paddingTop: 5},
+                { height: 80, alignItems: 'flex-start', paddingTop: 5 },
               ]}>
               <TextInput
                 style={styles.input}
@@ -327,12 +327,12 @@ const ContactDetailScreen = () => {
           </View>
 
           {/* Section Lokasi */}
-          <View style={[styles.section, {zIndex: 10}]}>
+          <View style={[styles.section, { zIndex: 10 }]}>
             <Text style={styles.label}>Cari Area/Lokasi *</Text>
             <View
               style={[
                 styles.inputWrapper,
-                coordinates.lat && {borderColor: '#22C55E'},
+                coordinates.lat && { borderColor: '#22C55E' },
               ]}>
               <Ionicons
                 name="location-outline"
@@ -366,13 +366,13 @@ const ContactDetailScreen = () => {
               </View>
             )}
 
-            <Text style={[styles.label, {marginTop: 15}]}>
+            <Text style={[styles.label, { marginTop: 15 }]}>
               Alamat Lengkap (Blok/No Rumah) *
             </Text>
             <View
               style={[
                 styles.inputWrapper,
-                {height: 80, alignItems: 'flex-start', paddingTop: 5},
+                { height: 80, alignItems: 'flex-start', paddingTop: 5 },
               ]}>
               <TextInput
                 style={styles.input}
@@ -406,7 +406,7 @@ const ContactDetailScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  customHeader: {backgroundColor: '#633594'},
+  customHeader: { backgroundColor: '#633594' },
   headerContent: {
     height: 56,
     flexDirection: 'row',
@@ -414,7 +414,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     justifyContent: 'space-between',
   },
-  backButton: {padding: 5},
+  backButton: { padding: 5 },
   headerTitle: {
     color: '#fff',
     fontSize: 18,
@@ -433,9 +433,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#DCFCE7',
   },
-  alertText: {marginLeft: 10, color: '#166534', fontSize: 13, flex: 1},
-  section: {paddingHorizontal: 20, marginBottom: 20},
-  label: {fontWeight: 'bold', fontSize: 14, marginBottom: 8, color: '#333'},
+  alertText: { marginLeft: 10, color: '#166534', fontSize: 13, flex: 1 },
+  section: { paddingHorizontal: 20, marginBottom: 20 },
+  label: { fontWeight: 'bold', fontSize: 14, marginBottom: 8, color: '#333' },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -453,11 +453,11 @@ const styles = StyleSheet.create({
     color: '#333',
     paddingVertical: Platform.OS === 'web' ? 0 : 8,
     ...Platform.select({
-      web: {outlineWidth: 0, outlineStyle: 'none', boxShadow: 'none'} as any,
+      web: { outlineWidth: 0, outlineStyle: 'none', boxShadow: 'none' } as any,
       default: {},
     }),
   } as TextStyle,
-  inputIcon: {marginRight: 10},
+  inputIcon: { marginRight: 10 },
   suggestionBox: {
     backgroundColor: '#fff',
     borderRadius: 8,
@@ -473,7 +473,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#f5f5f5',
   },
-  suggestionText: {fontSize: 13, color: '#444'},
+  suggestionText: { fontSize: 13, color: '#444' },
   bottomBarContainer: {
     padding: 20,
     borderTopWidth: 1,
@@ -483,16 +483,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#fff',
   },
-  totalLabel: {fontSize: 12, color: '#666'},
-  totalValue: {fontSize: 20, fontWeight: 'bold', color: '#633594'},
-  minOrder: {fontSize: 10, color: '#999'},
+  totalLabel: { fontSize: 12, color: '#666' },
+  totalValue: { fontSize: 20, fontWeight: 'bold', color: '#633594' },
+  minOrder: { fontSize: 10, color: '#999' },
   btnNext: {
     backgroundColor: '#633594',
     paddingVertical: 15,
     paddingHorizontal: 35,
     borderRadius: 10,
   },
-  btnNextText: {color: '#fff', fontWeight: 'bold', fontSize: 16},
+  btnNextText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
 });
 
 export default ContactDetailScreen;

@@ -110,9 +110,9 @@ export const ServiceCard = ({
                         <Ionicons name="star" size={14} color="#EAB308" />
                         <Text style={styles.ratingText}>{rating}</Text>
                         <Text style={styles.reviewsText}>({reviewsCount})</Text>
-                        <Text style={styles.bullet}>•</Text>
-                        <Ionicons name="navigate-circle-outline" size={14} color="#633594" style={{ marginRight: 2 }} />
-                        <Text style={styles.distanceText}>{distance}</Text>
+                        {/* <Text style={styles.bullet}>•</Text> */}
+                        {/* <Ionicons name="navigate-circle-outline" size={14} color="#633594" style={{ marginRight: 2 }} /> */}
+                        {/* <Text style={styles.distanceText}>{distance}</Text> */}
                     </View>
 
                     <View style={styles.serviceListContainer}>

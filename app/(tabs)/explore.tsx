@@ -1,6 +1,6 @@
 import { FontAwesome, Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Linking,
@@ -39,6 +39,7 @@ const ExploreScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedChat, setSelectedChat] = useState<ChatItem | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   // Helper function untuk format tanggal (asumsi data sudah dalam WIB)
   const formatToWIB = (dateString: string, showTime: boolean = false) => {
@@ -146,6 +147,13 @@ const ExploreScreen: React.FC = () => {
     }
   };
 
+  // Fungsi untuk update unread count di storage
+  const updateUnreadCountStorage = async (currentChats: ChatItem[]) => {
+    const newUnreadCount = currentChats.filter(chat => chat.is_read === 0 && !chat.is_order_data).length;
+    setUnreadCount(newUnreadCount);
+    await storage.save('unreadChatCount', newUnreadCount.toString());
+  };
+
   // Fungsi untuk menandai chat sebagai sudah dibaca
   const markAsRead = async (chatId: string | number, type: string, isOrderData: boolean = false) => {
     try {
@@ -153,27 +161,24 @@ const ExploreScreen: React.FC = () => {
         // Untuk notifikasi biasa, panggil API update read status
         await API.put(`/notifications/read/${chatId}`);
       }
+
       // Update state lokal
-      setCombinedChat(prevChat =>
-        prevChat.map(chat =>
-          chat.id === chatId ? { ...chat, is_read: 1 } : chat
-        )
+      const updatedChat = combinedChat.map(chat =>
+        chat.id === chatId ? { ...chat, is_read: 1 } : chat
       );
+      setCombinedChat(updatedChat);
+
+      // Update unread count di storage
+      await updateUnreadCountStorage(updatedChat);
     } catch (error) {
       console.error('Gagal menandai sebagai dibaca:', error);
     }
   };
 
   const handleChatPress = async (item: ChatItem) => {
-    // Tandai sebagai sudah dibaca
-    if (item.is_read === 0) {
+    // Tandai sebagai sudah dibaca (hanya untuk notifikasi biasa, bukan order)
+    if (item.is_read === 0 && !item.is_order_data) {
       await markAsRead(item.id, item.type, item.is_order_data || false);
-
-      // Update unread count di storage setelah menandai sebagai dibaca
-      const updatedUnreadCount = combinedChat.filter(chat =>
-        chat.id !== item.id && chat.is_read === 0
-      ).length;
-      await storage.save('unreadChatCount', updatedUnreadCount.toString());
     }
     // Tampilkan modal dengan pesan lengkap
     setSelectedChat(item);
@@ -232,8 +237,9 @@ const ExploreScreen: React.FC = () => {
       setCombinedChat(merged);
 
       // Simpan jumlah notifikasi belum dibaca ke storage untuk diakses tab
-      const unreadCount = merged.filter(chat => chat.is_read === 0).length;
-      await storage.save('unreadChatCount', unreadCount.toString());
+      const unreadCountValue = merged.filter(chat => chat.is_read === 0 && !chat.is_order_data).length;
+      await storage.save('unreadChatCount', unreadCountValue.toString());
+      setUnreadCount(unreadCountValue);
 
     } catch (error) {
       console.error('❌ Gagal sinkronisasi chat:', error);
@@ -243,6 +249,14 @@ const ExploreScreen: React.FC = () => {
     }
   };
 
+  // Refresh data ketika screen focus
+  useFocusEffect(
+    useCallback(() => {
+      loadAllData();
+    }, [])
+  );
+
+  // Initial load
   useEffect(() => {
     loadAllData();
 
@@ -268,9 +282,6 @@ const ExploreScreen: React.FC = () => {
     }
   };
 
-  // Hitung total unread untuk ditampilkan di tab (akan diupdate ke storage)
-  const unreadCount = combinedChat.filter(chat => chat.is_read === 0).length;
-
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
@@ -282,7 +293,10 @@ const ExploreScreen: React.FC = () => {
             <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
               <Ionicons name="arrow-back" size={24} color="#000" />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Chat</Text>
+            <Text style={styles.headerTitle}>
+              Chat
+
+            </Text>
             <View style={{ width: 40 }} />
           </View>
         </View>
@@ -336,7 +350,7 @@ const ExploreScreen: React.FC = () => {
                       <View style={styles.chatContent}>
                         {/* Baris atas: judul + tanggal */}
                         <View style={styles.chatHeaderRow}>
-                          <Text style={[styles.chatName, item.is_read === 0 && styles.unreadText]}>
+                          <Text style={[styles.chatName, item.is_read === 0 && !item.is_order_data && styles.unreadText]}>
                             {item.title}
                           </Text>
                           <Text style={styles.chatTime}>
@@ -345,7 +359,7 @@ const ExploreScreen: React.FC = () => {
                         </View>
                         {/* Baris bawah: pesan + badge status (order) atau dot ungu (notif) */}
                         <View style={styles.chatHeaderRow}>
-                          <Text style={[styles.chatMessage, item.is_read === 0 && styles.unreadMessage]} numberOfLines={1}>
+                          <Text style={[styles.chatMessage, item.is_read === 0 && !item.is_order_data && styles.unreadMessage]} numberOfLines={1}>
                             {item.message}
                           </Text>
                           {badge ? (
@@ -357,7 +371,7 @@ const ExploreScreen: React.FC = () => {
                             </View>
                           ) : (
                             // Dot ungu untuk notif yang belum dibaca
-                            item.is_read === 0 && <View style={styles.dotPurple} />
+                            item.is_read === 0 && !item.is_order_data && <View style={styles.dotPurple} />
                           )}
                         </View>
                       </View>

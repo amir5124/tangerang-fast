@@ -13,12 +13,22 @@ export const MenuGrid = () => {
   const [dbAssets, setDbAssets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [allMenuAsset, setAllMenuAsset] = useState<any>(null);
 
   useEffect(() => {
     const loadAssets = async () => {
       try {
         const response = await api.get('/assets');
-        setDbAssets(response.data || []);
+        const assets = response.data || [];
+        setDbAssets(assets);
+
+        // Cari asset untuk menu "All" dari database
+        const allAsset = assets.find((asset: any) =>
+          asset.key_name === 'icon_all' ||
+          asset.key_name === 'menu_all' ||
+          asset.display_name === 'All'
+        );
+        setAllMenuAsset(allAsset);
       } catch (error) {
         console.error('Gagal memuat assets dari DB', error);
       } finally {
@@ -29,10 +39,11 @@ export const MenuGrid = () => {
   }, []);
 
   // Filter Jasa Terpopuler untuk Modal "All"
-  const popularServices = dbAssets.filter(asset =>
+  const popularServices = dbAssets.filter((asset: any) =>
     asset.key_name?.includes('popular_service')
   );
-  // Filter Kategori Menu Utama
+
+  // Filter Kategori Menu Utama (tanpa menu All)
   const menuOrder = [
     'icon_ac',
     'icon_cleaning',
@@ -43,7 +54,9 @@ export const MenuGrid = () => {
     'icon_bangunan'
   ];
 
-  const categories = menuOrder.map(key => dbAssets.find(a => a.key_name === key)).filter(Boolean);
+  const categories = menuOrder
+    .map(key => dbAssets.find((a: any) => a.key_name === key))
+    .filter(Boolean);
 
   const handlePress = (keyName: string) => {
     // Mapping untuk navigasi ke halaman spesifik
@@ -51,11 +64,18 @@ export const MenuGrid = () => {
       'icon_ac': { pathname: '/service-ac' },
       'icon_cleaning': { pathname: '/cleaning-service' },
       'icon_wc': { pathname: '/sedot-wc' },
-      // 'icon_rigid': { pathname: '/order-detail', params: { id: '23', user_id: '59', title: 'Vendor ART' } },
+      'icon_rigid': { pathname: '/art-babysitter' },
+      'icon_all': { screen: 'All Services' }, // Menu All akan membuka modal
     };
 
     // Daftar menu yang belum tersedia
-    const unavailableKeys = ['icon_bangunan', 'icon_kebun', 'icon_korporasi', 'icon_ojek', 'icon_rigid'];
+    const unavailableKeys = ['icon_bangunan', 'icon_kebun', 'icon_korporasi', 'icon_ojek'];
+
+    // Untuk menu All, buka modal
+    if (keyName === 'icon_all' || keyName === 'menu_all') {
+      setShowModal(true);
+      return;
+    }
 
     // Cek apakah menu belum tersedia
     if (unavailableKeys.includes(keyName)) {
@@ -65,15 +85,15 @@ export const MenuGrid = () => {
     // Cek apakah ada mapping untuk menu tersebut
     const target = navigationMap[keyName];
     if (target) {
-      // Jika target memiliki params, gunakan push dengan params
       if (target.params) {
         router.push(target);
-      } else {
-        // Jika tidak ada params, langsung arahkan ke pathname
+      } else if (target.pathname) {
         router.push(target.pathname);
+      } else if (target.screen) {
+        // Untuk menu All, kita sudah handle di atas
+        setShowModal(true);
       }
     } else {
-      // Jika tidak ada mapping, arahkan ke belum-tersedia
       router.push('/belum-tersedia');
     }
   };
@@ -102,19 +122,17 @@ export const MenuGrid = () => {
       </View>
 
       <View style={styles.categoryGrid}>
-        {categories.map(item => (
+        {categories.map((item: any) => (
           <TouchableOpacity
             key={item.id}
             style={styles.categoryItem}
             activeOpacity={0.8}
             onPress={() => handlePress(item.key_name)}>
-            {/* Background pembungkus diubah ke putih */}
             <View style={styles.categoryCard}>
               <Image
                 source={{ uri: `${IMAGE_BASE_URL}${item.image_url}` }}
                 style={styles.categoryIcon}
               />
-              {/* Nama menu ditampilkan penuh, tidak di-split */}
               <Text style={styles.categoryText}>
                 {item.key_name === 'icon_bangunan' ? 'Toko' : item.display_name}
               </Text>
@@ -122,16 +140,27 @@ export const MenuGrid = () => {
           </TouchableOpacity>
         ))}
 
+        {/* Menu All - Menggunakan asset dari database jika ada */}
         <TouchableOpacity
           style={styles.categoryItem}
           activeOpacity={0.8}
-          onPress={() => setShowModal(true)}>
+          onPress={() => handlePress('icon_all')}>
           <View style={styles.categoryCard}>
-            <Image
-              source={{ uri: 'https://cdn-icons-png.flaticon.com/512/2311/2311523.png' }}
-              style={styles.categoryIcon}
-            />
-            <Text style={styles.categoryText}>All</Text>
+            {allMenuAsset ? (
+              <Image
+                source={{ uri: `${IMAGE_BASE_URL}${allMenuAsset.image_url}` }}
+                style={styles.categoryIcon}
+              />
+            ) : (
+              // Fallback icon jika tidak ada di database
+              <Image
+                source={{ uri: 'https://cdn-icons-png.flaticon.com/512/2311/2311523.png' }}
+                style={styles.categoryIcon}
+              />
+            )}
+            <Text style={styles.categoryText}>
+              {allMenuAsset?.display_name || 'All'}
+            </Text>
           </View>
         </TouchableOpacity>
       </View>
@@ -146,7 +175,7 @@ export const MenuGrid = () => {
             <View style={styles.dragHandle} />
             <Text style={styles.modalTitle}>Semua Layanan</Text>
             <View style={styles.modalGrid}>
-              {popularServices.map(item => (
+              {popularServices.map((item: any) => (
                 <TouchableOpacity
                   key={item.id}
                   style={styles.modalItem}

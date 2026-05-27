@@ -1,7 +1,7 @@
 import { useFocusEffect } from '@react-navigation/native';
 import { Tabs } from 'expo-router';
 import { CircleUser, Clock3, Home, MessageSquareText } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Platform, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { storage } from '../../src/utils/storage';
@@ -10,11 +10,11 @@ export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // Fungsi untuk mengambil jumlah notifikasi belum dibaca
+  // Fungsi untuk mengambil jumlah notifikasi belum dibaca dari storage
   const fetchUnreadCount = async () => {
     try {
       const count = await storage.get('unreadChatCount');
-      if (count) {
+      if (count && !isNaN(Number(count))) {
         setUnreadCount(Number(count));
       } else {
         setUnreadCount(0);
@@ -27,20 +27,36 @@ export default function TabLayout() {
 
   // Update setiap kali screen focus
   useFocusEffect(
-    React.useCallback(() => {
+    useCallback(() => {
       fetchUnreadCount();
     }, [])
   );
 
+  // Initial load dan interval refresh
   useEffect(() => {
     fetchUnreadCount();
 
-    // Listener untuk update setiap 5 detik
+    // Listener untuk update setiap 10 detik
     const interval = setInterval(() => {
       fetchUnreadCount();
-    }, 5000);
+    }, 10000);
 
-    return () => clearInterval(interval);
+    // Listener untuk storage change (jika ada update dari halaman chat)
+    const storageListener = () => {
+      fetchUnreadCount();
+    };
+
+    // Subscribe ke storage events (untuk web)
+    if (Platform.OS === 'web') {
+      window.addEventListener('storage', storageListener);
+    }
+
+    return () => {
+      clearInterval(interval);
+      if (Platform.OS === 'web') {
+        window.removeEventListener('storage', storageListener);
+      }
+    };
   }, []);
 
   return (
@@ -100,13 +116,15 @@ export default function TabLayout() {
                   position: 'absolute',
                   top: -8,
                   right: -12,
-                  backgroundColor: '#633594',
+                  backgroundColor: '#EF4444',
                   borderRadius: 10,
                   minWidth: 18,
                   height: 18,
                   justifyContent: 'center',
                   alignItems: 'center',
                   paddingHorizontal: 4,
+                  borderWidth: 1,
+                  borderColor: '#fff',
                 }}>
                   <Text style={{
                     color: '#fff',

@@ -20,6 +20,8 @@ import { getMessaging, onMessage } from 'firebase/messaging';
 
 // IMPORT FUNGSI REGISTRASI PUSAT
 import { registerForPushNotificationsAsync } from '../src/utils/usePushNotifications';
+// IMPORT CHAT PROVIDER
+import { ChatProvider } from '../src/context/ChatContext';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyDlcY6gl30RNhKvTFUMYLB9W-booJLYVHs',
@@ -96,8 +98,6 @@ function RootLayoutContent() {
   const responseListener = useRef<any>(null);
 
   // --- LISTENER SUARA NOTIFIKASI DARI SERVICE WORKER (Web Only) ---
-  // Service Worker tidak punya akses Audio API, maka ia mengirim sinyal
-  // postMessage ke tab aktif, lalu tab ini yang memutar suaranya.
   useEffect(() => {
     if (Platform.OS !== 'web') return;
     if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
@@ -107,29 +107,32 @@ function RootLayoutContent() {
         const audio = new Audio('/assets/sounds/notification.mp3');
         audio.volume = 1.0;
         audio.play().catch(() => {
-          // Browser memblokir autoplay jika user belum pernah berinteraksi dengan halaman
           console.warn('[Layout] Autoplay suara diblokir browser.');
         });
       }
     };
 
-    navigator.serviceWorker.addEventListener('message', handleSwMessage);
+    // Gunakan type assertion untuk memberi tahu TypeScript bahwa navigator.serviceWorker pasti ada
+    (navigator as Navigator & { serviceWorker: ServiceWorkerContainer }).serviceWorker
+      .addEventListener('message', handleSwMessage);
 
     return () => {
-      navigator.serviceWorker.removeEventListener('message', handleSwMessage);
+      (navigator as Navigator & { serviceWorker: ServiceWorkerContainer }).serviceWorker
+        .removeEventListener('message', handleSwMessage);
     };
   }, []);
 
   useEffect(() => {
     // A. Registrasi/Pengecekan Token saat App Terbuka
-    // Kita panggil fungsi pusat agar konsisten
     registerForPushNotificationsAsync().then(token => {
-      if (token) console.log('✅ Device Token Active:,');
+      if (token) console.log('✅ Device Token Active:');
     });
 
     // B. Listener Web Foreground
     if (Platform.OS === 'web' && messaging) {
       onMessage(messaging, payload => {
+        // Refresh unread count ketika ada notifikasi baru
+        // Ini akan di-handle oleh ChatProvider secara otomatis
         Toast.show({
           type: 'success',
           text1: payload.notification?.title || 'Informasi Baru',
@@ -212,7 +215,9 @@ function RootLayoutContent() {
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <RootLayoutContent />
+      <ChatProvider>
+        <RootLayoutContent />
+      </ChatProvider>
     </SafeAreaProvider>
   );
 }

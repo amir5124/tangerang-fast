@@ -256,6 +256,11 @@ export default function ProfileScreen() {
             onPress={() => router.push('/edit-profile')}
           />
           <MenuItem
+            icon="card-outline"
+            label="Rekening Saya"
+            onPress={() => router.push('/bank-account')}
+          />
+          <MenuItem
             icon="time-outline"
             label="Riwayat Transaksi"
             onPress={() => router.push('/(tabs)/riwayat')}
