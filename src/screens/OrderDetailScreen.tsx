@@ -238,19 +238,21 @@ const OrderDetailScreen = () => {
       const servicesData = response.data.services || [];
       const BASE_URL = 'https://backend.tangerangfast.online';
 
-      const normalizedServices = servicesData.map((s: any) => {
-        let finalImage = 'https://via.placeholder.com/100';
-        if (s.image_url) {
-          finalImage = s.image_url.startsWith('http')
-            ? s.image_url
-            : `${BASE_URL}${s.image_url}`;
-        }
-        return {
-          ...s,
-          price: Number(s.base_price || s.price || 0),
-          display_image: finalImage,
-        };
-      });
+      const normalizedServices = servicesData
+        .filter((s: any) => s.is_active === 1 || s.is_active === true) // ✅ hanya tampilkan yang aktif
+        .map((s: any) => {
+          let finalImage = 'https://via.placeholder.com/100';
+          if (s.image_url) {
+            finalImage = s.image_url.startsWith('http')
+              ? s.image_url
+              : `${BASE_URL}${s.image_url}`;
+          }
+          return {
+            ...s,
+            price: Number(s.base_price || s.price || 0),
+            display_image: finalImage,
+          };
+        });
 
       setSubServices(normalizedServices);
     } catch (error) {

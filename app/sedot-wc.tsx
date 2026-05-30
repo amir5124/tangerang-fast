@@ -122,7 +122,7 @@ const ServiceWcScreen = () => {
             }
 
             // Filter untuk kategori WC/Sedot WC
-            const response = await API.get('/mitra', { params: { category: 'wc' } });
+            const response = await API.get('/mitra', { params: { category: 'rijit' } });
 
             const processed = response.data.map((item: any) => {
                 const distNum = userLat !== 0
