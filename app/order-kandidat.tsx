@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
     FlatList,
     Image,
@@ -18,6 +18,9 @@ import Toast from 'react-native-toast-message';
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Level = 'Junior' | 'Medior' | 'Senior' | 'ART';
 
+// HARUS SAMA PERSIS dengan KategoriType di halaman pertama (ArtBabysitterScreen)
+type KategoriType = 'Menginap' | 'Pulang Pergi' | 'Inval';
+
 interface Kandidat {
     id: string;
     nama: string;
@@ -28,11 +31,14 @@ interface Kandidat {
     gajiMax: number;
     level: Level;
     layanan: 'ART' | 'Babysitter';
+    kategori: KategoriType; // tipe penempatan kerja yang dipilih kandidat
     foto: string;
     readyToWork: boolean;
 }
 
 // ─── Dummy Data ───────────────────────────────────────────────────────────────
+// `kategori` di sini WAJIB pakai value yang sama dengan param `kategori`
+// yang dikirim dari halaman pertama: "Menginap" | "Pulang Pergi" | "Inval"
 const DUMMY_KANDIDAT: Kandidat[] = [
     {
         id: '1',
@@ -44,6 +50,7 @@ const DUMMY_KANDIDAT: Kandidat[] = [
         gajiMax: 2500000,
         level: 'Junior',
         layanan: 'ART',
+        kategori: 'Menginap',
         foto: 'https://randomuser.me/api/portraits/women/44.jpg',
         readyToWork: true,
     },
@@ -57,6 +64,7 @@ const DUMMY_KANDIDAT: Kandidat[] = [
         gajiMax: 3500000,
         level: 'Medior',
         layanan: 'Babysitter',
+        kategori: 'Menginap',
         foto: 'https://randomuser.me/api/portraits/women/68.jpg',
         readyToWork: true,
     },
@@ -70,6 +78,7 @@ const DUMMY_KANDIDAT: Kandidat[] = [
         gajiMax: 4000000,
         level: 'Senior',
         layanan: 'ART',
+        kategori: 'Pulang Pergi',
         foto: 'https://randomuser.me/api/portraits/women/26.jpg',
         readyToWork: true,
     },
@@ -83,6 +92,7 @@ const DUMMY_KANDIDAT: Kandidat[] = [
         gajiMax: 2000000,
         level: 'Junior',
         layanan: 'Babysitter',
+        kategori: 'Inval',
         foto: 'https://randomuser.me/api/portraits/women/90.jpg',
         readyToWork: false,
     },
@@ -96,6 +106,7 @@ const DUMMY_KANDIDAT: Kandidat[] = [
         gajiMax: 3000000,
         level: 'Medior',
         layanan: 'ART',
+        kategori: 'Pulang Pergi',
         foto: 'https://randomuser.me/api/portraits/women/55.jpg',
         readyToWork: true,
     },
@@ -109,6 +120,7 @@ const DUMMY_KANDIDAT: Kandidat[] = [
         gajiMax: 5000000,
         level: 'Senior',
         layanan: 'ART',
+        kategori: 'Menginap',
         foto: 'https://randomuser.me/api/portraits/women/33.jpg',
         readyToWork: true,
     },
@@ -122,6 +134,7 @@ const DUMMY_KANDIDAT: Kandidat[] = [
         gajiMax: 2500000,
         level: 'ART',
         layanan: 'Babysitter',
+        kategori: 'Menginap',
         foto: 'https://randomuser.me/api/portraits/women/78.jpg',
         readyToWork: true,
     },
@@ -135,15 +148,21 @@ const DUMMY_KANDIDAT: Kandidat[] = [
         gajiMax: 3800000,
         level: 'Senior',
         layanan: 'ART',
+        kategori: 'Inval',
         foto: 'https://randomuser.me/api/portraits/women/12.jpg',
         readyToWork: false,
     },
 ];
 
-const LEVEL_FILTERS: Level[] = ['Junior', 'Medior', 'Senior', 'ART'];
+// HANYA Junior, Medior, Senior - ART dihapus
+const LEVEL_FILTERS: Level[] = ['Junior', 'Medior', 'Senior'];
 
 const formatGaji = (num: number) =>
     (num / 1000000).toFixed(1).replace('.0', '') + 'jt';
+
+// Bandingkan string secara case-insensitive & trim, aman untuk undefined
+const sameText = (a?: string | null, b?: string | null) =>
+    !!a && !!b && a.trim().toLowerCase() === b.trim().toLowerCase();
 
 // ─── Kandidat Card ─────────────────────────────────────────────────────────────
 const KandidatCard = ({
@@ -212,28 +231,51 @@ const KandidatCard = ({
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function KandidatScreen() {
     const router = useRouter();
+    const rawParams = useLocalSearchParams<{ payload?: string }>();
 
-    // Params dari halaman sebelumnya (DetailKontakScreen)
-    const params = useLocalSearchParams<{
-        kategori: string;
-        layanan: string;
-        jobdesk: string;
-        nama: string;
-        email: string;
-        noHp: string;
-        nikKtp: string;
-        lokasi: string;
-        alamatLengkap: string;
-        latitude: string;
-        longitude: string;
-    }>();
+    // Parse data yang dikirim dari DetailKontakScreen (dibungkus dalam satu param `payload`)
+    const params = useMemo(() => {
+        try {
+            return rawParams.payload
+                ? (JSON.parse(rawParams.payload as string) as {
+                    kategori?: string;
+                    layanan?: string;
+                    jobdesk?: string;
+                    customer_id?: number | null;
+                    nama?: string;
+                    email?: string;
+                    noHp?: string;
+                    nikKtp?: string;
+                    lokasi?: string;
+                    alamatLengkap?: string;
+                    latitude?: number | null;
+                    longitude?: number | null;
+                })
+                : {};
+        } catch (e) {
+            console.error('Gagal parse payload dari halaman sebelumnya:', e);
+            return {};
+        }
+    }, [rawParams.payload]);
 
     const [search, setSearch] = useState('');
     const [activeFilter, setActiveFilter] = useState<Level | null>(null);
     const [selectedId, setSelectedId] = useState<string | null>(null);
 
-    // Filter logic
-    const filtered = DUMMY_KANDIDAT.filter((k) => {
+    // ── Kandidat yang sesuai layanan & kategori dari halaman sebelumnya ──────
+    const kandidatSesuaiPesanan = useMemo(() => {
+        return DUMMY_KANDIDAT.filter((k) => {
+            const matchLayanan = sameText(k.layanan, params.layanan);
+            const matchKategori = sameText(k.kategori, params.kategori);
+            // Kalau salah satu param kosong, jangan ikut membatasi (anggap cocok)
+            const layananOk = !params.layanan || matchLayanan;
+            const kategoriOk = !params.kategori || matchKategori;
+            return layananOk && kategoriOk;
+        });
+    }, [params]);
+
+    // ── Filter pencarian & level di atas hasil yang sudah sesuai pesanan ─────
+    const filtered = kandidatSesuaiPesanan.filter((k) => {
         const matchSearch =
             search === '' ||
             k.nama.toLowerCase().includes(search.toLowerCase()) ||
@@ -244,44 +286,43 @@ export default function KandidatScreen() {
 
     const selectedKandidat = DUMMY_KANDIDAT.find((k) => k.id === selectedId);
 
-    const handleLanjut = () => {
-        if (!selectedKandidat) {
-            Toast.show({
-                type: 'error',
-                text1: 'Pilih Kandidat',
-                text2: 'Silakan pilih kandidat terlebih dahulu',
-                position: 'top',
-            });
-            return;
-        }
+    // ── Bangun payload final (data pesanan + kandidat lengkap) ───────────────
+    // Dipakai bersama oleh tombol "Lanjut" dan "Lihat Profile" supaya
+    // bentuk data yang dikirim ke /detail-kandidat SELALU konsisten.
+    const buildFinalData = (kandidat: Kandidat) => ({
+        // Data dari halaman 1
+        kategori: params.kategori,
+        layanan: params.layanan,
+        jobdesk: params.jobdesk,
+        // Data dari halaman 2
+        customer_id: params.customer_id,
+        nama: params.nama,
+        email: params.email,
+        noHp: params.noHp,
+        nikKtp: params.nikKtp,
+        lokasi: params.lokasi,
+        alamatLengkap: params.alamatLengkap,
+        latitude: params.latitude,
+        longitude: params.longitude,
+        // Data kandidat yang dipilih (lengkap dengan foto & status ready)
+        kandidat: {
+            id: kandidat.id,
+            nama: kandidat.nama,
+            umur: kandidat.umur,
+            asal: kandidat.asal,
+            pengalaman: kandidat.pengalaman,
+            gajiMin: kandidat.gajiMin,
+            gajiMax: kandidat.gajiMax,
+            level: kandidat.level,
+            layanan: kandidat.layanan,
+            kategori: kandidat.kategori,
+            foto: kandidat.foto,
+            readyToWork: kandidat.readyToWork,
+        },
+    });
 
-        const finalData = {
-            // Data dari halaman 1
-            kategori: params.kategori,
-            layanan: params.layanan,
-            jobdesk: params.jobdesk,
-            // Data dari halaman 2
-            nama: params.nama,
-            email: params.email,
-            noHp: params.noHp,
-            nikKtp: params.nikKtp,
-            lokasi: params.lokasi,
-            alamatLengkap: params.alamatLengkap,
-            latitude: params.latitude,
-            longitude: params.longitude,
-            // Data kandidat yang dipilih
-            kandidat: {
-                id: selectedKandidat.id,
-                nama: selectedKandidat.nama,
-                umur: selectedKandidat.umur,
-                asal: selectedKandidat.asal,
-                pengalaman: selectedKandidat.pengalaman,
-                gajiMin: selectedKandidat.gajiMin,
-                gajiMax: selectedKandidat.gajiMax,
-                level: selectedKandidat.level,
-                layanan: selectedKandidat.layanan,
-            },
-        };
+    const goToDetailKandidat = (kandidat: Kandidat) => {
+        const finalData = buildFinalData(kandidat);
 
         console.log('========== DATA FINAL LENGKAP ==========');
         console.log('Kategori       :', finalData.kategori);
@@ -305,11 +346,24 @@ export default function KandidatScreen() {
         console.log('=========================================');
         console.log('Full Object    :', JSON.stringify(finalData, null, 2));
 
-        // Lanjut ke summary / konfirmasi
         router.push({
-            pathname: '/order-summary',
+            pathname: '/detail-kandidat',
             params: { payload: JSON.stringify(finalData) },
         });
+    };
+
+    const handleLanjut = () => {
+        if (!selectedKandidat) {
+            Toast.show({
+                type: 'error',
+                text1: 'Pilih Kandidat',
+                text2: 'Silakan pilih kandidat terlebih dahulu',
+                position: 'top',
+            });
+            return;
+        }
+
+        goToDetailKandidat(selectedKandidat);
     };
 
     return (
@@ -331,6 +385,14 @@ export default function KandidatScreen() {
             {/* ── Subtitle ───────────────────────────────────────────────── */}
             <View style={styles.subtitleBox}>
                 <Text style={styles.subtitle}>Mencari Yang Terbaik untukmu</Text>
+                {(params.layanan || params.kategori) && (
+                    <Text style={styles.subtitleInfo}>
+                        Menampilkan kandidat untuk{' '}
+                        {params.layanan ? `layanan ${params.layanan}` : ''}
+                        {params.layanan && params.kategori ? ' • ' : ''}
+                        {params.kategori ? `kategori ${params.kategori}` : ''}
+                    </Text>
+                )}
             </View>
 
             {/* ── Search Bar ─────────────────────────────────────────────── */}
@@ -379,16 +441,16 @@ export default function KandidatScreen() {
                         item={item}
                         isSelected={selectedId === item.id}
                         onSelect={() => setSelectedId(selectedId === item.id ? null : item.id)}
-                        onProfile={() =>
-                            console.log('Lihat Profile:', item.nama, '| ID:', item.id)
-                        }
+                        onProfile={() => goToDetailKandidat(item)}
                     />
                 )}
                 ListEmptyComponent={
-                    <View style={{ alignItems: 'center', marginTop: 60 }}>
+                    <View style={{ alignItems: 'center', marginTop: 60, paddingHorizontal: 32 }}>
                         <Ionicons name="search" size={48} color="#cbd5e1" />
-                        <Text style={{ color: '#94a3b8', marginTop: 12, fontSize: 15 }}>
-                            Kandidat tidak ditemukan
+                        <Text style={{ color: '#94a3b8', marginTop: 12, fontSize: 15, textAlign: 'center' }}>
+                            {kandidatSesuaiPesanan.length === 0
+                                ? `Belum ada kandidat untuk layanan${params.layanan ? ` "${params.layanan}"` : ''}${params.kategori ? ` kategori "${params.kategori}"` : ''}`
+                                : 'Kandidat tidak ditemukan'}
                         </Text>
                     </View>
                 }
@@ -470,6 +532,11 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '700',
         color: '#111827',
+    },
+    subtitleInfo: {
+        fontSize: 12,
+        color: '#6b7280',
+        marginTop: 4,
     },
 
     // Search
@@ -700,7 +767,6 @@ const styles = StyleSheet.create({
         flex: 1,
         fontSize: 13,
         color: '#9ca3af',
-        fontStyle: 'italic',
     },
     btnLanjut: {
         paddingVertical: 13,

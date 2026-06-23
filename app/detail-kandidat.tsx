@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
     Image,
     Platform,
@@ -246,6 +246,67 @@ const DUMMY_DETAIL: Record<string, any> = {
             ],
         },
     },
+    '7': {
+        id: '7',
+        nama: 'Yuli Andriani',
+        namaLengkap: 'Yuli Andriani Putri',
+        foto: 'https://randomuser.me/api/portraits/women/78.jpg',
+        level: 'ART',
+        layanan: 'Babysitter',
+        umur: 27,
+        beratBadan: 52,
+        tinggiBadan: 156,
+        asal: 'DKI Jakarta',
+        suku: 'Jawa',
+        agama: 'Islam',
+        statusPernikahan: 'Belum menikah',
+        infoAnak: 'Tidak ada',
+        posisiSaatIni: 'Jakarta Pusat, Kos',
+        pengalamanDetail: [
+            '2 tahun di Jakarta Pusat tahun 2022-2024 (Jaga Anak, Babysitter)',
+        ],
+        minatBekerja: 'Babysitter, Jaga Anak',
+        merokok: 'Tidak',
+        bertato: 'Tidak',
+        bisaNaikMotor: 'Bisa, Matic',
+        mabukKendaraan: 'Tidak',
+        bisaJagaAnak: 'Bisa dari usia 1 tahun ke atas',
+        bisaMasakRumahan: 'Masak Sederhana',
+        bisaMasakAnakKecil: 'Bisa',
+        gajiMin: 1500000,
+        gajiMax: 2500000,
+        perilaku: {
+            sifatDominan: 'Penyayang, sabar, dan bertanggung jawab',
+            caraBerkomunikasi: 'Sopan dan ramah',
+            sikapAtasan: 'Patuh dan kooperatif',
+            caraMenyelesaikanKonflik: 'Musyawarah, tidak emosional',
+            jamTidur: 'Pukul 22.00 – 05.00',
+            kegiatanLuang: 'Membaca dan mendengarkan musik',
+            hobi: 'Memasak dan bermain dengan anak',
+            kebiasaanPagi: 'Bangun pagi, siapkan sarapan',
+            ketepatanWaktu: 'Sangat disiplin',
+            multitasking: 'Baik dalam mengatur jadwal',
+            inisiatif: 'Tinggi, proaktif dalam menjaga anak',
+            kemampuanBelajar: 'Cepat belajar hal baru',
+            kepatuhanSOP: 'Sangat patuh terhadap arahan',
+        },
+        analisa: {
+            stabilitasEmosi: 'Stabil dan tidak mudah stres',
+            tingkatStres: 'Rendah, mampu mengelola tekanan',
+            adaptasi: 'Tinggi, mudah beradaptasi dengan lingkungan baru',
+            motivasi: 'Membantu keluarga dan mengembangkan diri',
+            kerapian: 'Rapi dan teratur dalam bekerja',
+            ketelitian: 'Teliti dalam menjaga keselamatan anak',
+            tanggungJawab: 'Tinggi dan dapat diandalkan',
+            kejujuran: 'Jujur dan terpercaya',
+            rekomendasi: 'Kandidat sangat cocok untuk keluarga dengan anak usia 1-5 tahun. Memiliki pengalaman babysitter yang baik dan kepribadian yang menyenangkan.',
+            cocokUntuk: [
+                'Keluarga dengan anak usia 1-5 tahun',
+                'Keluarga yang membutuhkan babysitter penuh perhatian',
+                'Orang tua dengan jadwal kerja padat',
+            ],
+        },
+    },
 };
 
 // Fallback data untuk kandidat yang tidak ada detail spesifik
@@ -307,77 +368,55 @@ const generateFallback = (kandidat: any) => ({
 export default function DetailKandidatScreen() {
     const router = useRouter();
 
-    // Semua params dari halaman-halaman sebelumnya
-    const params = useLocalSearchParams<{
-        // Dari halaman 1 (ArtBabysitter)
-        kategori: string;
-        layanan: string;
-        jobdesk: string;
-        // Dari halaman 2 (DetailKontak)
-        nama: string;
-        email: string;
-        noHp: string;
-        nikKtp: string;
-        lokasi: string;
-        alamatLengkap: string;
-        latitude: string;
-        longitude: string;
-        // Dari halaman 3 (Kandidat) — kandidat yang diklik
-        kandidatId: string;
-        kandidatNama: string;
-        kandidatFoto: string;
-        kandidatLevel: string;
-        kandidatLayanan: string;
-        kandidatUmur: string;
-        kandidatAsal: string;
-        kandidatPengalaman: string;
-        kandidatGajiMin: string;
-        kandidatGajiMax: string;
-    }>();
+    // Ambil payload dari halaman sebelumnya
+    const rawParams = useLocalSearchParams<{ payload?: string }>();
+
+    // Parse payload
+    const payloadData = useMemo(() => {
+        try {
+            return rawParams.payload
+                ? JSON.parse(rawParams.payload as string)
+                : null;
+        } catch (e) {
+            console.error('Gagal parse payload:', e);
+            return null;
+        }
+    }, [rawParams.payload]);
+
+    // Ambil data kandidat dari payload
+    const kandidatFromPayload = payloadData?.kandidat || {};
 
     const [activeTab, setActiveTab] = useState<TabKey>('Deskripsi');
 
-    // Ambil detail kandidat dari dummy, fallback ke generate
-    const baseKandidat = {
-        id: params.kandidatId,
-        nama: params.kandidatNama,
-        foto: params.kandidatFoto,
-        level: params.kandidatLevel,
-        layanan: params.kandidatLayanan,
-        umur: parseInt(params.kandidatUmur || '0'),
-        asal: params.kandidatAsal,
-        pengalaman: params.kandidatPengalaman,
-        gajiMin: parseInt(params.kandidatGajiMin || '0'),
-        gajiMax: parseInt(params.kandidatGajiMax || '0'),
-    };
-
-    const kandidat =
-        DUMMY_DETAIL[params.kandidatId] ||
-        generateFallback(baseKandidat);
+    // Ambil detail kandidat dari dummy berdasarkan ID, fallback ke generate
+    const kandidat = useMemo(() => {
+        const id = kandidatFromPayload.id;
+        if (id && DUMMY_DETAIL[id]) {
+            return DUMMY_DETAIL[id];
+        }
+        // Jika tidak ada di dummy, generate dari data yang ada
+        return generateFallback(kandidatFromPayload);
+    }, [kandidatFromPayload]);
 
     const formatGaji = (num: number) =>
         (num / 1000000).toFixed(1).replace('.0', '') + 'jt';
 
     const handlePilih = () => {
         const finalData = {
-            // Halaman 1
-            order: {
-                kategori: params.kategori,
-                layanan: params.layanan,
-                jobdesk: params.jobdesk,
-            },
-            // Halaman 2
-            kontak: {
-                nama: params.nama,
-                email: params.email,
-                noHp: params.noHp,
-                nikKtp: params.nikKtp,
-                lokasi: params.lokasi,
-                alamatLengkap: params.alamatLengkap,
-                latitude: params.latitude,
-                longitude: params.longitude,
-            },
-            // Halaman 3 + 4 (kandidat lengkap)
+            // Halaman 1 & 2
+            kategori: payloadData?.kategori,
+            layanan: payloadData?.layanan,
+            jobdesk: payloadData?.jobdesk,
+            customer_id: payloadData?.customer_id,
+            nama: payloadData?.nama,
+            email: payloadData?.email,
+            noHp: payloadData?.noHp,
+            nikKtp: payloadData?.nikKtp,
+            lokasi: payloadData?.lokasi,
+            alamatLengkap: payloadData?.alamatLengkap,
+            latitude: payloadData?.latitude,
+            longitude: payloadData?.longitude,
+            // Halaman 3 & 4 (kandidat lengkap)
             kandidat: {
                 id: kandidat.id,
                 nama: kandidat.nama,
@@ -407,18 +446,19 @@ export default function DetailKandidatScreen() {
         console.log('╚══════════════════════════════════════════╝');
         console.log('');
         console.log('📋 [HALAMAN 1] Jenis Order:');
-        console.log('   Kategori    :', finalData.order.kategori);
-        console.log('   Layanan     :', finalData.order.layanan);
-        console.log('   Jobdesk     :', finalData.order.jobdesk);
+        console.log('   Kategori    :', finalData.kategori);
+        console.log('   Layanan     :', finalData.layanan);
+        console.log('   Jobdesk     :', finalData.jobdesk);
         console.log('');
         console.log('📞 [HALAMAN 2] Kontak & Lokasi:');
-        console.log('   Nama        :', finalData.kontak.nama);
-        console.log('   Email       :', finalData.kontak.email);
-        console.log('   No HP       :', finalData.kontak.noHp);
-        console.log('   NIK KTP     :', finalData.kontak.nikKtp);
-        console.log('   Lokasi      :', finalData.kontak.lokasi);
-        console.log('   Alamat      :', finalData.kontak.alamatLengkap);
-        console.log('   Koordinat   :', finalData.kontak.latitude, ',', finalData.kontak.longitude);
+        console.log('   Customer ID :', finalData.customer_id);
+        console.log('   Nama        :', finalData.nama);
+        console.log('   Email       :', finalData.email);
+        console.log('   No HP       :', finalData.noHp);
+        console.log('   NIK KTP     :', finalData.nikKtp);
+        console.log('   Lokasi      :', finalData.lokasi);
+        console.log('   Alamat      :', finalData.alamatLengkap);
+        console.log('   Koordinat   :', finalData.latitude, ',', finalData.longitude);
         console.log('');
         console.log('👤 [HALAMAN 3 & 4] Kandidat Dipilih:');
         console.log('   ID          :', finalData.kandidat.id);
@@ -449,7 +489,7 @@ export default function DetailKandidatScreen() {
 
         // Navigasi ke halaman summary/konfirmasi
         router.push({
-            pathname: '/order/summary',
+            pathname: '/order-summary',
             params: { payload: JSON.stringify(finalData) },
         });
     };

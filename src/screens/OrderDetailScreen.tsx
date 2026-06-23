@@ -8,11 +8,10 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   ToastAndroid,
   TouchableOpacity,
   UIManager,
-  View,
+  View
 } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import { ServiceOptionCard } from '../components/home/ServiceOptionCard';
@@ -161,15 +160,24 @@ const OrderDetailScreen = () => {
   // Ambil kategori dari params (dikirim dari halaman list vendor)
   const vendorCategory = (params.category as string) || '';
 
-  // Helper function untuk cek apakah waktu harus di-hidden (untuk AC dan Sedot WC)
+  // ── SEMUA LAYANAN HIDDEN TIME ──
   const isTimeHidden = () => {
-    // Untuk kategori AC dan WC, waktu di-hidden/disabled
-    return vendorCategory === 'ac' || vendorCategory === 'wc';
+    return true; // Semua layanan time di-hidden
   };
 
   // Helper function untuk cek apakah ini vendor AC Service
   const isACServiceVendor = () => {
     return vendorCategory === 'ac';
+  };
+
+  // Helper function untuk cek apakah ini vendor Sedot WC
+  const isSedotWCVendor = () => {
+    return vendorCategory === 'wc';
+  };
+
+  // Helper function untuk cek apakah ini vendor ART
+  const isARTVendor = () => {
+    return vendorCategory === 'art';
   };
 
   const getInitialTime = () => {
@@ -200,13 +208,11 @@ const OrderDetailScreen = () => {
   const getActiveTerms = () => {
     const titleStr = typeof params.title === 'string' ? decodeURIComponent(params.title) : '';
 
-    // Prioritas berdasarkan kategori
     if (vendorCategory === 'ac') return SERVICE_TERMS_DATA.AC_SERVICE;
     if (vendorCategory === 'cleaning') return SERVICE_TERMS_DATA.CLEANING;
     if (vendorCategory === 'wc') return SERVICE_TERMS_DATA.SEDOT_WC;
     if (vendorCategory === 'art') return SERVICE_TERMS_DATA.ART_BABYSITTER;
 
-    // Fallback berdasarkan title
     if (titleStr === 'TangerangFast Service') return SERVICE_TERMS_DATA.CLEANING;
     if (titleStr === 'TangerangFast') return SERVICE_TERMS_DATA.AC_SERVICE;
     if (titleStr === 'Vendor Rijit') return SERVICE_TERMS_DATA.SEDOT_WC;
@@ -239,7 +245,7 @@ const OrderDetailScreen = () => {
       const BASE_URL = 'https://backend.tangerangfast.online';
 
       const normalizedServices = servicesData
-        .filter((s: any) => s.is_active === 1 || s.is_active === true) // ✅ hanya tampilkan yang aktif
+        .filter((s: any) => s.is_active === 1 || s.is_active === true)
         .map((s: any) => {
           let finalImage = 'https://via.placeholder.com/100';
           if (s.image_url) {
@@ -267,33 +273,8 @@ const OrderDetailScreen = () => {
   }, [params.id]);
 
   const checkIsClosed = () => {
-    // Jika waktu di-hidden (AC/WC), tidak perlu cek jam operasional
-    if (isTimeHidden()) return false;
-
-    if (!operatingHours || operatingHours.length === 0) return false;
-
-    const daysMap = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-
-    const [year, month, day] = selectedDate.split('-').map(Number);
-    const dateObj = new Date(year, month - 1, day);
-    const selectedDayName = daysMap[dateObj.getDay()];
-
-    const schedule = operatingHours.find((h: any) => h.day === selectedDayName);
-
-    if (!schedule || !schedule.active) return true;
-
-    const hh = inputHour.padStart(2, '0');
-    const mm = inputMinute.padStart(2, '0');
-    const userTime = `${hh}:${mm}`;
-
-    const openTime = schedule.open;
-    const closeTime = schedule.close;
-
-    if (closeTime < openTime) {
-      return userTime < openTime && userTime > closeTime;
-    }
-
-    return userTime < openTime || userTime > closeTime;
+    // Semua waktu di-hidden, jadi selalu false
+    return false;
   };
 
   const isClosed = checkIsClosed();
@@ -343,6 +324,53 @@ const OrderDetailScreen = () => {
     });
   };
 
+  // ── INFORMASI PENTING BERDASARKAN KATEGORI ──
+  const getImportantInfo = () => {
+    if (isACServiceVendor()) {
+      return {
+        title: 'Informasi Penting Servis AC',
+        items: [
+          'Teknisi akan menghubungi Anda maksimal 1x24 jam untuk konfirmasi jadwal kunjungan',
+          'Waktu kunjungan akan disesuaikan dengan jadwal teknisi di area Anda',
+          'Pastikan nomor telepon yang terdaftar aktif dan dapat dihubungi',
+          'Estimasi waktu pengerjaan: Pagi (08.00-11.00), Siang (11.00-14.00), Sore (14.00-16.00)',
+        ]
+      };
+    } else if (isSedotWCVendor()) {
+      return {
+        title: 'Informasi Penting Sedot WC',
+        items: [
+          'Tim akan menghubungi Anda untuk konfirmasi jadwal dan akses lokasi',
+          'Pastikan area septic tank dapat diakses oleh mobil tangki',
+          'Siapkan dokumen atau persetujuan dari pengelola gedung jika diperlukan',
+          'Proses sedot memakan waktu sekitar 30-60 menit tergantung kondisi',
+        ]
+      };
+    } else if (isARTVendor()) {
+      return {
+        title: 'Informasi Penting ART & Babysitter',
+        items: [
+          'Tim kami akan menghubungi Anda untuk verifikasi data dan jadwal',
+          'Pastikan data diri dan alamat lengkap sudah benar',
+          'Siapkan daftar pekerjaan rumah yang diinginkan untuk koordinasi awal',
+          'Komunikasi dengan pengasuh akan difasilitasi oleh tim kami',
+        ]
+      };
+    } else {
+      return {
+        title: 'Informasi Penting',
+        items: [
+          'Tim kami akan menghubungi Anda untuk konfirmasi jadwal pengerjaan',
+          'Pastikan nomor telepon yang terdaftar aktif dan dapat dihubungi',
+          'Siapkan akses ke lokasi pengerjaan sebelum tim datang',
+          'Komunikasi dengan tim kami dapat dilakukan melalui chat di aplikasi',
+        ]
+      };
+    }
+  };
+
+  const importantInfo = getImportantInfo();
+
   if (isLoading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -369,35 +397,10 @@ const OrderDetailScreen = () => {
         </View>
       </View>
 
-      {/* BANNER NOTIFIKASI TUTUP - Hanya untuk yang tidak di-hidden */}
-      {isClosed && !isTimeHidden() && (
-        <View
-          style={{
-            backgroundColor: '#FFF1F2',
-            padding: 10,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-          <Ionicons name="alert-circle" size={18} color="#E11D48" />
-          <Text
-            style={{
-              color: '#E11D48',
-              marginLeft: 8,
-              fontSize: 13,
-              fontWeight: '600',
-            }}>
-            Yah, mitra sudah tutup coba besok lagi ya
-          </Text>
-        </View>
-      )}
-
-      {/* OVERLAY PADA SCROLLVIEW JIKA TUTUP */}
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 120 }}
-        style={isClosed && !isTimeHidden() ? { opacity: 0.6 } : null}>
-
+      >
         {/* ACCORDION SYARAT & KETENTUAN */}
         <View style={styles.termsSection}>
           <TouchableOpacity
@@ -438,6 +441,20 @@ const OrderDetailScreen = () => {
           )}
         </View>
 
+        {/* ── INFORMASI PENTING ── */}
+        <View style={styles.infoSection}>
+          <View style={styles.infoHeader}>
+            <Ionicons name="information-circle" size={22} color="#633594" />
+            <Text style={styles.infoTitle}>{importantInfo.title}</Text>
+          </View>
+          {importantInfo.items.map((item, index) => (
+            <View key={index} style={styles.infoItem}>
+              <View style={styles.infoBullet} />
+              <Text style={styles.infoText}>{item}</Text>
+            </View>
+          ))}
+        </View>
+
         {/* 1. PILIH JASA LAYANAN */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Pilih Jasa Layanan*</Text>
@@ -455,14 +472,12 @@ const OrderDetailScreen = () => {
                   }}
                   quantity={selectedItems[item.id] || 0}
                   onAdd={() =>
-                    !isClosed &&
                     setSelectedItems({
                       ...selectedItems,
                       [item.id]: (selectedItems[item.id] || 0) + 1,
                     })
                   }
                   onRemove={() =>
-                    !isClosed &&
                     setSelectedItems({
                       ...selectedItems,
                       [item.id]: Math.max(0, (selectedItems[item.id] || 0) - 1),
@@ -486,7 +501,6 @@ const OrderDetailScreen = () => {
             {['Rumah', 'Apartemen', 'Kantor', 'Resto'].map(type => (
               <TouchableOpacity
                 key={type}
-                disabled={isClosed && !isTimeHidden()}
                 style={[styles.typeBtn, buildingType === type && styles.typeBtnActive]}
                 onPress={() => setBuildingType(type)}>
                 <Text
@@ -498,53 +512,7 @@ const OrderDetailScreen = () => {
           </View>
         </View>
 
-        {/* 3. WAKTU - HANYA UNTUK KATEGORI YANG TIDAK DI-HIDDEN (CLEANING, ART) */}
-        {!isTimeHidden() && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Pukul berapa membutuhkan layanan *</Text>
-            <View style={styles.timeInputContainer}>
-              <TextInput
-                style={styles.timeInput}
-                value={inputHour}
-                onChangeText={t => setInputHour(t.replace(/[^0-9]/g, ''))}
-                keyboardType="number-pad"
-                maxLength={2}
-              />
-              <Text style={styles.timeSeparator}>:</Text>
-              <TextInput
-                style={styles.timeInput}
-                value={inputMinute}
-                onChangeText={t => setInputMinute(t.replace(/[^0-9]/g, ''))}
-                keyboardType="number-pad"
-                maxLength={2}
-              />
-            </View>
-          </View>
-        )}
-
-        {/* NOTES KHUSUS UNTUK VENDOR AC SERVICE */}
-        {isACServiceVendor() && (
-          <View style={styles.notesSection}>
-            <View style={styles.notesContainer}>
-              <Ionicons name="information-circle-outline" size={20} color="#633594" />
-              <Text style={styles.notesTitle}>Informasi Penting</Text>
-            </View>
-            <Text style={styles.notesText}>
-              • Teknisi akan menghubungi Anda maksimal 1x24 jam untuk konfirmasi jadwal kunjungan
-            </Text>
-            <Text style={styles.notesText}>
-              • Waktu kunjungan akan disesuaikan dengan jadwal teknisi di area Anda
-            </Text>
-            <Text style={styles.notesText}>
-              • Pastikan nomor telepon yang terdaftar aktif dan dapat dihubungi
-            </Text>
-            <Text style={styles.notesText}>
-              • Estimasi waktu pengerjaan: Pagi (08.00-11.00), Siang (11.00-14.00), Sore (14.00-16.00)
-            </Text>
-          </View>
-        )}
-
-        {/* 4. KALENDER */}
+        {/* 3. KALENDER */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Pilih tanggal pesan layanan *</Text>
           <Calendar
@@ -578,11 +546,9 @@ const OrderDetailScreen = () => {
         </View>
 
         <TouchableOpacity
-          style={[styles.btnPesan, (isClosed && !isTimeHidden()) && { backgroundColor: '#94A3B8' }]}
+          style={styles.btnPesan}
           onPress={handleNext}>
-          <Text style={styles.btnPesanText}>
-            {(isClosed && !isTimeHidden()) ? 'Mitra Tutup' : 'Lanjutkan'}
-          </Text>
+          <Text style={styles.btnPesanText}>Lanjutkan</Text>
         </TouchableOpacity>
       </View>
 
@@ -631,30 +597,6 @@ const styles = StyleSheet.create({
   typeBtnActive: { borderColor: '#633594', backgroundColor: '#F5F3FF' },
   typeBtnText: { color: '#4B5563', fontSize: 14 },
   typeBtnTextActive: { color: '#633594', fontWeight: 'bold' },
-  timeInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-    borderRadius: 12,
-    paddingVertical: 10,
-    marginTop: 5,
-    backgroundColor: '#F9FAFB',
-  },
-  timeInput: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    width: 60,
-    color: '#1F2937',
-  },
-  timeSeparator: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#633594',
-    marginHorizontal: 10,
-  },
   bottomBar: {
     padding: 20,
     borderTopWidth: 1,
@@ -750,33 +692,49 @@ const styles = StyleSheet.create({
   textCheck: { fontSize: 13, color: '#334155', marginBottom: 4, lineHeight: 18 },
   textCross: { fontSize: 13, color: '#64748B', marginBottom: 4, lineHeight: 18 },
   dividerSmall: { height: 1, backgroundColor: '#F1F5F9', marginVertical: 12 },
-  // Style untuk notes section
-  notesSection: {
-    marginHorizontal: 20,
-    marginVertical: 16,
+
+  // ── Style Informasi Penting ──
+  infoSection: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 4,
     padding: 16,
-    backgroundColor: '#F0F9FF',
+    backgroundColor: '#F5F3FF',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#BAE6FD',
+    borderColor: '#DDD6FE',
   },
-  notesContainer: {
+  infoHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
     gap: 8,
   },
-  notesTitle: {
-    fontSize: 14,
+  infoTitle: {
+    fontSize: 15,
     fontWeight: 'bold',
     color: '#633594',
   },
-  notesText: {
-    fontSize: 12,
-    color: '#475569',
+  infoItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
     marginBottom: 8,
-    lineHeight: 18,
     paddingLeft: 4,
+  },
+  infoBullet: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#633594',
+    marginTop: 6,
+    marginRight: 10,
+    flexShrink: 0,
+  },
+  infoText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#4B5563',
+    lineHeight: 20,
   },
 });
 

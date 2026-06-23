@@ -136,22 +136,18 @@ export default function HomeScreen() {
     try {
       const res = await api.get('/voucher');
 
-      // 1. CEK RESPONS UTALITAS DARI API
-      console.log('====== 1. RESPONS SELESAI /VOUCHER ======\n', JSON.stringify(res.data, null, 2));
 
       const allVouchers = res.data.data || [];
 
       // 2. FILTER HANYA VOUCHER YANG AKTIF (is_active === 1)
       const activeVouchers = allVouchers.filter((voucher: Voucher) => voucher.is_active === 1);
 
-      // 3. CEK DATA VOUCHER YANG AKTIF
-      console.log(`====== 2. DATA VOUCHER AKTIF (Total: ${activeVouchers.length}) ======\n`, JSON.stringify(activeVouchers, null, 2));
 
       setVouchers(activeVouchers);
 
     } catch (error) {
       // 4. LOG JIKA API MENGALAMI ERROR/DOWN
-      console.error('====== ERROR FETCH VOUCHERS ======\n', error);
+
     }
   };
 
@@ -440,7 +436,7 @@ const styles = StyleSheet.create({
   },
   voucherImage: {
     width: '100%',
-    aspectRatio: 5 / 2,
+    aspectRatio: 5 / 3,
   },
   dotsContainer: {
     flexDirection: 'row',

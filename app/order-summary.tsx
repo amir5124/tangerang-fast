@@ -1,772 +1,909 @@
 import { Ionicons } from '@expo/vector-icons';
+import axios from 'axios';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-    FlatList,
+    ActivityIndicator,
+    Dimensions,
     Image,
+    Modal,
     Platform,
     Pressable,
-    SafeAreaView,
-    StatusBar,
+    ScrollView,
     StyleSheet,
     Text,
     TextInput,
-    View,
+    ToastAndroid,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-type Level = 'Junior' | 'Medior' | 'Senior' | 'ART';
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-interface Kandidat {
-    id: string;
-    nama: string;
-    umur: number;
-    asal: string;
-    pengalaman: string;
-    gajiMin: number;
-    gajiMax: number;
-    level: Level;
-    layanan: 'ART' | 'Babysitter';
-    foto: string;
-    readyToWork: boolean;
-}
-
-// ─── Dummy Data ───────────────────────────────────────────────────────────────
-const DUMMY_KANDIDAT: Kandidat[] = [
-    {
-        id: '1',
-        nama: 'Siti Rahayu',
-        umur: 32,
-        asal: 'Lampung Selatan',
-        pengalaman: '3 Tahun',
-        gajiMin: 1500000,
-        gajiMax: 2500000,
-        level: 'Junior',
-        layanan: 'ART',
-        foto: 'https://randomuser.me/api/portraits/women/44.jpg',
-        readyToWork: true,
-    },
-    {
-        id: '2',
-        nama: 'Dewi Lestari',
-        umur: 28,
-        asal: 'Jawa Tengah',
-        pengalaman: '5 Tahun',
-        gajiMin: 2000000,
-        gajiMax: 3500000,
-        level: 'Medior',
-        layanan: 'Babysitter',
-        foto: 'https://randomuser.me/api/portraits/women/68.jpg',
-        readyToWork: true,
-    },
-    {
-        id: '3',
-        nama: 'Nur Halimah',
-        umur: 35,
-        asal: 'Sumatera Barat',
-        pengalaman: '7 Tahun',
-        gajiMin: 2500000,
-        gajiMax: 4000000,
-        level: 'Senior',
-        layanan: 'ART',
-        foto: 'https://randomuser.me/api/portraits/women/26.jpg',
-        readyToWork: true,
-    },
-    {
-        id: '4',
-        nama: 'Fatimah Azzahra',
-        umur: 24,
-        asal: 'Jawa Barat',
-        pengalaman: '1 Tahun',
-        gajiMin: 1200000,
-        gajiMax: 2000000,
-        level: 'Junior',
-        layanan: 'Babysitter',
-        foto: 'https://randomuser.me/api/portraits/women/90.jpg',
-        readyToWork: false,
-    },
-    {
-        id: '5',
-        nama: 'Rina Wulandari',
-        umur: 30,
-        asal: 'Banten',
-        pengalaman: '4 Tahun',
-        gajiMin: 1800000,
-        gajiMax: 3000000,
-        level: 'Medior',
-        layanan: 'ART',
-        foto: 'https://randomuser.me/api/portraits/women/55.jpg',
-        readyToWork: true,
-    },
-    {
-        id: '6',
-        nama: 'Ani Setiawati',
-        umur: 40,
-        asal: 'Jawa Timur',
-        pengalaman: '10 Tahun',
-        gajiMin: 3000000,
-        gajiMax: 5000000,
-        level: 'Senior',
-        layanan: 'ART',
-        foto: 'https://randomuser.me/api/portraits/women/33.jpg',
-        readyToWork: true,
-    },
-    {
-        id: '7',
-        nama: 'Yuli Andriani',
-        umur: 27,
-        asal: 'DKI Jakarta',
-        pengalaman: '2 Tahun',
-        gajiMin: 1500000,
-        gajiMax: 2500000,
-        level: 'ART',
-        layanan: 'Babysitter',
-        foto: 'https://randomuser.me/api/portraits/women/78.jpg',
-        readyToWork: true,
-    },
-    {
-        id: '8',
-        nama: 'Heni Purwanti',
-        umur: 33,
-        asal: 'Kalimantan Selatan',
-        pengalaman: '6 Tahun',
-        gajiMin: 2200000,
-        gajiMax: 3800000,
-        level: 'Senior',
-        layanan: 'ART',
-        foto: 'https://randomuser.me/api/portraits/women/12.jpg',
-        readyToWork: false,
-    },
-];
-
-const LEVEL_FILTERS: Level[] = ['Junior', 'Medior', 'Senior', 'ART'];
-
-const formatGaji = (num: number) =>
-    (num / 1000000).toFixed(1).replace('.0', '') + 'jt';
-
-// ─── Kandidat Card ─────────────────────────────────────────────────────────────
-const KandidatCard = ({
-    item,
-    isSelected,
-    onSelect,
-    onProfile,
-}: {
-    item: Kandidat;
-    isSelected: boolean;
-    onSelect: () => void;
-    onProfile: () => void;
-}) => (
-    <Pressable
-        onPress={onSelect}
-        style={[styles.card, isSelected && styles.cardSelected]}
-    >
-        {/* Foto */}
-        <View style={styles.imageWrapper}>
-            <Image source={{ uri: item.foto }} style={styles.cardImage} />
-            {/* Ready to Work badge */}
-            {item.readyToWork && (
-                <View style={styles.readyBadge}>
-                    <View style={styles.readyDot} />
-                    <Text style={styles.readyText}>Ready To Work</Text>
-                </View>
-            )}
-            {/* Logo placeholder */}
-            <View style={styles.logoBox}>
-                <Text style={styles.logoText}>C</Text>
-            </View>
-            {/* Selected overlay */}
-            {isSelected && (
-                <View style={styles.selectedOverlay}>
-                    <Ionicons name="checkmark-circle" size={32} color="white" />
-                </View>
-            )}
-        </View>
-
-        {/* Info */}
-        <View style={styles.cardInfo}>
-            <Text style={styles.cardName}>{item.nama}</Text>
-            <Text style={styles.cardDetail}>Umur : {item.umur} Tahun</Text>
-            <Text style={styles.cardDetail}>Asal : {item.asal}</Text>
-            <Text style={styles.cardDetail}>Pengalaman : {item.pengalaman}</Text>
-            <Text style={styles.cardDetail}>
-                Gaji : {formatGaji(item.gajiMin)} - {formatGaji(item.gajiMax)}jt
-            </Text>
-            <View style={styles.cardFooter}>
-                <Text
-                    style={[
-                        styles.layananBadge,
-                        { color: item.layanan === 'ART' ? '#22c55e' : '#f97316' },
-                    ]}
-                >
-                    {item.layanan}
-                </Text>
-                <Pressable onPress={onProfile}>
-                    <Text style={styles.lihatProfile}>Lihat Profile</Text>
-                </Pressable>
-            </View>
-        </View>
-    </Pressable>
-);
-
-// ─── Main Screen ──────────────────────────────────────────────────────────────
-export default function KandidatScreen() {
+const PaymentScreen = () => {
+    const params = useLocalSearchParams() as any;
     const router = useRouter();
 
-    // Params dari halaman sebelumnya (DetailKontakScreen)
-    const params = useLocalSearchParams<{
-        kategori: string;
-        layanan: string;
-        jobdesk: string;
-        nama: string;
-        email: string;
-        noHp: string;
-        nikKtp: string;
-        lokasi: string;
-        alamatLengkap: string;
-        latitude: string;
-        longitude: string;
-    }>();
+    // Parse data dari payload halaman sebelumnya
+    const data = params.payload ? JSON.parse(params.payload) : {};
 
-    const [search, setSearch] = useState('');
-    const [activeFilter, setActiveFilter] = useState<Level | null>(null);
-    const [selectedId, setSelectedId] = useState<string | null>(null);
+    // Data kandidat
+    const kandidat = data.kandidat || {};
+    const gajiMax = kandidat.gajiMax || 0;
 
-    // Filter logic
-    const filtered = DUMMY_KANDIDAT.filter((k) => {
-        const matchSearch =
-            search === '' ||
-            k.nama.toLowerCase().includes(search.toLowerCase()) ||
-            k.asal.toLowerCase().includes(search.toLowerCase());
-        const matchFilter = activeFilter === null || k.level === activeFilter;
-        return matchSearch && matchFilter;
-    });
+    // States Dasar
+    const [isModalVisible, setModalVisible] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [paymentMethod, setPaymentMethod] = useState('QRIS');
+    const [toastVisible, setToastVisible] = useState(false);
+    const [toastMsg, setToastMsg] = useState('');
 
-    const selectedKandidat = DUMMY_KANDIDAT.find((k) => k.id === selectedId);
+    // States Voucher
+    const [isVoucherModalVisible, setVoucherModalVisible] = useState(false);
+    const [voucherCodeInput, setVoucherCodeInput] = useState('');
+    const [appliedVoucher, setAppliedVoucher] = useState<any>(null);
+    const [isValidatingVoucher, setIsValidatingVoucher] = useState(false);
 
-    const handleLanjut = () => {
-        if (!selectedKandidat) {
+    // --- STATE BIAYA LAYANAN DINAMIS ---
+    const [biayaLayanan, setBiayaLayanan] = useState<number>(0);
+
+    const fetchServiceFee = async () => {
+        try {
+            const response = await axios.get(
+                'https://backend.tangerangfast.online/api/settings/app_service_fee',
+            );
+
+            const res = response.data;
+
+            if (
+                res &&
+                res.success === true &&
+                res.value !== undefined &&
+                res.value !== null
+            ) {
+                const feeConverted = parseInt(res.value, 10);
+                setBiayaLayanan(feeConverted);
+            }
+        } catch (error) {
+            console.error('Gagal mengambil biaya layanan:', error);
+            setBiayaLayanan(0);
+        }
+    };
+
+    useEffect(() => {
+        fetchServiceFee();
+    }, []);
+
+    // --- LOGIKA PERHITUNGAN BIAYA ---
+    const hargaDasar = gajiMax;
+
+    const calculateBiayaTransaksi = () => {
+        if (paymentMethod === 'QRIS') {
+            return Math.round((hargaDasar + biayaLayanan) * 0.008); // 0.8% MDR QRIS
+        }
+        return 4000; // Flat fee untuk VA
+    };
+
+    const biayaTransaksi = calculateBiayaTransaksi();
+    const discountAmount = appliedVoucher ? appliedVoucher.discount_amount : 0;
+
+    // Rumus Final: (Dasar + Layanan + Transaksi) - Diskon
+    const totalKeseluruhan =
+        hargaDasar + biayaLayanan + biayaTransaksi - discountAmount;
+
+    const paymentOptions = [
+        { id: 'qris', name: 'QRIS', icon: 'qr-code-outline' },
+        { id: 'bri', name: 'VA BRI', icon: 'card-outline' },
+        { id: 'bni', name: 'VA BNI', icon: 'card-outline' },
+        { id: 'mandiri', name: 'VA Mandiri', icon: 'card-outline' },
+        { id: 'bca', name: 'VA BCA', icon: 'card-outline' },
+    ];
+
+    const showInfoToast = (message: string) => {
+        if (Platform.OS === 'android') {
+            ToastAndroid.show(message, ToastAndroid.SHORT);
+        } else {
+            setToastMsg(message);
+            setToastVisible(true);
+            setTimeout(() => setToastVisible(false), 3000);
+        }
+    };
+
+    const handleCheckVoucher = async () => {
+        if (!voucherCodeInput) {
             Toast.show({
                 type: 'error',
-                text1: 'Pilih Kandidat',
-                text2: 'Silakan pilih kandidat terlebih dahulu',
-                position: 'top',
+                text1: 'Peringatan',
+                text2: 'Masukkan kode voucher dulu',
+                visibilityTime: 2000,
             });
             return;
         }
 
-        const finalData = {
-            // Data dari halaman 1
-            kategori: params.kategori,
-            layanan: params.layanan,
-            jobdesk: params.jobdesk,
-            // Data dari halaman 2
-            nama: params.nama,
-            email: params.email,
-            noHp: params.noHp,
-            nikKtp: params.nikKtp,
-            lokasi: params.lokasi,
-            alamatLengkap: params.alamatLengkap,
-            latitude: params.latitude,
-            longitude: params.longitude,
-            // Data kandidat yang dipilih
-            kandidat: {
-                id: selectedKandidat.id,
-                nama: selectedKandidat.nama,
-                umur: selectedKandidat.umur,
-                asal: selectedKandidat.asal,
-                pengalaman: selectedKandidat.pengalaman,
-                gajiMin: selectedKandidat.gajiMin,
-                gajiMax: selectedKandidat.gajiMax,
-                level: selectedKandidat.level,
-                layanan: selectedKandidat.layanan,
-            },
-        };
+        setIsValidatingVoucher(true);
+        try {
+            // Simulasi API call - ganti dengan endpoint real
+            const response = await axios.post(
+                'https://backend.tangerangfast.online/api/voucher/validate',
+                {
+                    code: voucherCodeInput.toUpperCase(),
+                    user_id: data.customer_id || data.customerId || 1,
+                    subtotal_layanan: hargaDasar + biayaLayanan,
+                },
+            );
 
-        console.log('========== DATA FINAL LENGKAP ==========');
-        console.log('Kategori       :', finalData.kategori);
-        console.log('Layanan        :', finalData.layanan);
-        console.log('Jobdesk        :', finalData.jobdesk);
-        console.log('Nama Customer  :', finalData.nama);
-        console.log('Email          :', finalData.email);
-        console.log('No HP          :', finalData.noHp);
-        console.log('NIK KTP        :', finalData.nikKtp);
-        console.log('Lokasi         :', finalData.lokasi);
-        console.log('Alamat Lengkap :', finalData.alamatLengkap);
-        console.log('Latitude       :', finalData.latitude);
-        console.log('Longitude      :', finalData.longitude);
-        console.log('--- Kandidat Dipilih ---');
-        console.log('ID Kandidat    :', finalData.kandidat.id);
-        console.log('Nama Kandidat  :', finalData.kandidat.nama);
-        console.log('Umur           :', finalData.kandidat.umur);
-        console.log('Asal           :', finalData.kandidat.asal);
-        console.log('Pengalaman     :', finalData.kandidat.pengalaman);
-        console.log('Level          :', finalData.kandidat.level);
-        console.log('=========================================');
-        console.log('Full Object    :', JSON.stringify(finalData, null, 2));
+            setVoucherModalVisible(false);
 
-        // Lanjut ke detail kandidat dengan params individual (sama persis dengan onProfile)
-        router.push({
-            pathname: '/detail-kandidat',
-            params: {
-                // Params dari halaman sebelumnya
-                kategori: params.kategori,
-                layanan: params.layanan,
-                jobdesk: params.jobdesk,
-                nama: params.nama,
-                email: params.email,
-                noHp: params.noHp,
-                nikKtp: params.nikKtp,
-                lokasi: params.lokasi,
-                alamatLengkap: params.alamatLengkap,
-                latitude: params.latitude,
-                longitude: params.longitude,
-                // Data kandidat yang dipilih
-                kandidatId: selectedKandidat.id,
-                kandidatNama: selectedKandidat.nama,
-                kandidatFoto: selectedKandidat.foto,
-                kandidatLevel: selectedKandidat.level,
-                kandidatLayanan: selectedKandidat.layanan,
-                kandidatUmur: String(selectedKandidat.umur),
-                kandidatAsal: selectedKandidat.asal,
-                kandidatPengalaman: selectedKandidat.pengalaman,
-                kandidatGajiMin: String(selectedKandidat.gajiMin),
-                kandidatGajiMax: String(selectedKandidat.gajiMax),
-            },
+            setTimeout(() => {
+                if (response.data.success) {
+                    setAppliedVoucher(response.data.data);
+                    Toast.show({
+                        type: 'success',
+                        text1: 'Berhasil!',
+                        text2: 'Voucher berhasil dipasang!',
+                        visibilityTime: 2000,
+                    });
+                } else {
+                    setAppliedVoucher(null);
+                    Toast.show({
+                        type: 'error',
+                        text1: 'Gagal',
+                        text2: response.data.message || 'Voucher tidak valid',
+                        visibilityTime: 2000,
+                    });
+                }
+            }, 500);
+        } catch (error: any) {
+            setVoucherModalVisible(false);
+            setAppliedVoucher(null);
+
+            const errorMsg = error.response?.data?.message || 'Gagal validasi voucher';
+
+            setTimeout(() => {
+                Toast.show({
+                    type: 'error',
+                    text1: 'Gagal',
+                    text2: errorMsg,
+                    visibilityTime: 2000,
+                });
+            }, 500);
+        } finally {
+            setIsValidatingVoucher(false);
+        }
+    };
+
+    const handleRemoveVoucher = () => {
+        setAppliedVoucher(null);
+        setVoucherCodeInput('');
+        Toast.show({
+            type: 'info',
+            text1: 'Voucher Dihapus',
+            text2: 'Voucher telah dihapus dari pesanan',
+            visibilityTime: 1500,
         });
     };
 
+    // --- FUNGSI SUBMIT ORDER ---
+    const handleFinalOrder = async () => {
+        if (isLoading) return;
+        setIsLoading(true);
+
+        /*
+        // ============================================
+        // PAYLOAD ASLI UNTUK PRODUKSI - UNCOMMENT UNTUK DIGUNAKAN
+        // ============================================
+        const orderPayload = {
+            customer_id: data.customer_id || data.customerId || 1,
+            store_id: data.store_id || '1',
+            metode_pembayaran: paymentMethod,
+            kategori: data.kategori || 'Menginap',
+            layanan: data.layanan || 'Babysitter',
+            jobdesk: data.jobdesk || 'mengasuh anak',
+            lokasi: {
+                alamat: data.alamatLengkap || data.lokasi || '',
+                latitude: data.latitude || -6.906683699999999,
+                longitude: data.longitude || 109.7340048,
+            },
+            kontak: {
+                nama: data.nama || '',
+                email: data.email || '',
+                noHp: data.noHp || '',
+                nikKtp: data.nikKtp || '',
+            },
+            kandidat: {
+                id: kandidat.id,
+                nama: kandidat.nama,
+                umur: kandidat.umur,
+                asal: kandidat.asal,
+                pengalaman: kandidat.pengalaman,
+                gajiMin: kandidat.gajiMin,
+                gajiMax: kandidat.gajiMax,
+                level: kandidat.level,
+                layanan: kandidat.layanan,
+                kategori: kandidat.kategori,
+                foto: kandidat.foto,
+                readyToWork: kandidat.readyToWork,
+            },
+            voucher_code: appliedVoucher ? appliedVoucher.code : null,
+            rincian_biaya: {
+                subtotal_layanan: hargaDasar,
+                biaya_layanan_app: biayaLayanan,
+                biaya_transaksi: biayaTransaksi,
+                diskon_voucher: discountAmount,
+                total_akhir: totalKeseluruhan,
+            },
+        };
+        ============================================
+        */
+
+        // ============================================
+        // PAYLOAD TESTING - MENGGUNAKAN DATA DUMMY
+        // ============================================
+        const orderPayload = {
+            customer_id: 1,
+            store_id: '1',
+            metode_pembayaran: paymentMethod,
+            kategori: 'Menginap',
+            layanan: 'Babysitter',
+            jobdesk: 'mengasuh anak',
+            lokasi: {
+                alamat: 'Jl. Test No. 123, Jakarta',
+                latitude: -6.906683699999999,
+                longitude: 109.7340048,
+            },
+            kontak: {
+                nama: 'Test Customer',
+                email: 'test@email.com',
+                noHp: '08123456789',
+                nikKtp: '1234567890123456',
+            },
+            kandidat: {
+                id: '7',
+                nama: 'Yuli Andriani',
+                umur: 27,
+                asal: 'DKI Jakarta',
+                pengalaman: '2 Tahun',
+                gajiMin: 1500000,
+                gajiMax: 2500000,
+                level: 'ART',
+                layanan: 'Babysitter',
+                kategori: 'Menginap',
+                foto: 'https://randomuser.me/api/portraits/women/78.jpg',
+                readyToWork: true,
+            },
+            voucher_code: appliedVoucher ? appliedVoucher.code : null,
+            rincian_biaya: {
+                subtotal_layanan: hargaDasar,
+                biaya_layanan_app: biayaLayanan,
+                biaya_transaksi: biayaTransaksi,
+                diskon_voucher: discountAmount,
+                total_akhir: totalKeseluruhan,
+            },
+        };
+        // ============================================
+
+        // Log payload untuk debugging
+        console.log('📦 Order Payload:', JSON.stringify(orderPayload, null, 2));
+
+        try {
+            /*
+            // ============================================
+            // ENDPOINT ASLI - UNCOMMENT UNTUK PRODUKSI
+            // ============================================
+            const response = await axios.post(
+                'https://backend.tangerangfast.online/api/payment/create',
+                orderPayload,
+                { timeout: 20000 },
+            );
+    
+            if (response.data.success) {
+                router.push({
+                    pathname: '/payment-instruction',
+                    params: {
+                        orderId: response.data.order_id,
+                        paymentInfo: JSON.stringify(response.data.payment_data),
+                    },
+                });
+            } else {
+                Toast.show({
+                    type: 'error',
+                    text1: 'Gagal',
+                    text2: response.data.message || 'Gagal membuat pesanan',
+                    visibilityTime: 3000,
+                });
+            }
+            ============================================
+            */
+
+            // ============================================
+            // TESTING - SIMULASI PEMBAYARAN SUKSES
+            // ============================================
+            console.log('🔄 Simulasi pembayaran sedang diproses...');
+
+            // Simulasi delay 2 detik
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            // Tampilkan toast sukses
+            Toast.show({
+                type: 'success',
+                text1: '✅ Pembayaran Berhasil!',
+                text2: `Pembayaran sebesar ${formatRupiah(totalKeseluruhan)} telah berhasil diproses.`,
+                visibilityTime: 3000,
+                onPress: () => {
+                    // Navigasi ke halaman matching
+                    router.push({
+                        pathname: '/matching',
+                        params: {
+                            orderId: 'ORD-' + Date.now(),
+                            totalPayment: totalKeseluruhan,
+                            kandidatId: kandidat.id,
+                            kandidatNama: kandidat.nama,
+                        }
+                    });
+                }
+            });
+
+            // Navigasi otomatis setelah 3 detik
+            setTimeout(() => {
+                router.push({
+                    pathname: '/matching',
+                    params: {
+                        orderId: 'ORD-' + Date.now(),
+                        totalPayment: totalKeseluruhan,
+                        kandidatId: kandidat.id,
+                        kandidatNama: kandidat.nama,
+                    }
+                });
+            }, 3000);
+            // ============================================
+
+        } catch (error: any) {
+            console.error('Payment Error:', error);
+            Toast.show({
+                type: 'error',
+                text1: '❌ Gagal Memproses',
+                text2: error.response?.data?.message || 'Terjadi kesalahan pada sistem pembayaran.',
+                visibilityTime: 3000,
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // Format Rupiah
+    const formatRupiah = (angka: number) => {
+        return 'Rp' + angka.toLocaleString('id-ID');
+    };
+
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#f0f4ff' }}>
-            <StatusBar barStyle="light-content" backgroundColor="#3b5bdb" />
-
-            {/* ── Header ─────────────────────────────────────────────────── */}
-            <View style={styles.header}>
-                <Pressable
-                    onPress={() => router.back()}
-                    style={({ pressed }) => [styles.backButton, { opacity: pressed ? 0.6 : 1 }]}
-                >
-                    <Ionicons name="arrow-back" size={22} color="#fff" />
-                </Pressable>
-                <Text style={styles.headerTitle}>Siap Untuk Kerja</Text>
-                <View style={{ width: 40 }} />
-            </View>
-
-            {/* ── Subtitle ───────────────────────────────────────────────── */}
-            <View style={styles.subtitleBox}>
-                <Text style={styles.subtitle}>Mencari Yang Terbaik untukmu</Text>
-            </View>
-
-            {/* ── Search Bar ─────────────────────────────────────────────── */}
-            <View style={styles.searchRow}>
-                <View style={styles.searchWrapper}>
-                    <TextInput
-                        placeholder="Search .."
-                        placeholderTextColor="#b0b8c9"
-                        value={search}
-                        onChangeText={setSearch}
-                        style={styles.searchInput}
-                    />
-                    <Ionicons name="search" size={18} color="#94a3b8" style={{ marginRight: 14 }} />
+        <View style={{ flex: 1, backgroundColor: '#FFF' }}>
+            <View style={styles.customHeader}>
+                <View style={styles.headerContent}>
+                    <TouchableOpacity
+                        onPress={() => router.back()}
+                        style={styles.backButton}>
+                        <Ionicons name="arrow-back" size={24} color="#fff" />
+                    </TouchableOpacity>
+                    <Text style={styles.headerTitle}>Pembayaran</Text>
+                    <View style={{ width: 24 }} />
                 </View>
             </View>
 
-            {/* ── Filter Chips + Filter Icon ─────────────────────────────── */}
-            <View style={styles.filterRow}>
-                {LEVEL_FILTERS.map((f) => (
-                    <Pressable
-                        key={f}
-                        onPress={() => setActiveFilter(activeFilter === f ? null : f)}
-                        style={[styles.chip, activeFilter === f && styles.chipActive]}
-                    >
-                        <Text style={[styles.chipText, activeFilter === f && styles.chipTextActive]}>
-                            {f}
-                        </Text>
-                    </Pressable>
-                ))}
-                <Pressable style={styles.filterIconBtn}>
-                    <Ionicons name="filter" size={18} color="#3b5bdb" />
-                    <Text style={styles.filterLabel}>Filter</Text>
-                </Pressable>
-            </View>
-
-            {/* ── Grid Kandidat ──────────────────────────────────────────── */}
-            <FlatList
-                data={filtered}
-                keyExtractor={(item) => item.id}
-                numColumns={2}
-                columnWrapperStyle={{ justifyContent: 'space-between', paddingHorizontal: 16 }}
-                contentContainerStyle={{ paddingTop: 12, paddingBottom: 140 }}
+            <ScrollView
                 showsVerticalScrollIndicator={false}
-                renderItem={({ item }) => (
-                    <KandidatCard
-                        item={item}
-                        isSelected={selectedId === item.id}
-                        onSelect={() => setSelectedId(selectedId === item.id ? null : item.id)}
-                        onProfile={() =>
-                            router.push({
-                                pathname: '/order/detail-kandidat',
-                                params: {
-                                    // Teruskan semua params dari halaman sebelumnya
-                                    kategori: params.kategori,
-                                    layanan: params.layanan,
-                                    jobdesk: params.jobdesk,
-                                    nama: params.nama,
-                                    email: params.email,
-                                    noHp: params.noHp,
-                                    nikKtp: params.nikKtp,
-                                    lokasi: params.lokasi,
-                                    alamatLengkap: params.alamatLengkap,
-                                    latitude: params.latitude,
-                                    longitude: params.longitude,
-                                    // Data kandidat yang diklik
-                                    kandidatId: item.id,
-                                    kandidatNama: item.nama,
-                                    kandidatFoto: item.foto,
-                                    kandidatLevel: item.level,
-                                    kandidatLayanan: item.layanan,
-                                    kandidatUmur: String(item.umur),
-                                    kandidatAsal: item.asal,
-                                    kandidatPengalaman: item.pengalaman,
-                                    kandidatGajiMin: String(item.gajiMin),
-                                    kandidatGajiMax: String(item.gajiMax),
-                                },
-                            })
-                        }
-                    />
-                )}
-                ListEmptyComponent={
-                    <View style={{ alignItems: 'center', marginTop: 60 }}>
-                        <Ionicons name="search" size={48} color="#cbd5e1" />
-                        <Text style={{ color: '#94a3b8', marginTop: 12, fontSize: 15 }}>
-                            Kandidat tidak ditemukan
-                        </Text>
-                    </View>
-                }
-            />
+                contentContainerStyle={{ paddingBottom: 120 }}>
 
-            {/* ── Bottom Bar ─────────────────────────────────────────────── */}
-            <View style={styles.bottomBar}>
-                {selectedKandidat ? (
-                    <View style={styles.selectedInfo}>
-                        <Image
-                            source={{ uri: selectedKandidat.foto }}
-                            style={styles.selectedAvatar}
-                        />
-                        <View style={{ flex: 1, marginLeft: 10 }}>
-                            <Text style={styles.selectedName}>{selectedKandidat.nama}</Text>
-                            <Text style={styles.selectedSub}>
-                                {selectedKandidat.level} • {selectedKandidat.layanan}
+                {/* Informasi Pemesanan */}
+                <View style={styles.card}>
+                    <View style={styles.cardHeader}>
+                        <Text style={styles.cardTitle}>Informasi Pemesanan</Text>
+                        <TouchableOpacity onPress={() => router.back()}>
+                            <Text style={styles.editBtn}>Ubah</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.infoRow}>
+                        <Ionicons name="person-outline" size={20} color="#333" />
+                        <View style={styles.infoContent}>
+                            <Text style={styles.infoValue}>
+                                {data.nama?.trim() || 'Customer'}
+                            </Text>
+                            <Text style={styles.infoSubValue}>
+                                {data.noHp || '-'} • {data.email || '-'}
                             </Text>
                         </View>
                     </View>
-                ) : (
-                    <Text style={styles.noSelectText}>Belum ada kandidat dipilih</Text>
-                )}
 
-                <Pressable
-                    onPress={handleLanjut}
-                    disabled={!selectedKandidat}
-                    style={({ pressed }) => [
-                        styles.btnLanjut,
-                        {
-                            backgroundColor: !selectedKandidat
-                                ? '#93aef5'
-                                : pressed
-                                    ? '#2f4ec7'
-                                    : '#3b5bdb',
-                        },
-                    ]}
-                >
-                    <Text style={styles.btnLanjutText}>Lanjut</Text>
-                </Pressable>
+                    <View style={styles.infoRow}>
+                        <Ionicons name="location-outline" size={20} color="#333" />
+                        <View style={styles.infoContent}>
+                            <Text style={styles.infoValue}>{data.lokasi || 'Lokasi tidak tersedia'}</Text>
+                            <Text style={styles.infoSubValue}>
+                                {data.alamatLengkap || '-'}
+                            </Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.infoRow}>
+                        <Ionicons name="calendar-outline" size={20} color="#333" />
+                        <View style={styles.infoContent}>
+                            <Text style={styles.infoValue}>
+                                {new Date().toLocaleDateString('id-ID', {
+                                    year: 'numeric',
+                                    month: '2-digit',
+                                    day: '2-digit',
+                                })}
+                                {' • '}
+                                {new Date().toLocaleTimeString('id-ID', {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                })}
+                            </Text>
+                        </View>
+                    </View>
+                </View>
+
+                {/* Kandidat Info */}
+                <View style={styles.kandidatCard}>
+                    <View style={styles.kandidatHeader}>
+                        <Image source={{ uri: kandidat.foto }} style={styles.kandidatAvatar} />
+                        <View style={styles.kandidatInfo}>
+                            <Text style={styles.kandidatName}>{kandidat.nama || 'Kandidat'}</Text>
+                            <Text style={styles.kandidatDetail}>Umur : {kandidat.umur || 0} Tahun</Text>
+                            <Text style={styles.kandidatDetail}>Asal : {kandidat.asal || '-'}</Text>
+                            <Text style={styles.kandidatDetail}>Pengalaman : {kandidat.pengalaman || '-'}</Text>
+                            <Text style={styles.kandidatDetail}>
+                                Gaji : {formatRupiah(kandidat.gajiMin || 0)} – {formatRupiah(kandidat.gajiMax || 0)}
+                            </Text>
+                        </View>
+                    </View>
+                    {kandidat.readyToWork && (
+                        <View style={styles.readyBadge}>
+                            <View style={styles.readyDot} />
+                            <Text style={styles.readyText}>Ready To Work</Text>
+                        </View>
+                    )}
+                </View>
+
+                {/* Voucher Section */}
+                <TouchableOpacity
+                    style={styles.promoCard}
+                    onPress={() => setVoucherModalVisible(true)}>
+                    <View style={styles.row}>
+                        <View
+                            style={[
+                                styles.voucherIconBg,
+                                appliedVoucher && { backgroundColor: '#2ecc71' },
+                            ]}>
+                            <Ionicons name="pricetag" size={14} color="#fff" />
+                        </View>
+                        <Text
+                            style={[
+                                styles.promoText,
+                                appliedVoucher && { color: '#2ecc71', fontWeight: 'bold' },
+                            ]}>
+                            {appliedVoucher
+                                ? `Voucher: ${appliedVoucher.code}`
+                                : 'Gunakan voucher Anda!'}
+                        </Text>
+                    </View>
+                    <View style={styles.row}>
+                        {appliedVoucher && (
+                            <Text style={{ color: '#2ecc71', marginRight: 5, fontSize: 12 }}>
+                                -{formatRupiah(discountAmount)}
+                            </Text>
+                        )}
+                        <Ionicons name="chevron-forward" size={18} color="#666" />
+                    </View>
+                </TouchableOpacity>
+
+                {/* Detail Layanan */}
+                <View style={styles.card}>
+                    <View style={styles.cardHeader}>
+                        <Text style={styles.cardTitle}>Detail Layanan</Text>
+                    </View>
+
+                    <View style={styles.serviceItem}>
+                        <Text style={styles.serviceName}>Harga Layanan & Gedung</Text>
+                        <Text style={styles.servicePrice}>
+                            {formatRupiah(hargaDasar)}
+                        </Text>
+                    </View>
+
+                    <View style={styles.serviceItem}>
+                        <View style={styles.row}>
+                            <Text style={styles.serviceName}>Biaya Layanan</Text>
+                            <TouchableOpacity
+                                onPress={() => showInfoToast('Biaya operasional aplikasi.')}>
+                                <Ionicons
+                                    name="information-circle-outline"
+                                    size={16}
+                                    color="#999"
+                                    style={{ marginLeft: 5 }}
+                                />
+                            </TouchableOpacity>
+                        </View>
+                        <Text style={styles.servicePrice}>
+                            {formatRupiah(biayaLayanan)}
+                        </Text>
+                    </View>
+
+                    <View style={styles.serviceItem}>
+                        <Text style={styles.serviceName}>
+                            Biaya Transaksi ({paymentMethod})
+                        </Text>
+                        <Text style={styles.servicePrice}>
+                            {formatRupiah(biayaTransaksi)}
+                        </Text>
+                    </View>
+
+                    {appliedVoucher && (
+                        <View style={styles.serviceItem}>
+                            <Text style={[styles.serviceName, { color: '#2ecc71' }]}>
+                                Diskon Voucher
+                            </Text>
+                            <Text style={[styles.servicePrice, { color: '#2ecc71' }]}>
+                                -{formatRupiah(discountAmount)}
+                            </Text>
+                        </View>
+                    )}
+
+                    <View style={styles.divider} />
+
+                    <View style={styles.rowBetween}>
+                        <Text style={styles.subtotalLabel}>Total Tagihan</Text>
+                        <Text style={styles.subtotalValue}>
+                            {formatRupiah(totalKeseluruhan)}
+                        </Text>
+                    </View>
+                </View>
+
+                {/* Metode Pembayaran */}
+                <View style={styles.card}>
+                    <View style={styles.cardHeader}>
+                        <Text style={styles.cardTitle}>Metode Pembayaran</Text>
+                        <TouchableOpacity onPress={() => setModalVisible(true)}>
+                            <Text style={styles.editBtn}>Ubah</Text>
+                        </TouchableOpacity>
+                    </View>
+                    <View style={styles.row}>
+                        <Ionicons
+                            name={
+                                paymentMethod === 'QRIS' ? 'qr-code-outline' : 'card-outline'
+                            }
+                            size={20}
+                            color="#3b5bdb"
+                        />
+                        <Text style={[styles.infoValue, { marginLeft: 10 }]}>
+                            {paymentMethod}
+                        </Text>
+                    </View>
+                </View>
+            </ScrollView>
+
+            {/* Bottom Bar */}
+            <View style={styles.bottomBar}>
+                <View>
+                    <Text style={styles.totalLabel}>Total Pembayaran</Text>
+                    <Text style={styles.finalPrice}>
+                        {formatRupiah(totalKeseluruhan)}
+                    </Text>
+                </View>
+                <TouchableOpacity
+                    style={[styles.btnOrder, isLoading && { backgroundColor: '#A084BC' }]}
+                    onPress={handleFinalOrder}
+                    disabled={isLoading}>
+                    <Text style={styles.btnOrderText}>
+                        {isLoading ? 'Memproses...' : 'Pembayaran'}
+                    </Text>
+                </TouchableOpacity>
             </View>
 
+            {/* Modal Payment Method */}
+            <Modal animationType="slide" transparent visible={isModalVisible}>
+                <Pressable
+                    style={styles.modalOverlay}
+                    onPress={() => setModalVisible(false)}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHandle} />
+                        <Text style={styles.modalTitle}>Pilih Pembayaran</Text>
+                        {paymentOptions.map(opt => (
+                            <TouchableOpacity
+                                key={opt.id}
+                                style={styles.optionItem}
+                                onPress={() => {
+                                    setPaymentMethod(opt.name);
+                                    setModalVisible(false);
+                                }}>
+                                <View style={styles.row}>
+                                    <Ionicons name={opt.icon as any} size={22} color="#3b5bdb" />
+                                    <Text style={styles.optionText}>{opt.name}</Text>
+                                </View>
+                                {paymentMethod === opt.name && (
+                                    <Ionicons name="checkmark-circle" size={22} color="#3b5bdb" />
+                                )}
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                </Pressable>
+            </Modal>
+
+            {/* Modal Voucher */}
+            <Modal animationType="slide" transparent visible={isVoucherModalVisible}>
+                <Pressable
+                    style={styles.modalOverlay}
+                    onPress={() => setVoucherModalVisible(false)}>
+                    <Pressable
+                        style={[styles.modalContent, { paddingBottom: 40 }]}
+                        onPress={e => e.stopPropagation()}>
+                        <View style={styles.modalHandle} />
+                        <Text style={styles.modalTitle}>Pakai Kode Voucher</Text>
+
+                        <View style={styles.inputContainer}>
+                            <TextInput
+                                style={styles.textInput}
+                                placeholder="Masukkan kode"
+                                autoCapitalize="characters"
+                                value={voucherCodeInput}
+                                onChangeText={setVoucherCodeInput}
+                            />
+                            <TouchableOpacity
+                                style={styles.applyBtn}
+                                onPress={handleCheckVoucher}
+                                disabled={isValidatingVoucher}>
+                                {isValidatingVoucher ? (
+                                    <ActivityIndicator color="#fff" />
+                                ) : (
+                                    <Text style={styles.applyBtnText}>Terapkan</Text>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+
+                        {appliedVoucher && (
+                            <TouchableOpacity
+                                onPress={handleRemoveVoucher}
+                                style={{ marginTop: 20, alignSelf: 'center' }}>
+                                <Text style={{ color: '#e74c3c', fontWeight: 'bold' }}>
+                                    Hapus Voucher
+                                </Text>
+                            </TouchableOpacity>
+                        )}
+                    </Pressable>
+                </Pressable>
+            </Modal>
+
+            {/* Toast */}
             <Toast />
-        </SafeAreaView>
+
+            {/* Loading Overlay */}
+            <Modal transparent visible={isLoading}>
+                <View style={styles.loadingOverlay}>
+                    <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="large" color="#3b5bdb" />
+                        <Text style={styles.loadingText}>Memproses Pesanan...</Text>
+                    </View>
+                </View>
+            </Modal>
+        </View>
     );
-}
+};
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-    // Header
-    header: {
-        backgroundColor: '#3b5bdb',
+    card: { backgroundColor: '#fff', padding: 16, marginBottom: 8 },
+    cardHeader: {
         flexDirection: 'row',
-        alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: 16,
-        paddingVertical: 14,
+        marginBottom: 15,
+        alignItems: 'center',
     },
-    backButton: {
-        width: 40,
-        alignItems: 'flex-start',
-        justifyContent: 'center',
+    cardTitle: { fontSize: 16, fontWeight: 'bold', color: '#111' },
+    editBtn: { color: '#2ecc71', fontWeight: 'bold', fontSize: 14 },
+    infoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+    infoContent: { marginLeft: 12, flex: 1 },
+    infoValue: { fontSize: 14, fontWeight: '500', color: '#111' },
+    infoSubValue: { fontSize: 12, color: '#666' },
+
+    // Kandidat Card
+    kandidatCard: {
+        backgroundColor: '#fff',
+        padding: 16,
+        marginBottom: 8,
     },
-    headerTitle: {
-        color: 'white',
-        fontSize: 18,
-        fontWeight: '700',
-        textAlign: 'center',
+    kandidatHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    kandidatAvatar: {
+        width: 70,
+        height: 70,
+        borderRadius: 35,
+        marginRight: 12,
+    },
+    kandidatInfo: {
         flex: 1,
     },
-
-    subtitleBox: {
-        paddingHorizontal: 16,
-        paddingTop: 16,
-        paddingBottom: 8,
-        backgroundColor: 'white',
-    },
-    subtitle: {
+    kandidatName: {
         fontSize: 16,
-        fontWeight: '700',
-        color: '#111827',
+        fontWeight: 'bold',
+        color: '#111',
+        marginBottom: 2,
     },
-
-    // Search
-    searchRow: {
-        backgroundColor: 'white',
-        paddingHorizontal: 16,
-        paddingBottom: 12,
-    },
-    searchWrapper: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        borderWidth: 1.5,
-        borderColor: '#e5e9f2',
-        borderRadius: 10,
-        backgroundColor: '#fafbff',
-        height: 46,
-    },
-    searchInput: {
-        flex: 1,
-        fontSize: 14,
-        color: '#1f2937',
-        paddingHorizontal: 14,
-        height: '100%',
-        ...Platform.select({
-            web: { outlineWidth: 0 } as any,
-            default: {},
-        }),
-    },
-
-    // Filter chips
-    filterRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 10,
-        backgroundColor: 'white',
-        borderBottomWidth: 1,
-        borderBottomColor: '#f1f5f9',
-        gap: 8,
-    },
-    chip: {
-        paddingHorizontal: 14,
-        paddingVertical: 6,
-        borderRadius: 20,
-        borderWidth: 1.5,
-        borderColor: '#d1d5db',
-        backgroundColor: 'white',
-    },
-    chipActive: {
-        backgroundColor: '#3b5bdb',
-        borderColor: '#3b5bdb',
-    },
-    chipText: {
-        fontSize: 13,
-        color: '#374151',
-        fontWeight: '500',
-    },
-    chipTextActive: {
-        color: 'white',
-        fontWeight: '700',
-    },
-    filterIconBtn: {
-        marginLeft: 'auto',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    filterLabel: {
-        fontSize: 10,
-        color: '#3b5bdb',
-        fontWeight: '600',
-        marginTop: 1,
-    },
-
-    // Card
-    card: {
-        width: '48.5%',
-        backgroundColor: 'white',
-        borderRadius: 14,
-        marginBottom: 14,
-        overflow: 'hidden',
-        borderWidth: 2,
-        borderColor: 'transparent',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 6,
-        elevation: 2,
-    },
-    cardSelected: {
-        borderColor: '#3b5bdb',
-        shadowOpacity: 0.18,
-        elevation: 6,
-    },
-    imageWrapper: {
-        width: '100%',
-        height: 150,
-        backgroundColor: '#6d28d9',
-        position: 'relative',
-    },
-    cardImage: {
-        width: '100%',
-        height: '100%',
-        resizeMode: 'cover',
+    kandidatDetail: {
+        fontSize: 12,
+        color: '#666',
+        lineHeight: 18,
     },
     readyBadge: {
-        position: 'absolute',
-        bottom: 8,
-        left: 0,
-        backgroundColor: '#14b8a6',
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-        borderTopRightRadius: 6,
-        borderBottomRightRadius: 6,
         flexDirection: 'row',
         alignItems: 'center',
+        marginTop: 10,
+        backgroundColor: '#14b8a6',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 4,
+        alignSelf: 'flex-start',
     },
     readyDot: {
-        width: 5,
-        height: 5,
+        width: 6,
+        height: 6,
         borderRadius: 3,
         backgroundColor: 'white',
-        marginRight: 4,
+        marginRight: 6,
     },
     readyText: {
         color: 'white',
-        fontSize: 9,
+        fontSize: 10,
         fontWeight: '700',
         letterSpacing: 0.3,
     },
-    logoBox: {
-        position: 'absolute',
-        top: 6,
-        right: 6,
-        width: 22,
-        height: 22,
-        borderRadius: 11,
-        backgroundColor: 'white',
-        alignItems: 'center',
-        justifyContent: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.15,
-        shadowRadius: 2,
-        elevation: 2,
-    },
-    logoText: {
-        fontSize: 11,
-        fontWeight: '900',
-        color: '#3b5bdb',
-    },
-    selectedOverlay: {
-        ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(59, 91, 219, 0.35)',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
 
-    // Card info
-    cardInfo: {
-        padding: 10,
-    },
-    cardName: {
-        fontSize: 13,
-        fontWeight: '700',
-        color: '#111827',
-        marginBottom: 3,
-    },
-    cardDetail: {
-        fontSize: 10,
-        color: '#4b5563',
-        lineHeight: 16,
-    },
-    cardFooter: {
+    promoCard: {
+        backgroundColor: '#fff',
+        padding: 16,
+        marginBottom: 8,
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginTop: 6,
     },
-    layananBadge: {
-        fontSize: 10,
-        fontWeight: '700',
+    voucherIconBg: { backgroundColor: '#3b5bdb', padding: 4, borderRadius: 4 },
+    promoText: { marginLeft: 12, fontSize: 14, fontWeight: '500', color: '#333' },
+    serviceItem: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 10,
+        alignItems: 'center',
     },
-    lihatProfile: {
-        fontSize: 10,
-        color: '#3b5bdb',
-        fontWeight: '600',
+    serviceName: { fontSize: 14, color: '#666' },
+    servicePrice: { fontSize: 14, fontWeight: '600', color: '#333' },
+    divider: { height: 1, backgroundColor: '#F3F4F6', marginVertical: 12 },
+    row: { flexDirection: 'row', alignItems: 'center' },
+    rowBetween: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
     },
-
-    // Bottom bar
+    subtotalLabel: { fontSize: 16, fontWeight: 'bold', color: '#111' },
+    subtotalValue: { fontSize: 16, fontWeight: 'bold', color: '#111' },
     bottomBar: {
+        padding: 16,
+        borderTopWidth: 1,
+        borderColor: '#eee',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        backgroundColor: '#fff',
+        alignItems: 'center',
         position: 'absolute',
         bottom: 0,
-        left: 0,
-        right: 0,
-        backgroundColor: 'white',
-        paddingHorizontal: 16,
-        paddingTop: 12,
-        paddingBottom: Platform.OS === 'ios' ? 28 : 16,
-        borderTopWidth: 1,
-        borderTopColor: '#f1f5f9',
+        width: '100%',
+    },
+    totalLabel: { fontSize: 12, color: '#666' },
+    finalPrice: { fontSize: 18, fontWeight: 'bold', color: '#3b5bdb' },
+    btnOrder: {
+        backgroundColor: '#3b5bdb',
+        paddingVertical: 12,
+        paddingHorizontal: 40,
+        borderRadius: 8,
+    },
+    btnOrderText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+    loadingOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    loadingContainer: {
+        backgroundColor: '#fff',
+        padding: 30,
+        borderRadius: 15,
+        alignItems: 'center',
+        width: '70%',
+    },
+    loadingText: { marginTop: 15, fontSize: 14, fontWeight: '500', color: '#333' },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.4)',
+        justifyContent: 'flex-end',
+    },
+    modalContent: {
+        backgroundColor: '#fff',
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        padding: 24,
+    },
+    modalHandle: {
+        width: 40,
+        height: 5,
+        backgroundColor: '#E5E7EB',
+        borderRadius: 10,
+        alignSelf: 'center',
+        marginBottom: 20,
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#111',
+        marginBottom: 20,
+    },
+    optionItem: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingVertical: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F3F4F6',
+    },
+    optionText: { marginLeft: 15, fontSize: 16, fontWeight: '500', color: '#333' },
+    customHeader: { backgroundColor: '#3b5bdb' },
+    headerContent: {
+        height: 56,
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12,
+        paddingHorizontal: 15,
+        justifyContent: 'space-between',
     },
-    selectedInfo: {
+    backButton: { padding: 5 },
+    headerTitle: {
+        color: '#fff',
+        fontSize: 18,
+        fontWeight: 'bold',
+        textAlign: 'center',
         flex: 1,
+    },
+    inputContainer: {
         flexDirection: 'row',
-        alignItems: 'center',
-    },
-    selectedAvatar: {
-        width: 42,
-        height: 42,
-        borderRadius: 21,
-        borderWidth: 2,
-        borderColor: '#3b5bdb',
-    },
-    selectedName: {
-        fontSize: 13,
-        fontWeight: '700',
-        color: '#111827',
-    },
-    selectedSub: {
-        fontSize: 11,
-        color: '#6b7280',
-        marginTop: 1,
-    },
-    noSelectText: {
-        flex: 1,
-        fontSize: 13,
-        color: '#9ca3af',
-        fontStyle: 'italic',
-    },
-    btnLanjut: {
-        paddingVertical: 13,
-        paddingHorizontal: 28,
+        backgroundColor: '#F3F4F6',
         borderRadius: 12,
+        padding: 6,
         alignItems: 'center',
-        shadowColor: '#3b5bdb',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.25,
-        shadowRadius: 8,
-        elevation: 4,
+        width: '100%',
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
     },
-    btnLanjutText: {
-        color: 'white',
-        fontSize: 15,
-        fontWeight: '700',
+    textInput: {
+        flex: 1,
+        paddingHorizontal: 12,
+        height: 45,
+        fontSize: 14,
+        color: '#333',
+        ...Platform.select({
+            web: { outlineStyle: 'none' } as any,
+            default: {},
+        }),
+    },
+    applyBtn: {
+        backgroundColor: '#3b5bdb',
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        borderRadius: 8,
+        justifyContent: 'center',
+        alignItems: 'center',
+        minWidth: 80,
+    },
+    applyBtnText: {
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: 14,
     },
 });
+
+export default PaymentScreen;

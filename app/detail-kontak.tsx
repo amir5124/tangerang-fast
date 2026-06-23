@@ -16,6 +16,8 @@ import {
     View,
 } from 'react-native';
 import Toast from 'react-native-toast-message';
+import API from '../src/utils/api'; // Sesuaikan path import API Anda
+import { storage } from '../src/utils/storage'; // Sesuaikan path import storage Anda
 
 const GOOGLE_API_KEY = 'AIzaSyAnYqVmhOsyV3SFRFgVFhQrFJdb3_pbrzc';
 
@@ -49,6 +51,10 @@ export default function DetailKontakScreen() {
         layanan: string;
         jobdesk: string;
     }>();
+
+    // Data user yang sedang login
+    const [userId, setUserId] = useState<number | null>(null);
+    const [isFetchingProfile, setIsFetchingProfile] = useState(false);
 
     const [form, setForm] = useState<KontakForm>({
         nama: '',
@@ -97,7 +103,61 @@ export default function DetailKontakScreen() {
         }
     }, []);
 
-    // ── 2. Pencarian Lokasi ───────────────────────────────────────────────────
+    // ── 2. Autofill Data Kontak dari Profil User yang Login ──────────────────
+    useEffect(() => {
+        const loadUserData = async () => {
+            setIsFetchingProfile(true);
+            try {
+                // Ambil ID dari storage dulu untuk hit API
+                const jsonValue = await storage.get('userData');
+                if (jsonValue) {
+                    const localData = JSON.parse(jsonValue);
+                    const currentId = localData.id;
+                    setUserId(currentId);
+
+                    try {
+                        // Ambil data terbaru dari API
+                        const response = await API.get(`/auth/profile?id=${currentId}`);
+
+                        if (response.data && response.data.user) {
+                            const u = response.data.user;
+                            setForm((prev) => ({
+                                ...prev,
+                                nama: u.full_name || '',
+                                email: u.email || '',
+                                noHp: u.phone_number || '',
+                            }));
+                        } else {
+                            // Jika respons API tidak sesuai harapan, fallback ke data lokal
+                            setForm((prev) => ({
+                                ...prev,
+                                nama: localData.full_name || '',
+                                email: localData.email || '',
+                                noHp: localData.phone_number || '',
+                            }));
+                        }
+                    } catch (apiError) {
+                        console.error('Gagal mengambil profil dari API:', apiError);
+                        // Fallback ke data lokal jika API gagal/network error
+                        setForm((prev) => ({
+                            ...prev,
+                            nama: localData.full_name || '',
+                            email: localData.email || '',
+                            noHp: localData.phone_number || '',
+                        }));
+                    }
+                }
+            } catch (error) {
+                console.error('Gagal memuat data user dari storage:', error);
+            } finally {
+                setIsFetchingProfile(false);
+            }
+        };
+
+        loadUserData();
+    }, []);
+
+    // ── 3. Pencarian Lokasi ───────────────────────────────────────────────────
     const handleLocationSearch = async (text: string) => {
         set('lokasi')(text);
         setCoordinates({ lat: null, lng: null });
@@ -124,7 +184,7 @@ export default function DetailKontakScreen() {
         }
     };
 
-    // ── 3. Pilih Alamat dari List ─────────────────────────────────────────────
+    // ── 4. Pilih Alamat dari List ─────────────────────────────────────────────
     const selectLocation = (placeId: string, description: string) => {
         set('lokasi')(description);
         setPredictions([]);
@@ -157,7 +217,7 @@ export default function DetailKontakScreen() {
         }
     };
 
-    // ── 4. Submit ─────────────────────────────────────────────────────────────
+    // ── 5. Submit ─────────────────────────────────────────────────────────────
     const handleCariKandidat = () => {
         if (!form.nama.trim() || !form.noHp.trim() || !form.lokasi.trim() || !form.nikKtp.trim() || !form.alamatLengkap.trim()) {
             Toast.show({
@@ -174,6 +234,8 @@ export default function DetailKontakScreen() {
             kategori,
             layanan,
             jobdesk,
+            // Data user (jika ada)
+            customer_id: userId,
             // Data form halaman ini
             nama: form.nama,
             email: form.email,
@@ -189,6 +251,7 @@ export default function DetailKontakScreen() {
         console.log('Kategori       :', allData.kategori);
         console.log('Layanan        :', allData.layanan);
         console.log('Jobdesk        :', allData.jobdesk);
+        console.log('Customer ID    :', allData.customer_id);
         console.log('Nama           :', allData.nama);
         console.log('Email          :', allData.email);
         console.log('No HP          :', allData.noHp);
@@ -240,6 +303,14 @@ export default function DetailKontakScreen() {
                 >
                     {/* ── Detail Kontak ──────────────────────────────────────── */}
                     <SectionLabel label="Detail Kontak" />
+
+                    {isFetchingProfile && (
+                        <ActivityIndicator
+                            size="small"
+                            color="#3b5bdb"
+                            style={{ marginBottom: 10 }}
+                        />
+                    )}
 
                     <TextInput
                         placeholder="Nama"

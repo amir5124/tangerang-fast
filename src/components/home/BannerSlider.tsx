@@ -6,7 +6,7 @@ import {
   ScrollView,
   StyleSheet,
   View,
-  useWindowDimensions, // Ganti dengan ini
+  useWindowDimensions,
 } from 'react-native';
 import API from '../../utils/api';
 import { BannerShimmer } from './BannerShimmer';
@@ -16,10 +16,11 @@ interface BannerData {
   image_url: string;
   key_name: string;
   category: string;
+  display_name?: string | null;
 }
 
 export const BannerSlider = () => {
-  const { width: PAGE_WIDTH } = useWindowDimensions(); // Hook untuk mendapatkan width dinamis
+  const { width: PAGE_WIDTH } = useWindowDimensions();
   const [banners, setBanners] = useState<BannerData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -27,6 +28,7 @@ export const BannerSlider = () => {
 
   const scrollViewRef = useRef<ScrollView>(null);
   const autoPlayTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isTouching = useRef(false);
 
   const fetchBanners = async () => {
     try {
@@ -34,11 +36,14 @@ export const BannerSlider = () => {
       const response = await API.get('/assets');
       const BASE_URL = 'https://backend.tangerangfast.online';
 
-      const formattedData = response.data
+      // Filter banner dan ambil hanya 5 data pertama
+      const allBanners = response.data
         .filter(
           (item: BannerData) =>
-            item.key_name && item.key_name.toLowerCase().includes('banner'),
+            item.category === 'banner' ||
+            (item.key_name && item.key_name.toLowerCase().includes('banner'))
         )
+        .sort((a: BannerData, b: BannerData) => a.id - b.id)
         .map((item: BannerData) => ({
           ...item,
           image_url: item.image_url.startsWith('http')
@@ -46,9 +51,14 @@ export const BannerSlider = () => {
             : `${BASE_URL}${item.image_url}`,
         }));
 
+      // Ambil hanya 5 banner pertama
+      const formattedData = allBanners.slice(0, 5);
+
+      console.log('Total banners found:', allBanners.length);
+      console.log('Showing only 5 banners:', formattedData.length);
+
       setBanners(formattedData);
 
-      // Get dimensions of first image to set container height
       if (formattedData.length > 0) {
         Image.getSize(formattedData[0].image_url, (width, height) => {
           const aspectRatio = height / width;
@@ -68,7 +78,7 @@ export const BannerSlider = () => {
     fetchBanners();
   }, []);
 
-  // Update height ketika width berubah (device rotation)
+  // Update height ketika width berubah
   useEffect(() => {
     if (banners.length > 0 && banners[0]?.image_url) {
       Image.getSize(banners[0].image_url, (width, height) => {
@@ -79,34 +89,39 @@ export const BannerSlider = () => {
     }
   }, [PAGE_WIDTH, banners]);
 
-  // Reset scroll position when width changes
-  useEffect(() => {
-    if (scrollViewRef.current && banners.length > 0) {
-      scrollViewRef.current.scrollTo({
-        x: activeIndex * PAGE_WIDTH,
-        animated: false,
-      });
-    }
-  }, [PAGE_WIDTH, activeIndex, banners.length]);
-
+  // Reset ke index 0 jika banners berubah
   useEffect(() => {
     if (banners.length > 0) {
+      setActiveIndex(0);
+      if (scrollViewRef.current) {
+        scrollViewRef.current.scrollTo({ x: 0, animated: false });
+      }
+    }
+  }, [banners]);
+
+  useEffect(() => {
+    if (banners.length > 1 && !isTouching.current) {
       startAutoPlay();
     }
     return () => stopAutoPlay();
-  }, [activeIndex, banners]);
+  }, [activeIndex, banners.length]);
 
   const startAutoPlay = () => {
     stopAutoPlay();
     autoPlayTimer.current = setInterval(() => {
-      let nextIndex = activeIndex + 1;
-      if (nextIndex >= banners.length) {
-        nextIndex = 0;
+      if (!isTouching.current && banners.length > 0) {
+        let nextIndex = activeIndex + 1;
+        if (nextIndex >= banners.length) {
+          nextIndex = 0; // Kembali ke awal setelah slide terakhir
+        }
+
+        scrollViewRef.current?.scrollTo({
+          x: nextIndex * PAGE_WIDTH,
+          animated: true,
+        });
+
+        setActiveIndex(nextIndex);
       }
-      scrollViewRef.current?.scrollTo({
-        x: nextIndex * PAGE_WIDTH,
-        animated: true,
-      });
     }, 3500);
   };
 
@@ -119,19 +134,40 @@ export const BannerSlider = () => {
 
   const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const slideSize = event.nativeEvent.layoutMeasurement.width;
-    const index = event.nativeEvent.contentOffset.x / slideSize;
-    setActiveIndex(Math.round(index));
+    const offsetX = event.nativeEvent.contentOffset.x;
+    const index = Math.round(offsetX / slideSize);
+
+    if (index !== activeIndex && index >= 0 && index < banners.length) {
+      setActiveIndex(index);
+    }
   };
 
-  // Loading state
+  const onTouchStart = () => {
+    isTouching.current = true;
+    stopAutoPlay();
+  };
+
+  const onTouchEnd = () => {
+    isTouching.current = false;
+    startAutoPlay();
+  };
+
+  const onMomentumScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const slideSize = event.nativeEvent.layoutMeasurement.width;
+    const offsetX = event.nativeEvent.contentOffset.x;
+    const index = Math.round(offsetX / slideSize);
+
+    if (index !== activeIndex && index >= 0 && index < banners.length) {
+      setActiveIndex(index);
+    }
+  };
+
   if (isLoading) {
     return <BannerShimmer height={containerHeight} />;
   }
 
-  // Empty state
   if (banners.length === 0) return null;
 
-  // Actual banner slider
   return (
     <View style={[styles.container, { height: containerHeight }]}>
       <ScrollView
@@ -140,32 +176,41 @@ export const BannerSlider = () => {
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         onScroll={onScroll}
+        onMomentumScrollEnd={onMomentumScrollEnd}
         scrollEventThrottle={16}
-        onTouchStart={stopAutoPlay}
-        onTouchEnd={startAutoPlay}
-        decelerationRate="fast">
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+        decelerationRate="fast"
+        automaticallyAdjustContentInsets={false}>
         {banners.map((item, index) => (
           <View key={item.id.toString()} style={[styles.slide, { width: PAGE_WIDTH }]}>
             <Image
               source={{ uri: item.image_url }}
-              style={{ width: PAGE_WIDTH, height: containerHeight, resizeMode: 'cover' }}
+              style={{
+                width: PAGE_WIDTH,
+                height: containerHeight,
+                resizeMode: 'cover'
+              }}
+              onError={(e) => console.log(`Error loading banner ${item.id}:`, e.nativeEvent.error)}
             />
           </View>
         ))}
       </ScrollView>
 
-      {/* Dots Indicator */}
-      <View style={styles.dotRow}>
-        {banners.map((_, i) => (
-          <View
-            key={i}
-            style={[
-              styles.dot,
-              activeIndex === i ? styles.activeDot : styles.inactiveDot,
-            ]}
-          />
-        ))}
-      </View>
+      {/* Dots Indicator - hanya tampil jika banner lebih dari 1 */}
+      {banners.length > 1 && (
+        <View style={styles.dotRow}>
+          {banners.map((_, i) => (
+            <View
+              key={i}
+              style={[
+                styles.dot,
+                activeIndex === i ? styles.activeDot : styles.inactiveDot,
+              ]}
+            />
+          ))}
+        </View>
+      )}
     </View>
   );
 };
