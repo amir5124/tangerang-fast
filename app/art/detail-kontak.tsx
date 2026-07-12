@@ -16,8 +16,8 @@ import {
     View,
 } from 'react-native';
 import Toast from 'react-native-toast-message';
-import API from '../src/utils/api'; // Sesuaikan path import API Anda
-import { storage } from '../src/utils/storage'; // Sesuaikan path import storage Anda
+import API from '../../src/utils/api'; // Sesuaikan path import API Anda
+import { storage } from '../../src/utils/storage'; // Sesuaikan path import storage Anda
 
 const GOOGLE_API_KEY = 'AIzaSyAnYqVmhOsyV3SFRFgVFhQrFJdb3_pbrzc';
 
@@ -264,7 +264,7 @@ export default function DetailKontakScreen() {
         console.log('Full Object    :', JSON.stringify(allData, null, 2));
 
         // Lanjut ke halaman berikutnya
-        router.push({ pathname: '/order-kandidat', params: { payload: JSON.stringify(allData) } });
+        router.push({ pathname: '/art/order-kandidat', params: { payload: JSON.stringify(allData) } });
     };
 
     const isValid =

@@ -333,7 +333,7 @@ const PaymentScreen = () => {
                 onPress: () => {
                     // Navigasi ke halaman matching
                     router.push({
-                        pathname: '/matching',
+                        pathname: '/art/matching',
                         params: {
                             orderId: 'ORD-' + Date.now(),
                             totalPayment: totalKeseluruhan,
@@ -347,7 +347,7 @@ const PaymentScreen = () => {
             // Navigasi otomatis setelah 3 detik
             setTimeout(() => {
                 router.push({
-                    pathname: '/matching',
+                    pathname: 'art/matching',
                     params: {
                         orderId: 'ORD-' + Date.now(),
                         totalPayment: totalKeseluruhan,

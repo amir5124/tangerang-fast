@@ -64,12 +64,14 @@ export const MenuGrid = () => {
       'icon_ac': { pathname: '/service-ac' },
       'icon_cleaning': { pathname: '/cleaning-service' },
       'icon_wc': { pathname: '/sedot-wc' },
-      'icon_rigid': { pathname: '/art-babysitter' },
-      'icon_all': { screen: 'All Services' }, // Menu All akan membuka modal
+      'icon_rigid': { pathname: '/art/art-babysitter' },//art babysitter
+      'icon_bangunan': { pathname: '/toko/tokolist' },//toko
+      'icon_kebun': { pathname: '/laundry/list-mitra' },//laundry
+      'icon_all': { screen: 'All Services' },
     };
 
     // Daftar menu yang belum tersedia
-    const unavailableKeys = ['icon_bangunan', 'icon_kebun', 'icon_korporasi', 'icon_ojek'];
+    const unavailableKeys = ['icon_korporasi', 'icon_ojek'];
 
     // Untuk menu All, buka modal
     if (keyName === 'icon_all' || keyName === 'menu_all') {

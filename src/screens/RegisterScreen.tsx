@@ -1,9 +1,9 @@
-import {AntDesign, Ionicons} from '@expo/vector-icons';
+import { AntDesign, Ionicons } from '@expo/vector-icons';
 import * as AuthSession from 'expo-auth-session';
 import * as Google from 'expo-auth-session/providers/google';
-import {useLocalSearchParams, useRouter} from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -18,8 +18,8 @@ import {
   View,
 } from 'react-native';
 import API from '../utils/api';
-import {storage} from '../utils/storage';
-import {registerForPushNotificationsAsync} from '../utils/usePushNotifications';
+import { storage } from '../utils/storage';
+import { registerForPushNotificationsAsync } from '../utils/usePushNotifications';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -59,8 +59,8 @@ const RegisterScreen = () => {
   // Handler Subscribe Topic
   const handleSubscribe = async (token: string, role: string) => {
     try {
-      await API.post('/notifications/subscribe', {token, role});
-      console.log(`✅ Berhasil subscribe ke topik: all_${role}`);
+      await API.post('/notifications/subscribe', { token, role });
+      // console.log(`✅ Berhasil subscribe ke topik: all_${role}`);
     } catch (error: any) {
       console.error('❌ Gagal subscribe:', error.message);
     }
@@ -87,7 +87,7 @@ const RegisterScreen = () => {
 
   useEffect(() => {
     if (googleResponse?.type === 'success') {
-      const {id_token} = googleResponse.params;
+      const { id_token } = googleResponse.params;
       handleGoogleLoginBackend(id_token);
     }
   }, [googleResponse]);
@@ -122,7 +122,7 @@ const RegisterScreen = () => {
       });
 
       if (response.data.success) {
-        const {token, user} = response.data;
+        const { token, user } = response.data;
         await storage.save('userToken', token);
         await storage.save('userData', JSON.stringify(user));
 
@@ -166,11 +166,11 @@ const RegisterScreen = () => {
       const currentFcmToken =
         freshToken || (Platform.OS === 'web' ? 'WEB_NO_TOKEN' : 'NO_TOKEN');
 
-      const payload = {...form, fcm_token: currentFcmToken};
+      const payload = { ...form, fcm_token: currentFcmToken };
       const response = await API.post('/auth/register', payload);
 
       if (response.data.success) {
-        const {token, user} = response.data;
+        const { token, user } = response.data;
         await storage.save('userToken', token);
         await storage.save('userData', JSON.stringify(user));
 
@@ -203,18 +203,18 @@ const RegisterScreen = () => {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={{flex: 1}}>
+      style={{ flex: 1 }}>
       <View style={styles.topHeader}>
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Daftar</Text>
-        <View style={{width: 24}} />
+        <View style={{ width: 24 }} />
       </View>
 
       <ScrollView
         style={styles.container}
-        contentContainerStyle={{paddingBottom: 40}}
+        contentContainerStyle={{ paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}>
         <View style={styles.formSection}>
           <Text style={styles.label}>Nama Lengkap</Text>
@@ -225,7 +225,7 @@ const RegisterScreen = () => {
               placeholderTextColor="#A0A0A0"
               autoCapitalize="words"
               value={form.full_name}
-              onChangeText={v => setForm({...form, full_name: v})}
+              onChangeText={v => setForm({ ...form, full_name: v })}
             />
           </View>
           <Text style={styles.hintText}>Contoh: Budi Santoso</Text>
@@ -238,7 +238,7 @@ const RegisterScreen = () => {
               placeholderTextColor="#A0A0A0"
               keyboardType="phone-pad"
               value={form.phone_number}
-              onChangeText={v => setForm({...form, phone_number: v})}
+              onChangeText={v => setForm({ ...form, phone_number: v })}
               maxLength={15}
             />
           </View>
@@ -254,7 +254,7 @@ const RegisterScreen = () => {
               autoCapitalize="none"
               value={form.email}
               onChangeText={v =>
-                setForm({...form, email: v.toLowerCase().trim()})
+                setForm({ ...form, email: v.toLowerCase().trim() })
               }
             />
           </View>
@@ -268,7 +268,7 @@ const RegisterScreen = () => {
               placeholderTextColor="#A0A0A0"
               secureTextEntry={!showPassword}
               value={form.password}
-              onChangeText={v => setForm({...form, password: v})}
+              onChangeText={v => setForm({ ...form, password: v })}
             />
             <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
               <Ionicons
@@ -332,7 +332,7 @@ const RegisterScreen = () => {
                   name="google"
                   size={20}
                   color="#EA4335"
-                  style={{marginRight: 10}}
+                  style={{ marginRight: 10 }}
                 />
                 <Text style={styles.btnGoogleText}>Google</Text>
               </>
@@ -342,7 +342,7 @@ const RegisterScreen = () => {
           <View style={styles.termsContainer}>
             <Text style={styles.termsText}>
               Dengan klik{' '}
-              <Text style={{fontWeight: '700', color: '#333'}}>Daftar</Text>,
+              <Text style={{ fontWeight: '700', color: '#333' }}>Daftar</Text>,
               saya menyetujui{' '}
               <Text style={styles.linkText}>kebijakan dan privasi</Text>
             </Text>
@@ -354,7 +354,7 @@ const RegisterScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {flex: 1, backgroundColor: '#FFFFFF', paddingHorizontal: 20},
+  container: { flex: 1, backgroundColor: '#FFFFFF', paddingHorizontal: 20 },
   topHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -364,8 +364,8 @@ const styles = StyleSheet.create({
     paddingBottom: 15,
     backgroundColor: '#FFF',
   },
-  headerTitle: {fontSize: 18, fontWeight: '700', color: '#333'},
-  formSection: {marginTop: 10},
+  headerTitle: { fontSize: 18, fontWeight: '700', color: '#333' },
+  formSection: { marginTop: 10 },
   label: {
     fontSize: 16,
     fontWeight: '700',
@@ -389,11 +389,11 @@ const styles = StyleSheet.create({
     color: '#333',
     paddingVertical: Platform.OS === 'web' ? 0 : 8,
     ...Platform.select({
-      web: {outlineWidth: 0, outlineStyle: 'none', boxShadow: 'none'} as any,
+      web: { outlineWidth: 0, outlineStyle: 'none', boxShadow: 'none' } as any,
       default: {},
     }),
   } as TextStyle,
-  hintText: {fontSize: 12, color: '#A0A0A0', marginTop: 5, marginLeft: 2},
+  hintText: { fontSize: 12, color: '#A0A0A0', marginTop: 5, marginLeft: 2 },
   btnAction: {
     height: 55,
     borderRadius: 8,
@@ -401,12 +401,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 15,
   },
-  btnActive: {backgroundColor: '#633594'},
-  btnDisabled: {backgroundColor: '#E0E0E0'},
-  btnActionText: {color: '#FFF', fontSize: 16, fontWeight: '700'},
-  divider: {flexDirection: 'row', alignItems: 'center', marginVertical: 25},
-  line: {flex: 1, height: 1, backgroundColor: '#EEE'},
-  dividerText: {marginHorizontal: 10, color: '#A0A0A0', fontSize: 12},
+  btnActive: { backgroundColor: '#633594' },
+  btnDisabled: { backgroundColor: '#E0E0E0' },
+  btnActionText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
+  divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 25 },
+  line: { flex: 1, height: 1, backgroundColor: '#EEE' },
+  dividerText: { marginHorizontal: 10, color: '#A0A0A0', fontSize: 12 },
   btnGoogle: {
     backgroundColor: '#FFF',
     borderWidth: 1,
@@ -414,10 +414,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginTop: 0,
   },
-  btnGoogleText: {color: '#333', fontWeight: '700'},
-  termsContainer: {marginTop: 30, alignItems: 'center', paddingHorizontal: 10},
-  termsText: {textAlign: 'center', fontSize: 13, color: '#888', lineHeight: 20},
-  linkText: {color: '#00ACC1', textDecorationLine: 'underline'},
+  btnGoogleText: { color: '#333', fontWeight: '700' },
+  termsContainer: { marginTop: 30, alignItems: 'center', paddingHorizontal: 10 },
+  termsText: { textAlign: 'center', fontSize: 13, color: '#888', lineHeight: 20 },
+  linkText: { color: '#00ACC1', textDecorationLine: 'underline' },
 });
 
 export default RegisterScreen;

@@ -121,7 +121,7 @@ export default function ArtBabysitterScreen() {
     const handleNext = () => {
         // Navigate to next screen and pass form state as params
         router.push({
-            pathname: "/detail-kontak", // adjust to your route
+            pathname: "/art/detail-kontak", // adjust to your route
             params: {
                 kategori: form.kategori,
                 layanan: form.layanan,

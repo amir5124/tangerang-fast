@@ -18,7 +18,7 @@ import {
   View,
 } from 'react-native';
 
-const {width: SCREEN_WIDTH} = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const SummaryScreen = () => {
   const params = useLocalSearchParams() as any;
@@ -95,11 +95,11 @@ const SummaryScreen = () => {
     hargaDasar + biayaLayanan + biayaTransaksi - discountAmount;
 
   const paymentOptions = [
-    {id: 'qris', name: 'QRIS', icon: 'qr-code-outline'},
-    {id: 'bri', name: 'VA BRI', icon: 'card-outline'},
-    {id: 'bni', name: 'VA BNI', icon: 'card-outline'},
-    {id: 'mandiri', name: 'VA Mandiri', icon: 'card-outline'},
-    {id: 'bca', name: 'VA BCA', icon: 'card-outline'},
+    { id: 'qris', name: 'QRIS', icon: 'qr-code-outline' },
+    { id: 'bri', name: 'VA BRI', icon: 'card-outline' },
+    { id: 'bni', name: 'VA BNI', icon: 'card-outline' },
+    { id: 'mandiri', name: 'VA Mandiri', icon: 'card-outline' },
+    { id: 'bca', name: 'VA BCA', icon: 'card-outline' },
   ];
 
   const showInfoToast = (message: string) => {
@@ -189,12 +189,12 @@ const SummaryScreen = () => {
       const response = await axios.post(
         'https://backend.tangerangfast.online/api/payment/create',
         orderPayload,
-        {timeout: 20000},
+        { timeout: 20000 },
       );
 
       if (response.data.success) {
         router.replace({
-          pathname: '/payment-instruction',
+          pathname: '/art/payment-instruction',
           params: {
             orderId: response.data.order_id,
             paymentInfo: JSON.stringify(response.data.payment_data),
@@ -205,7 +205,7 @@ const SummaryScreen = () => {
       Alert.alert(
         'Gagal Memproses',
         error.response?.data?.message ||
-          'Terjadi kesalahan pada sistem pembayaran.',
+        'Terjadi kesalahan pada sistem pembayaran.',
       );
     } finally {
       setIsLoading(false);
@@ -213,7 +213,7 @@ const SummaryScreen = () => {
   };
 
   return (
-    <View style={{flex: 1, backgroundColor: '#FFF'}}>
+    <View style={{ flex: 1, backgroundColor: '#FFF' }}>
       <View style={styles.customHeader}>
         <View style={styles.headerContent}>
           <TouchableOpacity
@@ -222,13 +222,13 @@ const SummaryScreen = () => {
             <Ionicons name="arrow-back" size={24} color="#fff" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Rincian Pemesanan</Text>
-          <View style={{width: 24}} />
+          <View style={{ width: 24 }} />
         </View>
       </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{paddingBottom: 120}}>
+        contentContainerStyle={{ paddingBottom: 120 }}>
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Text style={styles.cardTitle}>Informasi Pemesanan</Text>
@@ -276,14 +276,14 @@ const SummaryScreen = () => {
             <View
               style={[
                 styles.voucherIconBg,
-                appliedVoucher && {backgroundColor: '#2ecc71'},
+                appliedVoucher && { backgroundColor: '#2ecc71' },
               ]}>
               <Ionicons name="pricetag" size={14} color="#fff" />
             </View>
             <Text
               style={[
                 styles.promoText,
-                appliedVoucher && {color: '#2ecc71', fontWeight: 'bold'},
+                appliedVoucher && { color: '#2ecc71', fontWeight: 'bold' },
               ]}>
               {appliedVoucher
                 ? `Voucher: ${appliedVoucher.code}`
@@ -292,7 +292,7 @@ const SummaryScreen = () => {
           </View>
           <View style={styles.row}>
             {appliedVoucher && (
-              <Text style={{color: '#2ecc71', marginRight: 5, fontSize: 12}}>
+              <Text style={{ color: '#2ecc71', marginRight: 5, fontSize: 12 }}>
                 -Rp{discountAmount.toLocaleString('id-ID')}
               </Text>
             )}
@@ -321,7 +321,7 @@ const SummaryScreen = () => {
                   name="information-circle-outline"
                   size={16}
                   color="#999"
-                  style={{marginLeft: 5}}
+                  style={{ marginLeft: 5 }}
                 />
               </TouchableOpacity>
             </View>
@@ -341,10 +341,10 @@ const SummaryScreen = () => {
 
           {appliedVoucher && (
             <View style={styles.serviceItem}>
-              <Text style={[styles.serviceName, {color: '#2ecc71'}]}>
+              <Text style={[styles.serviceName, { color: '#2ecc71' }]}>
                 Diskon Voucher
               </Text>
-              <Text style={[styles.servicePrice, {color: '#2ecc71'}]}>
+              <Text style={[styles.servicePrice, { color: '#2ecc71' }]}>
                 -Rp{discountAmount.toLocaleString('id-ID')}
               </Text>
             </View>
@@ -375,7 +375,7 @@ const SummaryScreen = () => {
               size={20}
               color="#633594"
             />
-            <Text style={[styles.infoValue, {marginLeft: 10}]}>
+            <Text style={[styles.infoValue, { marginLeft: 10 }]}>
               {paymentMethod}
             </Text>
           </View>
@@ -390,7 +390,7 @@ const SummaryScreen = () => {
           </Text>
         </View>
         <TouchableOpacity
-          style={[styles.btnOrder, isLoading && {backgroundColor: '#A084BC'}]}
+          style={[styles.btnOrder, isLoading && { backgroundColor: '#A084BC' }]}
           onPress={handleFinalOrder}
           disabled={isLoading}>
           <Text style={styles.btnOrderText}>
@@ -432,7 +432,7 @@ const SummaryScreen = () => {
           style={styles.modalOverlay}
           onPress={() => setVoucherModalVisible(false)}>
           <Pressable
-            style={[styles.modalContent, {paddingBottom: 40}]}
+            style={[styles.modalContent, { paddingBottom: 40 }]}
             onPress={e => e.stopPropagation()}>
             <View style={styles.modalHandle} />
             <Text style={styles.modalTitle}>Pakai Kode Voucher</Text>
@@ -463,8 +463,8 @@ const SummaryScreen = () => {
                   setAppliedVoucher(null);
                   setVoucherCodeInput('');
                 }}
-                style={{marginTop: 20, alignSelf: 'center'}}>
-                <Text style={{color: '#e74c3c', fontWeight: 'bold'}}>
+                style={{ marginTop: 20, alignSelf: 'center' }}>
+                <Text style={{ color: '#e74c3c', fontWeight: 'bold' }}>
                   Hapus Voucher
                 </Text>
               </TouchableOpacity>
@@ -492,19 +492,19 @@ const SummaryScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  card: {backgroundColor: '#fff', padding: 16, marginBottom: 8},
+  card: { backgroundColor: '#fff', padding: 16, marginBottom: 8 },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 15,
     alignItems: 'center',
   },
-  cardTitle: {fontSize: 16, fontWeight: 'bold', color: '#111'},
-  editBtn: {color: '#2ecc71', fontWeight: 'bold', fontSize: 14},
-  infoRow: {flexDirection: 'row', alignItems: 'center', marginBottom: 12},
-  infoContent: {marginLeft: 12, flex: 1},
-  infoValue: {fontSize: 14, fontWeight: '500', color: '#111'},
-  infoSubValue: {fontSize: 12, color: '#666'},
+  cardTitle: { fontSize: 16, fontWeight: 'bold', color: '#111' },
+  editBtn: { color: '#2ecc71', fontWeight: 'bold', fontSize: 14 },
+  infoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  infoContent: { marginLeft: 12, flex: 1 },
+  infoValue: { fontSize: 14, fontWeight: '500', color: '#111' },
+  infoSubValue: { fontSize: 12, color: '#666' },
   promoCard: {
     backgroundColor: '#fff',
     padding: 16,
@@ -513,25 +513,25 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  voucherIconBg: {backgroundColor: '#633594', padding: 4, borderRadius: 4},
-  promoText: {marginLeft: 12, fontSize: 14, fontWeight: '500', color: '#333'},
+  voucherIconBg: { backgroundColor: '#633594', padding: 4, borderRadius: 4 },
+  promoText: { marginLeft: 12, fontSize: 14, fontWeight: '500', color: '#333' },
   serviceItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 10,
     alignItems: 'center',
   },
-  serviceName: {fontSize: 14, color: '#666'},
-  servicePrice: {fontSize: 14, fontWeight: '600', color: '#333'},
-  divider: {height: 1, backgroundColor: '#F3F4F6', marginVertical: 12},
-  row: {flexDirection: 'row', alignItems: 'center'},
+  serviceName: { fontSize: 14, color: '#666' },
+  servicePrice: { fontSize: 14, fontWeight: '600', color: '#333' },
+  divider: { height: 1, backgroundColor: '#F3F4F6', marginVertical: 12 },
+  row: { flexDirection: 'row', alignItems: 'center' },
   rowBetween: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  subtotalLabel: {fontSize: 16, fontWeight: 'bold', color: '#111'},
-  subtotalValue: {fontSize: 16, fontWeight: 'bold', color: '#111'},
+  subtotalLabel: { fontSize: 16, fontWeight: 'bold', color: '#111' },
+  subtotalValue: { fontSize: 16, fontWeight: 'bold', color: '#111' },
   bottomBar: {
     padding: 16,
     borderTopWidth: 1,
@@ -544,15 +544,15 @@ const styles = StyleSheet.create({
     bottom: 0,
     width: '100%',
   },
-  totalLabel: {fontSize: 12, color: '#666'},
-  finalPrice: {fontSize: 18, fontWeight: 'bold', color: '#633594'},
+  totalLabel: { fontSize: 12, color: '#666' },
+  finalPrice: { fontSize: 18, fontWeight: 'bold', color: '#633594' },
   btnOrder: {
     backgroundColor: '#633594',
     paddingVertical: 12,
     paddingHorizontal: 40,
     borderRadius: 8,
   },
-  btnOrderText: {color: '#fff', fontWeight: 'bold', fontSize: 16},
+  btnOrderText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
   customToast: {
     position: 'absolute',
     bottom: 100,
@@ -563,7 +563,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     zIndex: 999,
   },
-  toastText: {color: '#fff', fontSize: 12},
+  toastText: { color: '#fff', fontSize: 12 },
   loadingOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -577,7 +577,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '70%',
   },
-  loadingText: {marginTop: 15, fontSize: 14, fontWeight: '500', color: '#333'},
+  loadingText: { marginTop: 15, fontSize: 14, fontWeight: '500', color: '#333' },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.4)',
@@ -610,8 +610,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
   },
-  optionText: {marginLeft: 15, fontSize: 16, fontWeight: '500', color: '#333'},
-  customHeader: {backgroundColor: '#633594'},
+  optionText: { marginLeft: 15, fontSize: 16, fontWeight: '500', color: '#333' },
+  customHeader: { backgroundColor: '#633594' },
   headerContent: {
     height: 56,
     flexDirection: 'row',
@@ -619,7 +619,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     justifyContent: 'space-between',
   },
-  backButton: {padding: 5},
+  backButton: { padding: 5 },
   headerTitle: {
     color: '#fff',
     fontSize: 18,
@@ -645,7 +645,7 @@ const styles = StyleSheet.create({
     color: '#333',
     // Khusus Web agar tidak ada outline biru saat diklik
     ...Platform.select({
-      web: {outlineStyle: 'none'} as any,
+      web: { outlineStyle: 'none' } as any,
       default: {},
     }),
   },

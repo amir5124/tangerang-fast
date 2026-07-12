@@ -54,8 +54,7 @@ export const BannerSlider = () => {
       // Ambil hanya 5 banner pertama
       const formattedData = allBanners.slice(0, 5);
 
-      console.log('Total banners found:', allBanners.length);
-      console.log('Showing only 5 banners:', formattedData.length);
+
 
       setBanners(formattedData);
 

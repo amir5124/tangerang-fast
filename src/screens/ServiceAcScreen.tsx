@@ -5,7 +5,6 @@ import { Stack, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
     Alert,
-    Image,
     Platform,
     RefreshControl,
     ScrollView,
@@ -181,10 +180,10 @@ const ServiceAcScreen = () => {
             <ScrollView refreshControl={
                 <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchData(); }} />
             }>
-                <Image
+                {/* <Image
                     source={{ uri: 'https://res.cloudinary.com/dgsdmgcc7/image/upload/v1769338997/WhatsApp_Image_2026-01-25_at_14.59.14_yrbtgo.jpg' }}
                     style={styles.banner}
-                />
+                /> */}
 
                 <View style={styles.locationBox}>
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>

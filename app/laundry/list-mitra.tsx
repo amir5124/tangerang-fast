@@ -12,13 +12,13 @@ import {
     Text,
     View
 } from 'react-native';
-import { ServiceCard } from '../src/components/home/ServiceCard';
-import { ServiceCardSkeleton } from '../src/components/home/ServiceCardSkeleton';
-import API from '../src/utils/api';
+import { ServiceCard } from '../../src/components/home/ServiceCard';
+import { ServiceCardSkeleton } from '../../src/components/home/ServiceCardSkeleton';
+import API from '../../src/utils/api';
 
 const BASE_URL = 'https://backend.tangerangfast.online';
 
-const ServiceWcScreen = () => {
+const ServiceLaundryScreen = () => {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -120,8 +120,8 @@ const ServiceWcScreen = () => {
                 }
             }
 
-            // Filter untuk kategori WC/Sedot WC
-            const response = await API.get('/mitra', { params: { category: 'rijit' } });
+            // Filter untuk kategori Laundry
+            const response = await API.get('/mitra', { params: { category: 'kebun' } });
 
             const processed = response.data.map((item: any) => {
                 const distNum = userLat !== 0
@@ -170,7 +170,7 @@ const ServiceWcScreen = () => {
         <View style={{ flex: 1, backgroundColor: '#fff' }}>
             <Stack.Screen
                 options={{
-                    headerTitle: "Sedot WC",
+                    headerTitle: "Laundry",
                     headerShown: true,
                     headerTintColor: '#fff',
                     headerStyle: { backgroundColor: '#633594' },
@@ -201,7 +201,7 @@ const ServiceWcScreen = () => {
                     ) : mitraList.length === 0 ? (
                         <View style={styles.emptyContainer}>
                             <Ionicons name="alert-circle-outline" size={60} color="#ccc" />
-                            <Text style={styles.emptyText}>Belum ada mitra sedot WC</Text>
+                            <Text style={styles.emptyText}>Belum ada mitra laundry</Text>
                             <Text style={styles.emptySubText}>Di daerah Anda saat ini</Text>
                         </View>
                     ) : (
@@ -221,7 +221,7 @@ const ServiceWcScreen = () => {
                                 vendorId={item.id}
                                 userId={item.user_id}
                                 services={item.services || ""}
-                                category="wc"
+                                category="laundry"
                             />
                         ))
                     )}
@@ -279,4 +279,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default ServiceWcScreen;
+export default ServiceLaundryScreen;

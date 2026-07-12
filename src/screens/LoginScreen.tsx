@@ -30,7 +30,7 @@ const LoginScreen = () => {
   const [loadingEmail, setLoadingEmail] = useState(false);
   const [loadingGoogle, setLoadingGoogle] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [form, setForm] = useState({email: '', password: ''});
+  const [form, setForm] = useState({ email: '', password: '' });
 
   const TARGET_ROLE = 'customer';
 
@@ -45,7 +45,7 @@ const LoginScreen = () => {
 
   useEffect(() => {
     if (googleResponse?.type === 'success') {
-      const {id_token} = googleResponse.params;
+      const { id_token } = googleResponse.params;
       handleGoogleLoginBackend(id_token);
     }
   }, [googleResponse]);
@@ -57,7 +57,7 @@ const LoginScreen = () => {
         role: role,
       });
       if (response.data.success) {
-        console.log(`✅ Berhasil subscribe ke topik: all_${role}`);
+        // console.log(`✅ Berhasil subscribe ke topik: all_${role}`);
       }
     } catch (error: any) {
       console.error('❌ Gagal subscribe:', error.message);
@@ -112,7 +112,7 @@ const LoginScreen = () => {
       const response = await API.post('/auth/google', payload);
 
       if (response.data.success) {
-        const {token, user} = response.data;
+        const { token, user } = response.data;
         await storage.save('userToken', token);
         await storage.save('userData', JSON.stringify(user));
 
@@ -185,7 +185,7 @@ const LoginScreen = () => {
       const response = await API.post('/auth/login', payload);
 
       if (response.data.success) {
-        const {token, user} = response.data;
+        const { token, user } = response.data;
 
         // 4. Simpan Session ke Local Storage
         await storage.save('userToken', token);
@@ -226,7 +226,7 @@ const LoginScreen = () => {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={{flex: 1}}>
+      style={{ flex: 1 }}>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.logoContainer}>
           <Image
@@ -249,13 +249,13 @@ const LoginScreen = () => {
               autoCapitalize="none"
               value={form.email}
               onChangeText={v =>
-                setForm({...form, email: v.toLowerCase().trim()})
+                setForm({ ...form, email: v.toLowerCase().trim() })
               }
             />
           </View>
           <Text style={styles.hint}>Contoh: nama@email.com</Text>
 
-          <Text style={[styles.label, {marginTop: 20}]}>Kata Sandi</Text>
+          <Text style={[styles.label, { marginTop: 20 }]}>Kata Sandi</Text>
           <View style={styles.inputWrapper}>
             <TextInput
               style={styles.input}
@@ -263,7 +263,7 @@ const LoginScreen = () => {
               placeholderTextColor="#A0A0A0"
               secureTextEntry={!showPassword}
               value={form.password}
-              onChangeText={v => setForm({...form, password: v})}
+              onChangeText={v => setForm({ ...form, password: v })}
             />
             <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
               <Ionicons
@@ -320,7 +320,7 @@ const LoginScreen = () => {
               onPress={() =>
                 router.push({
                   pathname: '/(auth)/register',
-                  params: {role: TARGET_ROLE},
+                  params: { role: TARGET_ROLE },
                 })
               }>
               <Text style={styles.registerText}>Daftar</Text>
@@ -333,11 +333,11 @@ const LoginScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {flex: 1, backgroundColor: '#FFFFFF', paddingHorizontal: 25},
-  logoContainer: {alignItems: 'center', marginTop: 50, width: '100%'},
-  logoImage: {width: 200, height: 200},
-  formSection: {flex: 1, marginTop: -20},
-  label: {fontSize: 16, fontWeight: '700', color: '#333', marginBottom: 8},
+  container: { flex: 1, backgroundColor: '#FFFFFF', paddingHorizontal: 25 },
+  logoContainer: { alignItems: 'center', marginTop: 50, width: '100%' },
+  logoImage: { width: 200, height: 200 },
+  formSection: { flex: 1, marginTop: -20 },
+  label: { fontSize: 16, fontWeight: '700', color: '#333', marginBottom: 8 },
   inputWrapper: {
     height: 55,
     borderWidth: 1,
@@ -354,13 +354,13 @@ const styles = StyleSheet.create({
     color: '#333',
     paddingVertical: Platform.OS === 'web' ? 0 : 8,
     ...Platform.select({
-      web: {outlineWidth: 0, outlineStyle: 'none', boxShadow: 'none'} as any,
+      web: { outlineWidth: 0, outlineStyle: 'none', boxShadow: 'none' } as any,
       default: {},
     }),
   } as TextStyle,
-  hint: {fontSize: 12, color: '#A0A0A0', marginTop: 6},
-  forgotPassContainer: {alignSelf: 'flex-end', marginTop: 15},
-  forgotPassText: {color: '#633594', fontWeight: '700', fontSize: 14},
+  hint: { fontSize: 12, color: '#A0A0A0', marginTop: 6 },
+  forgotPassContainer: { alignSelf: 'flex-end', marginTop: 15 },
+  forgotPassText: { color: '#633594', fontWeight: '700', fontSize: 14 },
   btnMain: {
     height: 55,
     borderRadius: 8,
@@ -368,16 +368,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 30,
   },
-  btnActive: {backgroundColor: '#633594'},
-  btnDisabled: {backgroundColor: '#E0E0E0'},
-  btnMainText: {color: '#FFF', fontSize: 16, fontWeight: '700'},
+  btnActive: { backgroundColor: '#633594' },
+  btnDisabled: { backgroundColor: '#E0E0E0' },
+  btnMainText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
   dividerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     marginVertical: 30,
   },
-  dividerLine: {flex: 1, height: 1, backgroundColor: '#EEEEEE'},
-  dividerText: {marginHorizontal: 10, color: '#888', fontSize: 13},
+  dividerLine: { flex: 1, height: 1, backgroundColor: '#EEEEEE' },
+  dividerText: { marginHorizontal: 10, color: '#888', fontSize: 13 },
   socialBtn: {
     height: 55,
     borderWidth: 1,
@@ -389,15 +389,15 @@ const styles = StyleSheet.create({
     marginBottom: 40,
     gap: 12,
   },
-  socialBtnText: {color: '#333', fontSize: 15, fontWeight: '600'},
+  socialBtnText: { color: '#333', fontSize: 15, fontWeight: '600' },
   footerContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     marginTop: 10,
     marginBottom: 40,
   },
-  footerText: {color: '#333', fontSize: 15},
-  registerText: {color: '#00BFA5', fontSize: 15, fontWeight: 'bold'},
+  footerText: { color: '#333', fontSize: 15 },
+  registerText: { color: '#00BFA5', fontSize: 15, fontWeight: 'bold' },
 });
 
 export default LoginScreen;
