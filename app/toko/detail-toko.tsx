@@ -20,10 +20,7 @@ import {
 const BASE_URL = 'https://backend.tangerangfast.online';
 
 // ---------------------------------------------------------------------------
-// Types (mengikuti bentuk response GET /api/mitra/:id → controller getMitraDetail)
-// Catatan: tabel `services` TIDAK punya kolom discount_percent, weight_label,
-// sold_count, atau distance_km — jadi badge diskon/berat di UI hanya akan
-// muncul kalau kamu tambahkan kolom tsb, atau kita parse dari `description`.
+// Types
 // ---------------------------------------------------------------------------
 interface ApiStoreService {
     id: number;
@@ -34,6 +31,7 @@ interface ApiStoreService {
     description: string | null;
     image_url: string | null;
     is_active?: number;
+    sold_count?: number | string; // ← TAMBAHKAN
 }
 
 interface ApiStoreDetail {
@@ -108,6 +106,12 @@ const formatReviewCount = (count: number): string => {
     return String(count);
 };
 
+// ← TAMBAHKAN HELPER INI
+const toNum = (val: unknown): number => {
+    const n = parseFloat(String(val));
+    return isNaN(n) ? 0 : n;
+};
+
 const mapApiToStoreProduct = (
     s: ApiStoreService,
     storeRating: number
@@ -120,14 +124,10 @@ const mapApiToStoreProduct = (
         image: resolveImageUrl(s.image_url),
         price: formatRupiah(priceNumber),
         priceType: s.price_type,
-        // Tabel `services` belum punya kolom-kolom ini — dibiarkan kosong
-        // sampai kolomnya ditambahkan di database.
         weightLabel: null,
         discountPercent: 0,
-        // Belum ada rating per-produk di skema saat ini, jadi pakai rating
-        // toko sebagai representasi sementara.
         rating: storeRating,
-        sold: 0,
+        sold: toNum(s.sold_count), // ← UBAH: ambil dari API
         distanceLabel: null,
     };
 };
@@ -138,8 +138,7 @@ const mapApiToStoreDetail = (data: ApiStoreDetail): StoreDetail => {
     return {
         id: String(data.id),
         name: data.store_name,
-        avatar:
-            resolveImageUrl(data.store_logo_url) || avatarFromName(data.store_name),
+        avatar: resolveImageUrl(data.store_logo_url) || avatarFromName(data.store_name),
         rating,
         reviewCountLabel: formatReviewCount(data.total_reviews || 0),
         isVerified: !!data.is_verified,
@@ -207,8 +206,6 @@ const ProductCard: React.FC<{ product: StoreProduct; onPress: () => void }> = ({
 // Main Screen
 // ---------------------------------------------------------------------------
 export default function DetailToko() {
-    // Dikirim dari DetailProduk lewat handleVisitStore:
-    // router.push({ pathname: '/toko/detail-toko', params: { id, storeName, storeAvatar, storeRating, storeReviewCount, isStoreVerified } })
     const {
         id,
         storeName,
@@ -225,9 +222,6 @@ export default function DetailToko() {
         isStoreVerified?: string;
     }>();
 
-    // Fallback store info dari params, dipakai supaya header toko bisa
-    // langsung tampil tanpa menunggu API selesai (dan sebagai cadangan
-    // kalau endpoint detail toko gagal/belum tersedia).
     const fallbackStore: StoreDetail | null = storeName
         ? {
             id: String(id),
@@ -261,18 +255,12 @@ export default function DetailToko() {
                 setErrorMessage(null);
 
                 const res = await axios.get<ApiStoreDetail>(
-                    // ⚠️ Sesuaikan path ini dengan mounting di routes file kamu.
-                    // Berdasarkan controller getMitraDetail (SELECT * FROM stores
-                    // + services), kemungkinan besar path-nya GET /api/mitra/:id
                     `${BASE_URL}/api/mitra/${id}`
                 );
 
                 setStore(mapApiToStoreDetail(res.data));
             } catch (err) {
                 console.error('[DetailToko] Gagal memuat toko:', err);
-                // Kalau sudah ada fallback dari params, jangan tampilkan full
-                // error screen — cukup biarkan header toko tetap muncul dan
-                // tunjukkan pesan bahwa daftar produk gagal dimuat.
                 if (!fallbackStore) {
                     setErrorMessage('Gagal memuat detail toko. Coba lagi.');
                 } else {
@@ -295,9 +283,6 @@ export default function DetailToko() {
             p.name.toLowerCase().includes(searchQuery.toLowerCase())
         ) || [];
 
-    // -------------------------------------------------------------------
-    // Loading state
-    // -------------------------------------------------------------------
     if (isLoading) {
         return (
             <SafeAreaView style={styles.safeArea}>
@@ -318,9 +303,6 @@ export default function DetailToko() {
         );
     }
 
-    // -------------------------------------------------------------------
-    // Error / empty state
-    // -------------------------------------------------------------------
     if (errorMessage || !store) {
         return (
             <SafeAreaView style={styles.safeArea}>
@@ -349,12 +331,8 @@ export default function DetailToko() {
         );
     }
 
-    // -------------------------------------------------------------------
-    // Content
-    // -------------------------------------------------------------------
     return (
         <SafeAreaView style={styles.safeArea}>
-            {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity
                     style={styles.backButton}
@@ -380,7 +358,6 @@ export default function DetailToko() {
                 )}
                 ListHeaderComponent={
                     <>
-                        {/* Store info card */}
                         <View style={styles.storeCard}>
                             <Image
                                 source={{ uri: store.avatar }}
@@ -410,7 +387,6 @@ export default function DetailToko() {
                             </View>
                         </View>
 
-                        {/* Search bar */}
                         <View style={styles.searchBar}>
                             <TextInput
                                 style={styles.searchInput}
@@ -454,13 +430,9 @@ const styles = StyleSheet.create({
     },
     header: {
         backgroundColor: '#1E5CFF',
-        // paddingTop: 12,
-        // paddingBottom: 32,
-        // paddingHorizontal: 16,
         padding: 15,
         flexDirection: 'row',
         alignItems: 'center',
-
     },
     backButton: {
         marginRight: 12,
@@ -502,8 +474,6 @@ const styles = StyleSheet.create({
     columnWrapper: {
         justifyContent: 'space-between',
     },
-
-    // Store card
     storeCard: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -538,8 +508,6 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#666',
     },
-
-    // Search bar
     searchBar: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -560,8 +528,6 @@ const styles = StyleSheet.create({
         color: '#333',
         paddingVertical: 0,
     },
-
-    // Product card
     productCard: {
         width: '48%',
         backgroundColor: '#fff',

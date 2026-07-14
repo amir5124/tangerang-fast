@@ -135,11 +135,9 @@ export default function DetailPesanan() {
     const [deliveryDate, setDeliveryDate] = useState<string>('');
     const [isManualDate, setIsManualDate] = useState<boolean>(false);
 
-    // ========== PERUBAHAN: Menggunakan TextInput terpisah untuk jam dan menit ==========
-    // Fungsi untuk mendapatkan jam default 2 jam dari sekarang
     const getDefaultTime = () => {
         const now = new Date();
-        now.setHours(now.getHours() + 2); // Tambah 2 jam
+        now.setHours(now.getHours() + 2);
         const hour = String(now.getHours()).padStart(2, '0');
         const minute = String(now.getMinutes()).padStart(2, '0');
         return { hour, minute };
@@ -148,7 +146,6 @@ export default function DetailPesanan() {
     const defaultTime = getDefaultTime();
     const [inputHour, setInputHour] = useState(defaultTime.hour);
     const [inputMinute, setInputMinute] = useState(defaultTime.minute);
-    // ========== AKHIR PERUBAHAN ==========
 
     const [showCalendar, setShowCalendar] = useState(false);
     const [showTimePicker, setShowTimePicker] = useState(false);
@@ -200,11 +197,7 @@ export default function DetailPesanan() {
     };
     // ========== AKHIR FUNGSI HELPER ==========
 
-    // Get today's date for calendar
     const today = new Date().toISOString().split('T')[0];
-
-    // Get delivery time string from inputHour and inputMinute
-    const deliveryTime = `${inputHour}:${inputMinute}`;
 
     // -----------------------------------------------------------------------
     // 1. Init Google SDK (Web)
@@ -286,17 +279,14 @@ export default function DetailPesanan() {
 
     useEffect(() => {
         loadUserProfile();
-
-        // Set default delivery date to tomorrow (besok)
         const tomorrow = getTomorrowDate();
         setDeliveryDate(tomorrow);
         setSelectedDelivery('scheduled');
         setIsManualDate(false);
     }, []);
 
-    // ========== UPDATE TANGGAL OTOMATIS KETIKA OPSI PENGIRIMAN BERUBAH ==========
+    // ========== UPDATE TANGGAL OTOMATIS ==========
     useEffect(() => {
-        // Hanya update otomatis jika user belum memilih tanggal secara manual
         if (!isManualDate) {
             if (selectedDelivery === 'scheduled') {
                 const tomorrow = getTomorrowDate();
@@ -318,9 +308,12 @@ export default function DetailPesanan() {
                 `${BASE_URL}/api/settings/app_service_fee`,
             );
             const res = response.data;
+            console.log('📊 Response Service Fee:', res);
             if (res && res.success === true && res.value !== undefined && res.value !== null) {
                 const feeConverted = parseInt(res.value, 10);
-                setBiayaLayanan(feeConverted);
+                setBiayaLayanan(isNaN(feeConverted) ? 0 : feeConverted);
+            } else {
+                setBiayaLayanan(0);
             }
         } catch (error) {
             console.error('Gagal mengambil biaya layanan:', error);
@@ -396,7 +389,6 @@ export default function DetailPesanan() {
     // ========== HANDLE DELIVERY SELECT ==========
     const handleDeliverySelect = (optionId: string) => {
         setSelectedDelivery(optionId);
-        // Reset manual date flag ketika user memilih opsi pengiriman
         setIsManualDate(false);
     };
     // ========== AKHIR HANDLE DELIVERY SELECT ==========
@@ -404,34 +396,48 @@ export default function DetailPesanan() {
     // ========== HANDLE DATE SELECT ==========
     const handleDateSelect = (dateString: string) => {
         setDeliveryDate(dateString);
-        setIsManualDate(true); // Tandai bahwa user memilih tanggal secara manual
+        setIsManualDate(true);
         setShowCalendar(false);
     };
     // ========== AKHIR HANDLE DATE SELECT ==========
 
     // -----------------------------------------------------------------------
-    // Calculate totals
+    // Calculate totals - DENGAN SAFETY CHECK UNTUK MENCEGAH NaN
     // -----------------------------------------------------------------------
-    const hargaDasar = orderItem.priceNumber * orderItem.qty;
+    const hargaDasar = (orderItem?.priceNumber || 0) * (orderItem?.qty || 1);
     const protectionPrice = 2700;
-    const protectionTotal = protectionChecked ? protectionPrice * orderItem.qty : 0;
+    const protectionTotal = protectionChecked ? (protectionPrice * (orderItem?.qty || 1)) : 0;
 
     const calculateBiayaTransaksi = () => {
+        const baseAmount = (hargaDasar || 0) + (biayaLayanan || 0) + (protectionTotal || 0);
         if (paymentMethod === 'QRIS') {
-            return Math.round((hargaDasar + biayaLayanan + protectionTotal) * 0.008);
+            return Math.round(baseAmount * 0.008);
         }
         return 4000;
     };
 
-    const biayaTransaksi = calculateBiayaTransaksi();
+    const biayaTransaksi = calculateBiayaTransaksi() || 0;
     const selectedDeliveryOption = DELIVERY_OPTIONS.find(opt => opt.id === selectedDelivery);
     const deliveryPrice = selectedDeliveryOption?.price || 0;
     const discountAmount = appliedVoucher?.discount_amount || 0;
 
-    const grandTotal = hargaDasar + biayaLayanan + biayaTransaksi + protectionTotal + deliveryPrice - discountAmount;
+    // 🔥 PERBAIKAN: Total = subtotal + platform_fee + transaction_fee + shipping_fee + protection_fee - discount
+    const grandTotal = (hargaDasar || 0) + (biayaLayanan || 0) + (biayaTransaksi || 0) + (deliveryPrice || 0) + (protectionTotal || 0) - (discountAmount || 0);
 
-    const formatRupiah = (value: number): string =>
-        `Rp${value.toLocaleString('id-ID')}`;
+    // 🔥 CEK APAKAH ADA NAN
+    console.log('📊 Debug Perhitungan:');
+    console.log('  hargaDasar       :', hargaDasar);
+    console.log('  biayaLayanan     :', biayaLayanan);
+    console.log('  protectionTotal  :', protectionTotal);
+    console.log('  biayaTransaksi   :', biayaTransaksi);
+    console.log('  deliveryPrice    :', deliveryPrice);
+    console.log('  discountAmount   :', discountAmount);
+    console.log('  grandTotal       :', grandTotal);
+
+    const formatRupiah = (value: number): string => {
+        if (isNaN(value) || !isFinite(value)) return 'Rp0';
+        return `Rp${value.toLocaleString('id-ID')}`;
+    };
 
     // -----------------------------------------------------------------------
     // Handle Voucher
@@ -464,7 +470,7 @@ export default function DetailPesanan() {
                 {
                     code: voucherCodeInput.toUpperCase(),
                     customer_id: customerId,
-                    subtotal_layanan: hargaDasar + biayaLayanan,
+                    subtotal_layanan: (hargaDasar || 0) + (biayaLayanan || 0),
                 },
             );
 
@@ -585,54 +591,25 @@ export default function DetailPesanan() {
 
         setIsLoading(true);
 
-        // Siapkan payload sesuai dengan yang dibutuhkan oleh orderController
+        // 🔥 CEK APAKAH grandTotal NaN
+        if (isNaN(grandTotal) || !isFinite(grandTotal)) {
+            Toast.show({
+                type: 'error',
+                text1: '❌ Error Perhitungan',
+                text2: 'Terjadi kesalahan dalam perhitungan total. Silakan coba lagi.',
+                visibilityTime: 3000,
+            });
+            setIsLoading(false);
+            return;
+        }
+
+        // ============================================================
+        // BUAT PAYLOAD (SUDAH SESUAI BACKEND)
+        // ============================================================
         const orderPayload = {
             customer_id: customerId,
             store_id: parseInt(orderItem.storeId),
             metode_pembayaran: paymentMethod,
-            jenisGedung: 'Rumah',
-            jadwal: {
-                tanggal: deliveryDate,
-                waktu: `${inputHour}:${inputMinute}`
-            },
-            lokasi: {
-                alamatLengkap: buyerAddress,
-                latitude: coordinates.lat,
-                longitude: coordinates.lng,
-                area: buyerAddress
-            },
-            kontak: {
-                nama: buyerName,
-                nomorWhatsApp: buyerPhone,
-                email: buyerEmail || '-'
-            },
-            catatan: buyerAddressNote || '',
-            layananTerpilih: [
-                {
-                    nama: orderItem.name,
-                    qty: orderItem.qty,
-                    hargaSatuan: orderItem.priceNumber
-                }
-            ],
-            voucher_code: appliedVoucher ? appliedVoucher.code : null,
-            rincian_biaya: {
-                subtotal_layanan: hargaDasar,
-                biaya_layanan_app: biayaLayanan,
-                biaya_transaksi: biayaTransaksi,
-                biaya_proteksi: protectionTotal,
-                biaya_pengiriman: deliveryPrice,
-                diskon_voucher: discountAmount,
-                total_akhir: grandTotal,
-            },
-            product_items: [
-                {
-                    id: parseInt(orderItem.id),
-                    name: orderItem.name,
-                    variant: orderItem.variant,
-                    qty: orderItem.qty,
-                    priceNumber: orderItem.priceNumber
-                }
-            ],
             customer: {
                 name: buyerName,
                 phone: buyerPhone,
@@ -643,9 +620,30 @@ export default function DetailPesanan() {
                 delivery_time: `${inputHour}:${inputMinute}`,
                 latitude: coordinates.lat,
                 longitude: coordinates.lng,
+                building_type: 'Rumah',
             },
             delivery_option: selectedDelivery,
             protection: protectionChecked,
+            voucher_code: appliedVoucher ? appliedVoucher.code : null,
+            rincian_biaya: {
+                subtotal_produk: hargaDasar || 0,
+                subtotal_layanan: hargaDasar || 0,
+                biaya_layanan_app: biayaLayanan || 0,
+                biaya_transaksi: biayaTransaksi || 0,
+                biaya_proteksi: protectionTotal || 0,
+                biaya_pengiriman: deliveryPrice || 0,
+                diskon_voucher: discountAmount || 0,
+                total_akhir: grandTotal || 0,
+            },
+            product_items: [
+                {
+                    id: parseInt(orderItem.id),
+                    name: orderItem.name,
+                    variant: orderItem.variant,
+                    qty: orderItem.qty,
+                    priceNumber: orderItem.priceNumber
+                }
+            ]
         };
 
         console.log('📦 Order Payload:', JSON.stringify(orderPayload, null, 2));
@@ -673,11 +671,9 @@ export default function DetailPesanan() {
                     visibilityTime: 1000,
                 });
 
-                // Buat request pembayaran berdasarkan metode
                 let paymentResponse;
 
                 if (paymentMethod === 'QRIS') {
-                    // Untuk QRIS
                     paymentResponse = await axios.post(
                         `${BASE_URL}/api/payment/qris`,
                         {
@@ -690,7 +686,6 @@ export default function DetailPesanan() {
                         { timeout: 20000 }
                     );
                 } else {
-                    // Untuk Virtual Account (BRI, BNI, Mandiri, BCA)
                     const bankCode = paymentMethod.toLowerCase();
                     paymentResponse = await axios.post(
                         `${BASE_URL}/api/payment/va`,
@@ -709,7 +704,6 @@ export default function DetailPesanan() {
                 console.log('💳 Payment Response:', paymentResponse.data);
 
                 if (paymentResponse.data.success) {
-                    // Gabungkan data order dan payment
                     const paymentData = {
                         ...paymentResponse.data.data,
                         order_id: orderId,
@@ -739,7 +733,6 @@ export default function DetailPesanan() {
                         });
                     }, 1500);
                 } else {
-                    // Jika pembayaran gagal dibuat, tetap ke instruksi dengan data minimal
                     Toast.show({
                         type: 'warning',
                         text1: '⚠️ Pembayaran Bermasalah',
@@ -761,7 +754,6 @@ export default function DetailPesanan() {
                                 paymentInfo: JSON.stringify({
                                     amount: totalAmount,
                                     order_id: orderId,
-                                    // Data minimal
                                 })
                             },
                         });
@@ -779,7 +771,6 @@ export default function DetailPesanan() {
         } catch (error: any) {
             console.error('Order/Payment Error:', error);
 
-            // Tampilkan error detail
             const errorMessage = error.response?.data?.message ||
                 error.response?.data?.error ||
                 'Terjadi kesalahan pada sistem.';
@@ -794,9 +785,10 @@ export default function DetailPesanan() {
             setIsLoading(false);
         }
     };
-    // -----------------------------------------------------------------------
-    // Render Methods
-    // -----------------------------------------------------------------------
+
+    // ============================================================
+    // RENDER METHODS
+    // ============================================================
     const renderStoreInfo = () => (
         <View style={styles.storeInfo}>
             <View style={styles.storeBadgeRow}>
@@ -902,7 +894,6 @@ export default function DetailPesanan() {
                                 ) : null}
                             </View>
 
-                            {/* Suggestions Dropdown */}
                             {predictions.length > 0 && (
                                 <View style={styles.suggestionBox}>
                                     {predictions.map((item: any) => (
@@ -937,11 +928,9 @@ export default function DetailPesanan() {
                         </View>
                     </View>
 
-                    {/* Tanggal & Waktu dengan Calendar Modal */}
                     <View style={styles.infoRow}>
                         <Ionicons name="calendar-outline" size={20} color="#333" />
                         <View style={styles.infoContent}>
-                            {/* Tanggal */}
                             <View style={styles.pickerContainer}>
                                 <Text style={styles.pickerLabel}>Tanggal Pengiriman *</Text>
                                 <TouchableOpacity
@@ -956,7 +945,6 @@ export default function DetailPesanan() {
                                 </TouchableOpacity>
                             </View>
 
-                            {/* ========== PERUBAHAN: Waktu dengan 2 TextInput terpisah ========== */}
                             <View style={[styles.pickerContainer, { marginTop: 12 }]}>
                                 <Text style={styles.pickerLabel}>Waktu Pengiriman *</Text>
                                 <Text style={styles.timeHelperText}>Klik untuk ubah jam</Text>
@@ -983,7 +971,6 @@ export default function DetailPesanan() {
                                     <Text style={styles.timeWIB}>WIB</Text>
                                 </View>
                             </View>
-                            {/* ========== AKHIR PERUBAHAN ========== */}
                         </View>
                     </View>
 
@@ -1081,7 +1068,6 @@ export default function DetailPesanan() {
                 <View style={styles.card}>
                     <Text style={styles.cardTitle}>Opsi Pengiriman</Text>
 
-                    {/* Tampilkan tanggal yang dipilih */}
                     <View style={styles.selectedDateInfo}>
                         <Ionicons name="calendar-outline" size={16} color="#666" />
                         <Text style={styles.selectedDateText}>
@@ -1252,7 +1238,6 @@ export default function DetailPesanan() {
                         <View style={styles.modalHandle} />
                         <Text style={styles.calendarModalTitle}>Pilih Tanggal Pengiriman</Text>
 
-                        {/* Tampilkan tanggal yang dipilih */}
                         {deliveryDate && (
                             <Text style={styles.selectedDateInfoText}>
                                 Tanggal terpilih: {formatDateDisplay(deliveryDate)}

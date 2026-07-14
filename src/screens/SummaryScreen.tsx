@@ -194,7 +194,7 @@ const SummaryScreen = () => {
 
       if (response.data.success) {
         router.replace({
-          pathname: '/art/payment-instruction',
+          pathname: '/intruksi-pembayaran',
           params: {
             orderId: response.data.order_id,
             paymentInfo: JSON.stringify(response.data.payment_data),

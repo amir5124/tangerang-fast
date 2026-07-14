@@ -136,7 +136,6 @@ const ProductCard: React.FC<{ product: Product; cardWidth: number }> = ({
         onPress={() => router.push(`/toko/detail-produk?id=${product.id}`)}
     >
         <View style={[styles.imageWrapper, { height: cardWidth * 0.85 }]}>
-            {/* resizeMode="contain" -> gambar tampil utuh, tidak terpotong */}
             <Image
                 source={{ uri: product.image }}
                 style={styles.image}
@@ -194,7 +193,6 @@ const FilterModal: React.FC<{
 }> = ({ visible, onClose, filter, onApply }) => {
     const [draft, setDraft] = useState<FilterState>(filter);
 
-    // Sinkronkan draft setiap kali modal dibuka ulang dengan filter aktif
     useEffect(() => {
         if (visible) setDraft(filter);
     }, [visible, filter]);
@@ -211,7 +209,6 @@ const FilterModal: React.FC<{
                     </View>
 
                     <ScrollView showsVerticalScrollIndicator={false}>
-                        {/* Urutkan */}
                         <Text style={styles.modalSectionLabel}>Urutkan</Text>
                         <View style={styles.chipWrap}>
                             {SORT_OPTIONS.map((opt) => (
@@ -238,7 +235,6 @@ const FilterModal: React.FC<{
                             ))}
                         </View>
 
-                        {/* Rating minimum */}
                         <Text style={styles.modalSectionLabel}>Rating Toko Minimum</Text>
                         <View style={styles.chipWrap}>
                             {RATING_OPTIONS.map((opt) => (
@@ -266,7 +262,6 @@ const FilterModal: React.FC<{
                             ))}
                         </View>
 
-                        {/* Jarak maksimum */}
                         <Text style={styles.modalSectionLabel}>Jarak Maksimum</Text>
                         <View style={styles.chipWrap}>
                             {DISTANCE_OPTIONS.map((opt) => (
@@ -294,7 +289,6 @@ const FilterModal: React.FC<{
                             ))}
                         </View>
 
-                        {/* Toko terverifikasi */}
                         <TouchableOpacity
                             style={styles.toggleRow}
                             onPress={() =>
@@ -358,9 +352,6 @@ export default function TokoList() {
 
     const [gridWidth, setGridWidth] = useState<number>(0);
     const CARD_GAP = 12;
-    // cardWidth dihitung dari lebar KONTAINER GRID YANG SEBENARNYA TERUKUR
-    // (via onLayout), bukan dari lebar window/browser — ini penting di Expo
-    // Web karena window bisa jauh lebih lebar dari frame app yang dirender.
     const cardWidth = useMemo(
         () => (gridWidth > 0 ? (gridWidth - CARD_GAP) / 2 : 0),
         [gridWidth]
@@ -441,7 +432,7 @@ export default function TokoList() {
                     price: formatRupiah(priceNumber),
                     priceNumber,
                     rating: parseFloat(item.average_rating) || 0,
-                    sold: 0,
+                    sold: parseInt(item.sold_count) || 0, // ← UBAH: ambil sold_count dari API
                     discount: 0,
                     badge,
                     image: resolveImageUrl(item.image_url),
@@ -477,7 +468,7 @@ export default function TokoList() {
     };
 
     // -----------------------------------------------------------------------
-    // Filter + sort gabungan: search box, category chip, dan filter modal
+    // Filter + sort gabungan
     // -----------------------------------------------------------------------
     const filteredProducts = useMemo(() => {
         let filtered = [...productList];
@@ -688,9 +679,6 @@ const styles = StyleSheet.create({
     },
     header: {
         backgroundColor: '#1E5CFF',
-        // paddingTop: 12,
-        // paddingBottom: 24,
-        // paddingHorizontal: 16,
         padding: 15,
         flexDirection: 'row',
         alignItems: 'center',
@@ -812,7 +800,7 @@ const styles = StyleSheet.create({
     },
     imageWrapper: {
         width: '100%',
-        backgroundColor: '#F4F5F7', // background netral agar letterbox contain tidak kelihatan aneh
+        backgroundColor: '#F4F5F7',
         position: 'relative',
     },
     image: {
@@ -926,9 +914,6 @@ const styles = StyleSheet.create({
         marginTop: 8,
         textAlign: 'center',
     },
-    // ------------------------------------------------------------------
-    // Filter Modal styles
-    // ------------------------------------------------------------------
     modalOverlay: {
         flex: 1,
         backgroundColor: 'rgba(0,0,0,0.4)',

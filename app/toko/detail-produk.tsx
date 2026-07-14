@@ -19,15 +19,16 @@ import {
 const BASE_URL = 'https://backend.tangerangfast.online';
 
 // ---------------------------------------------------------------------------
-// Types (mengikuti bentuk response GET /api/mitra/products/:id)
+// Types (mengikuti bentuk response GET /api/mitra/products/:id
+// dari controller getProductDetail di mitraController.js)
 // ---------------------------------------------------------------------------
 interface ApiReview {
     id: number;
-    rating: number;
-    rating_quality?: number;
-    rating_punctuality?: number;
-    rating_communication?: number;
-    comment: string;
+    rating: number | string;
+    rating_quality?: number | string | null;
+    rating_punctuality?: number | string | null;
+    rating_communication?: number | string | null;
+    comment: string | null;
     created_at: string;
     customer_name: string;
 }
@@ -40,6 +41,7 @@ interface ApiProductDetail {
     base_price: string | number;
     description: string | null;
     image_url: string | null;
+    sold_count: number | string;
     store_name: string;
     category: string;
     latitude: string;
@@ -55,7 +57,11 @@ interface Review {
     name: string;
     avatar: string;
     rating: number;
+    ratingQuality: number;
+    ratingPunctuality: number;
+    ratingCommunication: number;
     comment: string;
+    createdAt: string;
 }
 
 interface ProductDetail {
@@ -86,6 +92,22 @@ interface ProductDetail {
 const formatRupiah = (value: number): string =>
     `Rp. ${value.toLocaleString('id-ID')}`;
 
+const toNum = (val: unknown): number => {
+    const n = parseFloat(String(val));
+    return isNaN(n) ? 0 : n;
+};
+
+const formatReviewDate = (dateStr: string): string => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+    });
+};
+
 const resolveImageUrl = (rawUrl: string | null | undefined): string => {
     if (!rawUrl) return 'https://via.placeholder.com/600';
     if (rawUrl.startsWith('http')) return rawUrl;
@@ -114,7 +136,7 @@ const mapApiToProductDetail = (data: ApiProductDetail): ProductDetail => {
         priceType: data.price_type,
         discount: 0, // belum ada kolom discount di tabel services
         rating: parseFloat(String(data.average_rating)) || 0,
-        sold: 0, // belum ada tracking jumlah terjual per produk
+        sold: toNum(data.sold_count),
         reviewCount: data.total_reviews || 0,
         image: resolveImageUrl(data.image_url),
         store: {
@@ -126,10 +148,14 @@ const mapApiToProductDetail = (data: ApiProductDetail): ProductDetail => {
         },
         reviews: (data.reviews || []).map((r) => ({
             id: String(r.id),
-            name: r.customer_name,
-            avatar: avatarFromName(r.customer_name),
-            rating: r.rating,
-            comment: r.comment,
+            name: r.customer_name || 'Pelanggan',
+            avatar: avatarFromName(r.customer_name || 'Pelanggan'),
+            rating: toNum(r.rating),
+            ratingQuality: toNum(r.rating_quality),
+            ratingPunctuality: toNum(r.rating_punctuality),
+            ratingCommunication: toNum(r.rating_communication),
+            comment: r.comment || '',
+            createdAt: r.created_at,
         })),
         description: data.description || 'Belum ada deskripsi untuk produk ini.',
     };
@@ -229,6 +255,7 @@ export default function DetailProduk() {
             },
         });
     };
+
     if (isLoading) {
         return (
             <SafeAreaView style={styles.safeArea}>
@@ -335,8 +362,8 @@ export default function DetailProduk() {
                         <Ionicons name="star" size={13} color="#FFA500" />
                         <Text style={styles.metaText}>
                             {' '}
-                            {product.rating.toFixed(1)} | {product.sold} Terjual |{' '}
-                            {product.reviewCount} Ulasan
+                            {product.rating > 0 ? product.rating.toFixed(1) : '–'} |{' '}
+                            {product.sold} Terjual | {product.reviewCount} Ulasan
                         </Text>
                     </View>
                 </View>
@@ -366,7 +393,7 @@ export default function DetailProduk() {
                                 <Ionicons name="star" size={13} color="#FFA500" />
                                 <Text style={styles.metaText}>
                                     {' '}
-                                    {product.store.rating.toFixed(1)} (
+                                    {product.store.rating > 0 ? product.store.rating.toFixed(1) : '–'} (
                                     {product.store.reviewCount})
                                 </Text>
                             </View>
@@ -382,7 +409,9 @@ export default function DetailProduk() {
 
                 {/* Reviews */}
                 <View style={styles.card}>
-                    <Text style={styles.sectionTitle}>Ulasan Pembeli</Text>
+                    <Text style={styles.sectionTitle}>
+                        Ulasan Pembeli ({product.reviewCount})
+                    </Text>
                     {product.reviews.length === 0 ? (
                         <Text style={styles.emptyReviewText}>
                             Belum ada ulasan untuk toko ini.
@@ -401,9 +430,16 @@ export default function DetailProduk() {
                                     />
                                     <Text style={styles.reviewName}>{review.name}</Text>
                                     <StarRow rating={review.rating} size={13} />
+                                    {!!review.createdAt && (
+                                        <Text style={styles.reviewDateText}>
+                                            {formatReviewDate(review.createdAt)}
+                                        </Text>
+                                    )}
                                     <Text style={styles.reviewComment} numberOfLines={4}>
-                                        "{review.comment}"
+                                        "{review.comment || 'Tidak ada komentar.'}"
                                     </Text>
+
+
                                 </View>
                             ))}
                         </ScrollView>
@@ -437,9 +473,6 @@ const styles = StyleSheet.create({
     },
     header: {
         backgroundColor: '#1E5CFF',
-        // paddingTop: 12,
-        // paddingBottom: 24,
-        // paddingHorizontal: 16,
         padding: 15,
         flexDirection: 'row',
         alignItems: 'center',
@@ -603,6 +636,11 @@ const styles = StyleSheet.create({
         color: '#222',
         marginBottom: 4,
     },
+    reviewDateText: {
+        fontSize: 10,
+        color: '#999',
+        marginTop: 2,
+    },
     reviewComment: {
         fontSize: 12,
         color: '#555',
@@ -610,6 +648,28 @@ const styles = StyleSheet.create({
         marginTop: 8,
         lineHeight: 17,
         fontStyle: 'italic',
+    },
+    reviewBreakdown: {
+        marginTop: 8,
+        paddingTop: 8,
+        borderTopWidth: 1,
+        borderTopColor: '#EAEAEA',
+        width: '100%',
+        gap: 3,
+    },
+    breakdownRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        width: '100%',
+    },
+    breakdownLabel: {
+        fontSize: 10,
+        color: '#888',
+    },
+    breakdownValue: {
+        fontSize: 10,
+        fontWeight: '700',
+        color: '#1E5CFF',
     },
     descriptionText: {
         fontSize: 13,
