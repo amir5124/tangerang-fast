@@ -25,12 +25,15 @@ const PaymentScreen = () => {
     const params = useLocalSearchParams() as any;
     const router = useRouter();
 
-    // Parse data dari payload halaman sebelumnya
+    // Parse data dari payload halaman sebelumnya (dari DetailKandidatScreen)
     const data = params.payload ? JSON.parse(params.payload) : {};
 
-    // Data kandidat
+    // Data kandidat - struktur sesuai dengan WorkerData dari API
     const kandidat = data.kandidat || {};
-    const gajiMax = kandidat.gajiMax || 0;
+
+    // Ambil gaji dari profil_pekerja.gaji_diharapkan.value
+    const gajiDiharapkan = kandidat.profil_pekerja?.gaji_diharapkan?.value || '0';
+    const gajiMax = parseInt(gajiDiharapkan.replace(/[^0-9]/g, '')) || 0;
 
     // States Dasar
     const [isModalVisible, setModalVisible] = useState(false);
@@ -38,6 +41,7 @@ const PaymentScreen = () => {
     const [paymentMethod, setPaymentMethod] = useState('QRIS');
     const [toastVisible, setToastVisible] = useState(false);
     const [toastMsg, setToastMsg] = useState('');
+    const [imageError, setImageError] = useState(false);
 
     // States Voucher
     const [isVoucherModalVisible, setVoucherModalVisible] = useState(false);
@@ -123,12 +127,11 @@ const PaymentScreen = () => {
 
         setIsValidatingVoucher(true);
         try {
-            // Simulasi API call - ganti dengan endpoint real
             const response = await axios.post(
                 'https://backend.tangerangfast.online/api/voucher/validate',
                 {
                     code: voucherCodeInput.toUpperCase(),
-                    user_id: data.customer_id || data.customerId || 1,
+                    user_id: data.customer_id || 1,
                     subtotal_layanan: hargaDasar + biayaLayanan,
                 },
             );
@@ -189,43 +192,61 @@ const PaymentScreen = () => {
         if (isLoading) return;
         setIsLoading(true);
 
-        /*
         // ============================================
-        // PAYLOAD ASLI UNTUK PRODUKSI - UNCOMMENT UNTUK DIGUNAKAN
+        // 🔥 PERBAIKAN: Map kategori ke building_type yang valid
         // ============================================
+        const validBuildingTypes = ['Rumah', 'Kantor', 'Apartemen', 'Resto'];
+
+        // Mapping dari kategori ke building_type
+        const buildingTypeMap: { [key: string]: string } = {
+            'Menginap': 'Rumah',
+            'Babysitter': 'Rumah',
+            'Pembersihan': 'Rumah',
+            'Kantor': 'Kantor',
+            'Apartemen': 'Apartemen',
+            'Resto': 'Resto',
+            'Restoran': 'Resto',
+            // Tambahkan mapping lainnya sesuai kebutuhan
+        };
+
+        // Ambil building_type dari data.kategori atau gunakan default 'Rumah'
+        let buildingType = buildingTypeMap[data.kategori] || 'Rumah';
+
+        // Validasi apakah building_type valid
+        if (!validBuildingTypes.includes(buildingType)) {
+            buildingType = 'Rumah'; // Fallback ke default
+        }
+
+        console.log('🏢 Building Type:', buildingType);
+        console.log('📂 Data Kategori:', data.kategori);
+
         const orderPayload = {
-            customer_id: data.customer_id || data.customerId || 1,
-            store_id: data.store_id || '1',
+            customer_id: data.customer_id || 1,
+            store_id: '1',
             metode_pembayaran: paymentMethod,
-            kategori: data.kategori || 'Menginap',
-            layanan: data.layanan || 'Babysitter',
-            jobdesk: data.jobdesk || 'mengasuh anak',
+            jenisGedung: buildingType, // ✅ Gunakan building_type yang valid
+            jadwal: {
+                tanggal: new Date().toISOString().split('T')[0],
+                waktu: new Date().toTimeString().slice(0, 5)
+            },
             lokasi: {
-                alamat: data.alamatLengkap || data.lokasi || '',
+                alamatLengkap: data.alamatLengkap || data.lokasi || 'Jl. Test No. 123',
                 latitude: data.latitude || -6.906683699999999,
                 longitude: data.longitude || 109.7340048,
             },
             kontak: {
-                nama: data.nama || '',
-                email: data.email || '',
-                noHp: data.noHp || '',
-                nikKtp: data.nikKtp || '',
+                nama: data.nama || 'Test Customer',
+                email: data.email || 'test@email.com',
+                nomorWhatsApp: data.noHp || '08123456789',
+                nikKtp: data.nikKtp || '1234567890123456',
             },
-            kandidat: {
-                id: kandidat.id,
-                nama: kandidat.nama,
-                umur: kandidat.umur,
-                asal: kandidat.asal,
-                pengalaman: kandidat.pengalaman,
-                gajiMin: kandidat.gajiMin,
-                gajiMax: kandidat.gajiMax,
-                level: kandidat.level,
-                layanan: kandidat.layanan,
-                kategori: kandidat.kategori,
-                foto: kandidat.foto,
-                readyToWork: kandidat.readyToWork,
-            },
-            voucher_code: appliedVoucher ? appliedVoucher.code : null,
+            layananTerpilih: [
+                {
+                    nama: data.layanan || 'Babysitter',
+                    qty: 1,
+                    hargaSatuan: hargaDasar
+                }
+            ],
             rincian_biaya: {
                 subtotal_layanan: hargaDasar,
                 biaya_layanan_app: biayaLayanan,
@@ -233,73 +254,43 @@ const PaymentScreen = () => {
                 diskon_voucher: discountAmount,
                 total_akhir: totalKeseluruhan,
             },
-        };
-        ============================================
-        */
-
-        // ============================================
-        // PAYLOAD TESTING - MENGGUNAKAN DATA DUMMY
-        // ============================================
-        const orderPayload = {
-            customer_id: 1,
-            store_id: '1',
-            metode_pembayaran: paymentMethod,
-            kategori: 'Menginap',
-            layanan: 'Babysitter',
-            jobdesk: 'mengasuh anak',
-            lokasi: {
-                alamat: 'Jl. Test No. 123, Jakarta',
-                latitude: -6.906683699999999,
-                longitude: 109.7340048,
-            },
-            kontak: {
-                nama: 'Test Customer',
-                email: 'test@email.com',
-                noHp: '08123456789',
-                nikKtp: '1234567890123456',
-            },
-            kandidat: {
-                id: '7',
-                nama: 'Yuli Andriani',
-                umur: 27,
-                asal: 'DKI Jakarta',
-                pengalaman: '2 Tahun',
-                gajiMin: 1500000,
-                gajiMax: 2500000,
-                level: 'ART',
-                layanan: 'Babysitter',
-                kategori: 'Menginap',
-                foto: 'https://randomuser.me/api/portraits/women/78.jpg',
-                readyToWork: true,
-            },
+            catatan: data.catatan || '',
             voucher_code: appliedVoucher ? appliedVoucher.code : null,
-            rincian_biaya: {
-                subtotal_layanan: hargaDasar,
-                biaya_layanan_app: biayaLayanan,
-                biaya_transaksi: biayaTransaksi,
-                diskon_voucher: discountAmount,
-                total_akhir: totalKeseluruhan,
-            },
+            kandidat: {
+                id: kandidat.identitas_pekerja?.id || kandidat.id,
+                nama: kandidat.identitas_pekerja?.nama || kandidat.nama,
+                umur: kandidat.kategori || kandidat.umur,
+                asal: kandidat.profil_pekerja?.asal?.value || kandidat.asal,
+                pengalaman: kandidat.profil_pekerja?.pengalaman_bekerja?.value?.[0] || kandidat.pengalaman,
+                gajiMin: kandidat.profil_pekerja?.gaji_diharapkan?.value || kandidat.gajiMin,
+                gajiMax: kandidat.profil_pekerja?.gaji_diharapkan?.value || kandidat.gajiMax,
+                level: kandidat.perilaku_pekerja?.predikat?.value || kandidat.level,
+                layanan: kandidat.identitas_pekerja?.minat_kerja || kandidat.layanan,
+                kategori: kandidat.identitas_pekerja?.kategori_pekerja || kandidat.kategori,
+                foto: getKandidatFoto(),
+                readyToWork: kandidat.profil_pekerja?.siap_bekerja?.value === 'Siap Bekerja' || kandidat.readyToWork,
+            }
         };
-        // ============================================
 
-        // Log payload untuk debugging
         console.log('📦 Order Payload:', JSON.stringify(orderPayload, null, 2));
 
         try {
-            /*
-            // ============================================
-            // ENDPOINT ASLI - UNCOMMENT UNTUK PRODUKSI
-            // ============================================
             const response = await axios.post(
                 'https://backend.tangerangfast.online/api/payment/create',
                 orderPayload,
-                { timeout: 20000 },
+                { timeout: 20000 }
             );
-    
+
             if (response.data.success) {
+                Toast.show({
+                    type: 'success',
+                    text1: '✅ Pesanan Berhasil!',
+                    text2: 'Silakan lanjutkan ke pembayaran.',
+                    visibilityTime: 3000,
+                });
+
                 router.push({
-                    pathname: '/payment-instruction',
+                    pathname: '/art/payment-instruction',
                     params: {
                         orderId: response.data.order_id,
                         paymentInfo: JSON.stringify(response.data.payment_data),
@@ -313,53 +304,10 @@ const PaymentScreen = () => {
                     visibilityTime: 3000,
                 });
             }
-            ============================================
-            */
-
-            // ============================================
-            // TESTING - SIMULASI PEMBAYARAN SUKSES
-            // ============================================
-            console.log('🔄 Simulasi pembayaran sedang diproses...');
-
-            // Simulasi delay 2 detik
-            await new Promise(resolve => setTimeout(resolve, 2000));
-
-            // Tampilkan toast sukses
-            Toast.show({
-                type: 'success',
-                text1: '✅ Pembayaran Berhasil!',
-                text2: `Pembayaran sebesar ${formatRupiah(totalKeseluruhan)} telah berhasil diproses.`,
-                visibilityTime: 3000,
-                onPress: () => {
-                    // Navigasi ke halaman matching
-                    router.push({
-                        pathname: '/art/matching',
-                        params: {
-                            orderId: 'ORD-' + Date.now(),
-                            totalPayment: totalKeseluruhan,
-                            kandidatId: kandidat.id,
-                            kandidatNama: kandidat.nama,
-                        }
-                    });
-                }
-            });
-
-            // Navigasi otomatis setelah 3 detik
-            setTimeout(() => {
-                router.push({
-                    pathname: 'art/matching',
-                    params: {
-                        orderId: 'ORD-' + Date.now(),
-                        totalPayment: totalKeseluruhan,
-                        kandidatId: kandidat.id,
-                        kandidatNama: kandidat.nama,
-                    }
-                });
-            }, 3000);
-            // ============================================
-
         } catch (error: any) {
             console.error('Payment Error:', error);
+            console.error('Response Data:', error.response?.data);
+
             Toast.show({
                 type: 'error',
                 text1: '❌ Gagal Memproses',
@@ -370,11 +318,117 @@ const PaymentScreen = () => {
             setIsLoading(false);
         }
     };
-
     // Format Rupiah
     const formatRupiah = (angka: number) => {
         return 'Rp' + angka.toLocaleString('id-ID');
     };
+
+    // ============================================================
+    // 🔥 HELPER FUNCTIONS UNTUK KANDIDAT DENGAN LOG DEBUG
+    // ============================================================
+
+    // Helper untuk mendapatkan nama kandidat
+    const getKandidatNama = () => {
+        const nama = kandidat.identitas_pekerja?.nama || kandidat.nama || 'Kandidat';
+        console.log('📝 Nama Kandidat:', nama);
+        return nama;
+    };
+
+    // Helper untuk mendapatkan foto kandidat dari array gambar_pekerja
+    const getKandidatFoto = () => {
+        console.log('🖼️ 🔍 DEBUG FOTO KANDIDAT:');
+        console.log('  📦 Data Kandidat:', JSON.stringify(kandidat, null, 2));
+
+        // 1. Cek dari array gambar_pekerja
+        const gambarPekerja = kandidat.gambar_pekerja ||
+            kandidat.identitas_pekerja?.gambar_pekerja ||
+            [];
+
+        console.log('  📸 Array gambar_pekerja:', JSON.stringify(gambarPekerja, null, 2));
+
+        // Cari gambar dengan jenis "Foto Profil"
+        const fotoProfil = gambarPekerja.find((g: any) => g.jenis === 'Foto Profil');
+        if (fotoProfil?.url) {
+            console.log('  ✅ Foto Profil ditemukan:', fotoProfil.url);
+            return fotoProfil.url;
+        }
+        console.log('  ⚠️ Foto Profil tidak ditemukan di array gambar_pekerja');
+
+        // Jika tidak ada "Foto Profil", ambil gambar pertama
+        if (gambarPekerja.length > 0 && gambarPekerja[0]?.url) {
+            console.log('  ✅ Mengambil gambar pertama dari array:', gambarPekerja[0].url);
+            return gambarPekerja[0].url;
+        }
+        console.log('  ⚠️ Tidak ada gambar di array gambar_pekerja');
+
+        // 2. Fallback ke field foto lainnya
+        const fotoLain = kandidat.foto_profil ||
+            kandidat.foto ||
+            kandidat.identitas_pekerja?.foto_profil;
+
+        if (fotoLain) {
+            console.log('  📷 Field foto lain ditemukan:', fotoLain);
+            if (fotoLain.startsWith('/')) {
+                const fullUrl = `https://backend.tangerangfast.online${fotoLain}`;
+                console.log('  ✅ Full URL (path):', fullUrl);
+                return fullUrl;
+            }
+            if (!fotoLain.startsWith('http')) {
+                const fullUrl = `https://backend.tangerangfast.online/uploads/${fotoLain}`;
+                console.log('  ✅ Full URL (uploads):', fullUrl);
+                return fullUrl;
+            }
+            console.log('  ✅ URL langsung:', fotoLain);
+            return fotoLain;
+        }
+        console.log('  ⚠️ Tidak ada field foto lain');
+
+        // 3. Fallback ke UI Avatars
+        const nama = getKandidatNama();
+        const fallbackUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(nama)}&background=3b5bdb&color=fff&size=100&bold=true`;
+        console.log('  🎨 Fallback UI Avatar:', fallbackUrl);
+        return fallbackUrl;
+    };
+
+    // Helper untuk mendapatkan usia kandidat
+    const getKandidatUsia = () => {
+        return kandidat.kategori || kandidat.umur || 0;
+    };
+
+    // Helper untuk mendapatkan asal kandidat
+    const getKandidatAsal = () => {
+        return kandidat.profil_pekerja?.asal?.value || kandidat.asal || '-';
+    };
+
+    // Helper untuk mendapatkan pengalaman kandidat
+    const getKandidatPengalaman = () => {
+        const exp = kandidat.profil_pekerja?.pengalaman_bekerja?.value;
+        if (exp && Array.isArray(exp) && exp.length > 0) {
+            return exp[0];
+        }
+        return kandidat.pengalaman || '-';
+    };
+
+    // Helper untuk mendapatkan status ready to work
+    const getKandidatReady = () => {
+        return kandidat.profil_pekerja?.siap_bekerja?.value === 'Siap Bekerja' || kandidat.readyToWork || false;
+    };
+
+    // 🔥 Log data kandidat saat komponen mount atau data berubah
+    useEffect(() => {
+        console.log('========================================');
+        console.log('📋 PAYMENT SCREEN - DATA KANDIDAT:');
+        console.log('  👤 Nama:', getKandidatNama());
+        console.log('  📸 Foto URL:', getKandidatFoto());
+        console.log('  📦 Full Data:', JSON.stringify(kandidat, null, 2));
+        console.log('========================================');
+    }, [kandidat]);
+
+    // Reset image error state when foto changes
+    useEffect(() => {
+        setImageError(false);
+        console.log('🔄 Reset image error state');
+    }, [getKandidatFoto()]);
 
     return (
         <View style={{ flex: 1, backgroundColor: '#FFF' }}>
@@ -447,18 +501,37 @@ const PaymentScreen = () => {
                 {/* Kandidat Info */}
                 <View style={styles.kandidatCard}>
                     <View style={styles.kandidatHeader}>
-                        <Image source={{ uri: kandidat.foto }} style={styles.kandidatAvatar} />
+                        {!imageError ? (
+                            <Image
+                                source={{ uri: getKandidatFoto() }}
+                                style={styles.kandidatAvatar}
+                                onError={(e) => {
+                                    console.log('❌ Error loading image:', e.nativeEvent.error);
+                                    setImageError(true);
+                                }}
+                                onLoad={() => {
+                                    console.log('✅ Image loaded successfully');
+                                    setImageError(false);
+                                }}
+                            />
+                        ) : (
+                            <View style={[styles.kandidatAvatar, styles.avatarPlaceholder]}>
+                                <Text style={styles.avatarPlaceholderText}>
+                                    {getKandidatNama().charAt(0).toUpperCase()}
+                                </Text>
+                            </View>
+                        )}
                         <View style={styles.kandidatInfo}>
-                            <Text style={styles.kandidatName}>{kandidat.nama || 'Kandidat'}</Text>
-                            <Text style={styles.kandidatDetail}>Umur : {kandidat.umur || 0} Tahun</Text>
-                            <Text style={styles.kandidatDetail}>Asal : {kandidat.asal || '-'}</Text>
-                            <Text style={styles.kandidatDetail}>Pengalaman : {kandidat.pengalaman || '-'}</Text>
+                            <Text style={styles.kandidatName}>{getKandidatNama()}</Text>
+                            <Text style={styles.kandidatDetail}>Usia : {getKandidatUsia()} Tahun</Text>
+                            <Text style={styles.kandidatDetail}>Asal : {getKandidatAsal()}</Text>
+                            <Text style={styles.kandidatDetail}>Pengalaman : {getKandidatPengalaman()}</Text>
                             <Text style={styles.kandidatDetail}>
-                                Gaji : {formatRupiah(kandidat.gajiMin || 0)} – {formatRupiah(kandidat.gajiMax || 0)}
+                                Gaji : {formatRupiah(gajiMax)}
                             </Text>
                         </View>
                     </View>
-                    {kandidat.readyToWork && (
+                    {getKandidatReady() && (
                         <View style={styles.readyBadge}>
                             <View style={styles.readyDot} />
                             <Text style={styles.readyText}>Ready To Work</Text>
@@ -719,6 +792,17 @@ const styles = StyleSheet.create({
         height: 70,
         borderRadius: 35,
         marginRight: 12,
+        backgroundColor: '#f0f0f0',
+    },
+    avatarPlaceholder: {
+        backgroundColor: '#3b5bdb',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    avatarPlaceholderText: {
+        fontSize: 30,
+        fontWeight: 'bold',
+        color: '#fff',
     },
     kandidatInfo: {
         flex: 1,
