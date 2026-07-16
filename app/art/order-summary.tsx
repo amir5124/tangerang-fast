@@ -21,6 +21,12 @@ import Toast from 'react-native-toast-message';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
+// ============================================================
+// 🔥 BASE URL BACKEND ART
+// ============================================================
+const ART_API_BASE = 'https://backend.tangerangfast.online/api/art-payment';
+const MAIN_API_BASE = 'https://backend.tangerangfast.online/api';
+
 const PaymentScreen = () => {
     const params = useLocalSearchParams() as any;
     const router = useRouter();
@@ -31,9 +37,8 @@ const PaymentScreen = () => {
     // Data kandidat - struktur sesuai dengan WorkerData dari API
     const kandidat = data.kandidat || {};
 
-    // Ambil gaji dari profil_pekerja.gaji_diharapkan.value
-    const gajiDiharapkan = kandidat.profil_pekerja?.gaji_diharapkan?.value || '0';
-    const gajiMax = parseInt(gajiDiharapkan.replace(/[^0-9]/g, '')) || 0;
+    // 🔥 DUMMY HARGA 100 PERAK
+    const HARGA_DUMMY = 100;
 
     // States Dasar
     const [isModalVisible, setModalVisible] = useState(false);
@@ -55,7 +60,7 @@ const PaymentScreen = () => {
     const fetchServiceFee = async () => {
         try {
             const response = await axios.get(
-                'https://backend.tangerangfast.online/api/settings/app_service_fee',
+                `${MAIN_API_BASE}/settings/app_service_fee`,
             );
 
             const res = response.data;
@@ -80,7 +85,8 @@ const PaymentScreen = () => {
     }, []);
 
     // --- LOGIKA PERHITUNGAN BIAYA ---
-    const hargaDasar = gajiMax;
+    // 🔥 Gunakan harga dummy 100 perak
+    const hargaDasar = HARGA_DUMMY;
 
     const calculateBiayaTransaksi = () => {
         if (paymentMethod === 'QRIS') {
@@ -128,7 +134,7 @@ const PaymentScreen = () => {
         setIsValidatingVoucher(true);
         try {
             const response = await axios.post(
-                'https://backend.tangerangfast.online/api/voucher/validate',
+                `${MAIN_API_BASE}/voucher/validate`,
                 {
                     code: voucherCodeInput.toUpperCase(),
                     user_id: data.customer_id || 1,
@@ -187,104 +193,133 @@ const PaymentScreen = () => {
         });
     };
 
-    // --- FUNGSI SUBMIT ORDER ---
+    // ============================================================
+    // 🔥 FUNGSI SUBMIT ORDER - ART/Babysitter VERSION
+    // ============================================================
     const handleFinalOrder = async () => {
         if (isLoading) return;
         setIsLoading(true);
 
+        console.log('🧹 [ART Payment] Memproses pesanan ART/Babysitter...');
+
         // ============================================
-        // 🔥 PERBAIKAN: Map kategori ke building_type yang valid
+        // BUILD PAYLOAD UNTUK ART/BABYSITTER
         // ============================================
-        const validBuildingTypes = ['Rumah', 'Kantor', 'Apartemen', 'Resto'];
+        const artPayload = {
+            // Informasi Customer
+            cust_id: data.customer_id || '1',
+            cust_nama: data.nama || 'Customer',
+            cust_email: data.email || 'customer@email.com',
+            cust_hp: data.noHp || '08123456789',
+            cust_nik: data.nikKtp || '1234567890123456',
 
-        // Mapping dari kategori ke building_type
-        const buildingTypeMap: { [key: string]: string } = {
-            'Menginap': 'Rumah',
-            'Babysitter': 'Rumah',
-            'Pembersihan': 'Rumah',
-            'Kantor': 'Kantor',
-            'Apartemen': 'Apartemen',
-            'Resto': 'Resto',
-            'Restoran': 'Resto',
-            // Tambahkan mapping lainnya sesuai kebutuhan
-        };
+            // Informasi Alamat
+            alamat: data.alamatLengkap || data.lokasi || 'Jl. Test No. 123',
+            lat: data.latitude || -6.906683699999999,
+            lng: data.longitude || 109.7340048,
 
-        // Ambil building_type dari data.kategori atau gunakan default 'Rumah'
-        let buildingType = buildingTypeMap[data.kategori] || 'Rumah';
+            // Informasi Kandidat/Pekerja
+            worker_id: kandidat.identitas_pekerja?.id || kandidat.id || 'WK-001',
+            worker_nama: kandidat.identitas_pekerja?.nama || kandidat.nama || 'Kandidat',
+            worker_umur: parseInt(kandidat.kategori || kandidat.umur || 0),
+            worker_asal: kandidat.profil_pekerja?.asal?.value || kandidat.asal || '-',
+            worker_exp: kandidat.profil_pekerja?.pengalaman_bekerja?.value?.[0] || kandidat.pengalaman || '-',
+            worker_gaji_min: HARGA_DUMMY,
+            worker_gaji_max: HARGA_DUMMY,
+            worker_level: kandidat.perilaku_pekerja?.predikat?.value || kandidat.level || 'Standard',
+            worker_layanan: kandidat.identitas_pekerja?.minat_kerja || kandidat.layanan || 'ART',
+            worker_kategori: kandidat.identitas_pekerja?.kategori_pekerja || kandidat.kategori || 'ART',
+            worker_foto: getKandidatFoto(),
+            worker_ready: kandidat.profil_pekerja?.siap_bekerja?.value === 'Siap Bekerja' || kandidat.readyToWork || false,
 
-        // Validasi apakah building_type valid
-        if (!validBuildingTypes.includes(buildingType)) {
-            buildingType = 'Rumah'; // Fallback ke default
-        }
+            // Jadwal
+            tgl: new Date().toISOString().split('T')[0],
+            jam: new Date().toTimeString().slice(0, 5),
 
-        console.log('🏢 Building Type:', buildingType);
-        console.log('📂 Data Kategori:', data.kategori);
+            // Kontak (sama dengan customer)
+            kontak_nama: data.nama || 'Customer',
+            kontak_email: data.email || 'customer@email.com',
+            kontak_wa: data.noHp || '08123456789',
+            kontak_nik: data.nikKtp || '1234567890123456',
 
-        const orderPayload = {
-            customer_id: data.customer_id || 1,
+            // Informasi Order
             store_id: '1',
-            metode_pembayaran: paymentMethod,
-            jenisGedung: buildingType, // ✅ Gunakan building_type yang valid
-            jadwal: {
-                tanggal: new Date().toISOString().split('T')[0],
-                waktu: new Date().toTimeString().slice(0, 5)
-            },
-            lokasi: {
-                alamatLengkap: data.alamatLengkap || data.lokasi || 'Jl. Test No. 123',
-                latitude: data.latitude || -6.906683699999999,
-                longitude: data.longitude || 109.7340048,
-            },
-            kontak: {
-                nama: data.nama || 'Test Customer',
-                email: data.email || 'test@email.com',
-                nomorWhatsApp: data.noHp || '08123456789',
-                nikKtp: data.nikKtp || '1234567890123456',
-            },
-            layananTerpilih: [
-                {
-                    nama: data.layanan || 'Babysitter',
-                    qty: 1,
-                    hargaSatuan: hargaDasar
-                }
-            ],
-            rincian_biaya: {
-                subtotal_layanan: hargaDasar,
-                biaya_layanan_app: biayaLayanan,
-                biaya_transaksi: biayaTransaksi,
-                diskon_voucher: discountAmount,
-                total_akhir: totalKeseluruhan,
-            },
+            metode_bayar: paymentMethod,
+            jenis_gedung: data.jenisGedung || 'Rumah',
+            kategori: data.kategori || 'ART',
             catatan: data.catatan || '',
-            voucher_code: appliedVoucher ? appliedVoucher.code : null,
-            kandidat: {
-                id: kandidat.identitas_pekerja?.id || kandidat.id,
-                nama: kandidat.identitas_pekerja?.nama || kandidat.nama,
-                umur: kandidat.kategori || kandidat.umur,
-                asal: kandidat.profil_pekerja?.asal?.value || kandidat.asal,
-                pengalaman: kandidat.profil_pekerja?.pengalaman_bekerja?.value?.[0] || kandidat.pengalaman,
-                gajiMin: kandidat.profil_pekerja?.gaji_diharapkan?.value || kandidat.gajiMin,
-                gajiMax: kandidat.profil_pekerja?.gaji_diharapkan?.value || kandidat.gajiMax,
-                level: kandidat.perilaku_pekerja?.predikat?.value || kandidat.level,
-                layanan: kandidat.identitas_pekerja?.minat_kerja || kandidat.layanan,
-                kategori: kandidat.identitas_pekerja?.kategori_pekerja || kandidat.kategori,
-                foto: getKandidatFoto(),
-                readyToWork: kandidat.profil_pekerja?.siap_bekerja?.value === 'Siap Bekerja' || kandidat.readyToWork,
-            }
+            kode_voucher: appliedVoucher ? appliedVoucher.code : null,
+
+            // Layanan
+            layanan: JSON.stringify([
+                {
+                    nama: data.layanan || 'ART',
+                    qty: 1,
+                    hargaSatuan: HARGA_DUMMY
+                }
+            ]),
+
+            // Rincian Biaya
+            sub_total: HARGA_DUMMY,
+            biaya_app: biayaLayanan,
+            biaya_trans: biayaTransaksi,
+            diskon: discountAmount,
+            total: totalKeseluruhan,
+
+            // Payment
+            pay_method: paymentMethod,
+            pay_status: 'pending',
+            status: 'pending'
         };
 
-        console.log('📦 Order Payload:', JSON.stringify(orderPayload, null, 2));
+        console.log('📦 [ART Payment] Payload:', JSON.stringify(artPayload, null, 2));
 
         try {
-            const response = await axios.post(
-                'https://backend.tangerangfast.online/api/payment/create',
-                orderPayload,
+            // ============================================================
+            // 🔥 STEP 1: Buat pesanan ART di tabel "pesanan"
+            // ============================================================
+            const orderResponse = await axios.post(
+                `${MAIN_API_BASE}/pesanan`,
+                artPayload,
                 { timeout: 20000 }
             );
 
-            if (response.data.success) {
+            if (!orderResponse.data.success) {
+                throw new Error(orderResponse.data.message || 'Gagal membuat pesanan ART');
+            }
+
+            const pesananId = orderResponse.data.data.id;
+            console.log(`✅ [ART Payment] Pesanan ART dibuat, ID: ${pesananId}`);
+
+            // ============================================================
+            // 🔥 STEP 2: Buat pembayaran untuk pesanan ART
+            // ============================================================
+            const paymentPayload = {
+                pesanan_id: pesananId,
+                metode_pembayaran: paymentMethod,
+                total: totalKeseluruhan,
+                cust_id: data.customer_id || '1',
+                cust_nama: data.nama || 'Customer',
+                cust_email: data.email || 'customer@email.com',
+                cust_hp: data.noHp || '08123456789',
+                worker_id: kandidat.identitas_pekerja?.id || kandidat.id || 'WK-001',
+                worker_nama: kandidat.identitas_pekerja?.nama || kandidat.nama || 'Kandidat'
+            };
+
+            console.log('💳 [ART Payment] Payment Payload:', JSON.stringify(paymentPayload, null, 2));
+
+            const paymentResponse = await axios.post(
+                `${ART_API_BASE}/create`,
+                paymentPayload,
+                { timeout: 20000 }
+            );
+
+            console.log('📩 [ART Payment] Payment Response:', JSON.stringify(paymentResponse.data, null, 2));
+
+            if (paymentResponse.data.success) {
                 Toast.show({
                     type: 'success',
-                    text1: '✅ Pesanan Berhasil!',
+                    text1: '✅ Pesanan ART Berhasil!',
                     text2: 'Silakan lanjutkan ke pembayaran.',
                     visibilityTime: 3000,
                 });
@@ -292,20 +327,22 @@ const PaymentScreen = () => {
                 router.push({
                     pathname: '/art/payment-instruction',
                     params: {
-                        orderId: response.data.order_id,
-                        paymentInfo: JSON.stringify(response.data.payment_data),
+                        orderId: pesananId,
+                        paymentInfo: JSON.stringify(paymentResponse.data.data),
+                        orderType: 'art'
                     },
                 });
             } else {
                 Toast.show({
                     type: 'error',
                     text1: 'Gagal',
-                    text2: response.data.message || 'Gagal membuat pesanan',
+                    text2: paymentResponse.data.message || 'Gagal membuat pembayaran',
                     visibilityTime: 3000,
                 });
             }
+
         } catch (error: any) {
-            console.error('Payment Error:', error);
+            console.error('❌ [ART Payment] Error:', error);
             console.error('Response Data:', error.response?.data);
 
             Toast.show({
@@ -318,89 +355,64 @@ const PaymentScreen = () => {
             setIsLoading(false);
         }
     };
+
     // Format Rupiah
     const formatRupiah = (angka: number) => {
         return 'Rp' + angka.toLocaleString('id-ID');
     };
 
     // ============================================================
-    // 🔥 HELPER FUNCTIONS UNTUK KANDIDAT DENGAN LOG DEBUG
+    // 🔥 HELPER FUNCTIONS UNTUK KANDIDAT
     // ============================================================
 
-    // Helper untuk mendapatkan nama kandidat
     const getKandidatNama = () => {
         const nama = kandidat.identitas_pekerja?.nama || kandidat.nama || 'Kandidat';
         console.log('📝 Nama Kandidat:', nama);
         return nama;
     };
 
-    // Helper untuk mendapatkan foto kandidat dari array gambar_pekerja
     const getKandidatFoto = () => {
         console.log('🖼️ 🔍 DEBUG FOTO KANDIDAT:');
-        console.log('  📦 Data Kandidat:', JSON.stringify(kandidat, null, 2));
 
-        // 1. Cek dari array gambar_pekerja
         const gambarPekerja = kandidat.gambar_pekerja ||
             kandidat.identitas_pekerja?.gambar_pekerja ||
             [];
 
-        console.log('  📸 Array gambar_pekerja:', JSON.stringify(gambarPekerja, null, 2));
-
-        // Cari gambar dengan jenis "Foto Profil"
         const fotoProfil = gambarPekerja.find((g: any) => g.jenis === 'Foto Profil');
         if (fotoProfil?.url) {
-            console.log('  ✅ Foto Profil ditemukan:', fotoProfil.url);
             return fotoProfil.url;
         }
-        console.log('  ⚠️ Foto Profil tidak ditemukan di array gambar_pekerja');
 
-        // Jika tidak ada "Foto Profil", ambil gambar pertama
         if (gambarPekerja.length > 0 && gambarPekerja[0]?.url) {
-            console.log('  ✅ Mengambil gambar pertama dari array:', gambarPekerja[0].url);
             return gambarPekerja[0].url;
         }
-        console.log('  ⚠️ Tidak ada gambar di array gambar_pekerja');
 
-        // 2. Fallback ke field foto lainnya
         const fotoLain = kandidat.foto_profil ||
             kandidat.foto ||
             kandidat.identitas_pekerja?.foto_profil;
 
         if (fotoLain) {
-            console.log('  📷 Field foto lain ditemukan:', fotoLain);
             if (fotoLain.startsWith('/')) {
-                const fullUrl = `https://backend.tangerangfast.online${fotoLain}`;
-                console.log('  ✅ Full URL (path):', fullUrl);
-                return fullUrl;
+                return `https://backend.tangerangfast.online${fotoLain}`;
             }
             if (!fotoLain.startsWith('http')) {
-                const fullUrl = `https://backend.tangerangfast.online/uploads/${fotoLain}`;
-                console.log('  ✅ Full URL (uploads):', fullUrl);
-                return fullUrl;
+                return `https://backend.tangerangfast.online/uploads/${fotoLain}`;
             }
-            console.log('  ✅ URL langsung:', fotoLain);
             return fotoLain;
         }
-        console.log('  ⚠️ Tidak ada field foto lain');
 
-        // 3. Fallback ke UI Avatars
         const nama = getKandidatNama();
-        const fallbackUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(nama)}&background=3b5bdb&color=fff&size=100&bold=true`;
-        console.log('  🎨 Fallback UI Avatar:', fallbackUrl);
-        return fallbackUrl;
+        return `https://ui-avatars.com/api/?name=${encodeURIComponent(nama)}&background=3b5bdb&color=fff&size=100&bold=true`;
     };
 
-    // Helper untuk mendapatkan usia kandidat
     const getKandidatUsia = () => {
         return kandidat.kategori || kandidat.umur || 0;
     };
 
-    // Helper untuk mendapatkan asal kandidat
     const getKandidatAsal = () => {
         return kandidat.profil_pekerja?.asal?.value || kandidat.asal || '-';
     };
 
-    // Helper untuk mendapatkan pengalaman kandidat
     const getKandidatPengalaman = () => {
         const exp = kandidat.profil_pekerja?.pengalaman_bekerja?.value;
         if (exp && Array.isArray(exp) && exp.length > 0) {
@@ -409,27 +421,26 @@ const PaymentScreen = () => {
         return kandidat.pengalaman || '-';
     };
 
-    // Helper untuk mendapatkan status ready to work
     const getKandidatReady = () => {
         return kandidat.profil_pekerja?.siap_bekerja?.value === 'Siap Bekerja' || kandidat.readyToWork || false;
     };
 
-    // 🔥 Log data kandidat saat komponen mount atau data berubah
     useEffect(() => {
         console.log('========================================');
-        console.log('📋 PAYMENT SCREEN - DATA KANDIDAT:');
+        console.log('📋 [ART PAYMENT] DATA KANDIDAT:');
         console.log('  👤 Nama:', getKandidatNama());
         console.log('  📸 Foto URL:', getKandidatFoto());
         console.log('  📦 Full Data:', JSON.stringify(kandidat, null, 2));
         console.log('========================================');
     }, [kandidat]);
 
-    // Reset image error state when foto changes
     useEffect(() => {
         setImageError(false);
-        console.log('🔄 Reset image error state');
     }, [getKandidatFoto()]);
 
+    // ============================================================
+    // RENDER
+    // ============================================================
     return (
         <View style={{ flex: 1, backgroundColor: '#FFF' }}>
             <View style={styles.customHeader}>
@@ -439,7 +450,7 @@ const PaymentScreen = () => {
                         style={styles.backButton}>
                         <Ionicons name="arrow-back" size={24} color="#fff" />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Pembayaran</Text>
+                    <Text style={styles.headerTitle}>Pembayaran ART</Text>
                     <View style={{ width: 24 }} />
                 </View>
             </View>
@@ -527,7 +538,7 @@ const PaymentScreen = () => {
                             <Text style={styles.kandidatDetail}>Asal : {getKandidatAsal()}</Text>
                             <Text style={styles.kandidatDetail}>Pengalaman : {getKandidatPengalaman()}</Text>
                             <Text style={styles.kandidatDetail}>
-                                Gaji : {formatRupiah(gajiMax)}
+                                Gaji : {formatRupiah(HARGA_DUMMY)}
                             </Text>
                         </View>
                     </View>
@@ -571,14 +582,14 @@ const PaymentScreen = () => {
                     </View>
                 </TouchableOpacity>
 
-                {/* Detail Layanan */}
+                {/* 🔥 Detail Layanan - UBAH LABEL */}
                 <View style={styles.card}>
                     <View style={styles.cardHeader}>
-                        <Text style={styles.cardTitle}>Detail Layanan</Text>
+                        <Text style={styles.cardTitle}>Detail Biaya</Text>
                     </View>
 
                     <View style={styles.serviceItem}>
-                        <Text style={styles.serviceName}>Harga Layanan & Gedung</Text>
+                        <Text style={styles.serviceName}>Biaya Jasa ART</Text>
                         <Text style={styles.servicePrice}>
                             {formatRupiah(hargaDasar)}
                         </Text>
@@ -586,7 +597,7 @@ const PaymentScreen = () => {
 
                     <View style={styles.serviceItem}>
                         <View style={styles.row}>
-                            <Text style={styles.serviceName}>Biaya Layanan</Text>
+                            <Text style={styles.serviceName}>Biaya Layanan Aplikasi</Text>
                             <TouchableOpacity
                                 onPress={() => showInfoToast('Biaya operasional aplikasi.')}>
                                 <Ionicons
@@ -754,7 +765,7 @@ const PaymentScreen = () => {
                 <View style={styles.loadingOverlay}>
                     <View style={styles.loadingContainer}>
                         <ActivityIndicator size="large" color="#3b5bdb" />
-                        <Text style={styles.loadingText}>Memproses Pesanan...</Text>
+                        <Text style={styles.loadingText}>Memproses Pesanan ART...</Text>
                     </View>
                 </View>
             </Modal>
@@ -762,6 +773,9 @@ const PaymentScreen = () => {
     );
 };
 
+// ============================================================
+// STYLES
+// ============================================================
 const styles = StyleSheet.create({
     card: { backgroundColor: '#fff', padding: 16, marginBottom: 8 },
     cardHeader: {
@@ -777,7 +791,6 @@ const styles = StyleSheet.create({
     infoValue: { fontSize: 14, fontWeight: '500', color: '#111' },
     infoSubValue: { fontSize: 12, color: '#666' },
 
-    // Kandidat Card
     kandidatCard: {
         backgroundColor: '#fff',
         padding: 16,

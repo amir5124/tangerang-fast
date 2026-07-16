@@ -1,19 +1,38 @@
+// components/home/MenuGrid.tsx
+import { storage } from '@/src/utils/storage';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Dimensions, Image, Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Shimmer } from '../../components/home/Shimmer';
+import {
+  Dimensions,
+  Image,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
 import api from '../../utils/api';
-const { width: windowWidth } = Dimensions.get('window');
+import { checkActiveArtOrder, navigateToMatching } from '../../utils/checkActiveArtOrder';
+import { Shimmer } from './Shimmer';
 
-// Base URL untuk gambar dari backend
+const { width: windowWidth } = Dimensions.get('window');
 const IMAGE_BASE_URL = 'https://backend.tangerangfast.online';
 
-export const MenuGrid = () => {
+interface Asset {
+  id: number;
+  key_name: string;
+  display_name: string;
+  image_url: string;
+}
+
+export const MenuGrid: React.FC = () => {
   const router = useRouter();
-  const [dbAssets, setDbAssets] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [allMenuAsset, setAllMenuAsset] = useState<any>(null);
+  const [dbAssets, setDbAssets] = useState<Asset[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [showModal, setShowModal] = useState<boolean>(false);
+  const [allMenuAsset, setAllMenuAsset] = useState<Asset | null>(null);
+  const [isCheckingOrder, setIsCheckingOrder] = useState<boolean>(false);
 
   useEffect(() => {
     const loadAssets = async () => {
@@ -22,13 +41,12 @@ export const MenuGrid = () => {
         const assets = response.data || [];
         setDbAssets(assets);
 
-        // Cari asset untuk menu "All" dari database
-        const allAsset = assets.find((asset: any) =>
+        const allAsset = assets.find((asset: Asset) =>
           asset.key_name === 'icon_all' ||
           asset.key_name === 'menu_all' ||
           asset.display_name === 'All'
         );
-        setAllMenuAsset(allAsset);
+        setAllMenuAsset(allAsset || null);
       } catch (error) {
         console.error('Gagal memuat assets dari DB', error);
       } finally {
@@ -38,12 +56,55 @@ export const MenuGrid = () => {
     loadAssets();
   }, []);
 
+  // ============================================================
+  // 🔥 CEK PESANAN ART AKTIF SEBELUM MASUK HALAMAN ART
+  // ============================================================
+  const handleArtPress = async (): Promise<void> => {
+    if (isCheckingOrder) return;
+    setIsCheckingOrder(true);
+
+    try {
+      // 🔥 Ambil user data dari storage (key: 'userData'), sama seperti di DetailKontakScreen
+      const jsonValue = await storage.get('userData');
+
+      if (!jsonValue) {
+        // Jika tidak ada data user, langsung ke halaman ART
+        router.push('/art/art-babysitter');
+        return;
+      }
+
+      const localData = JSON.parse(jsonValue);
+      const customerId = localData?.id;
+
+      console.log('🆔 customerId yang dipakai untuk cek order aktif:', customerId);
+
+      if (!customerId) {
+        router.push('/art/art-babysitter');
+        return;
+      }
+
+      const { hasActiveOrder, activeOrder } = await checkActiveArtOrder(customerId);
+
+      if (hasActiveOrder && activeOrder) {
+        // 🔥 Ada pesanan aktif -> redirect ke MatchingScreen
+        navigateToMatching(activeOrder);
+      } else {
+        // Tidak ada pesanan aktif -> ke halaman ART
+        router.push('/art/art-babysitter');
+      }
+    } catch (error) {
+      console.error('Error checking active order:', error);
+      router.push('/art/art-babysitter');
+    } finally {
+      setIsCheckingOrder(false);
+    }
+  };
+
   // Filter Jasa Terpopuler untuk Modal "All"
-  const popularServices = dbAssets.filter((asset: any) =>
+  const popularServices = dbAssets.filter((asset: Asset) =>
     asset.key_name?.includes('popular_service')
   );
 
-  // Filter Kategori Menu Utama (tanpa menu All)
   const menuOrder = [
     'icon_ac',
     'icon_cleaning',
@@ -55,46 +116,42 @@ export const MenuGrid = () => {
   ];
 
   const categories = menuOrder
-    .map(key => dbAssets.find((a: any) => a.key_name === key))
-    .filter(Boolean);
+    .map(key => dbAssets.find((a: Asset) => a.key_name === key))
+    .filter((item): item is Asset => item !== undefined);
 
-  const handlePress = (keyName: string) => {
-    // Mapping untuk navigasi ke halaman spesifik
-    const navigationMap: any = {
+  const handlePress = (keyName: string): void => {
+    // 🔥 KHUSUS ART/BABYSITTER - cek pesanan aktif
+    if (keyName === 'icon_rigid') {
+      handleArtPress();
+      return;
+    }
+
+    const navigationMap: Record<string, { pathname: string } | { screen: string }> = {
       'icon_ac': { pathname: '/service-ac' },
       'icon_cleaning': { pathname: '/cleaning-service' },
       'icon_wc': { pathname: '/sedot-wc' },
-      'icon_rigid': { pathname: '/art/art-babysitter' },//art babysitter
-      'icon_bangunan': { pathname: '/toko/tokolist' },//toko
-      'icon_kebun': { pathname: '/laundry/list-mitra' },//laundry
+      'icon_bangunan': { pathname: '/toko/tokolist' },
+      'icon_kebun': { pathname: '/laundry/list-mitra' },
       'icon_all': { screen: 'All Services' },
     };
 
-    // Daftar menu yang belum tersedia
     const unavailableKeys = ['icon_korporasi', 'icon_ojek'];
 
-    // Untuk menu All, buka modal
     if (keyName === 'icon_all' || keyName === 'menu_all') {
       setShowModal(true);
       return;
     }
 
-    // Cek apakah menu belum tersedia
     if (unavailableKeys.includes(keyName)) {
-      return router.push('/belum-tersedia');
+      router.push('/belum-tersedia');
+      return;
     }
 
-    // Cek apakah ada mapping untuk menu tersebut
     const target = navigationMap[keyName];
-    if (target) {
-      if (target.params) {
-        router.push(target);
-      } else if (target.pathname) {
-        router.push(target.pathname);
-      } else if (target.screen) {
-        // Untuk menu All, kita sudah handle di atas
-        setShowModal(true);
-      }
+    if (target && 'pathname' in target) {
+      router.push(target.pathname);
+    } else if (target && 'screen' in target) {
+      setShowModal(true);
     } else {
       router.push('/belum-tersedia');
     }
@@ -124,7 +181,7 @@ export const MenuGrid = () => {
       </View>
 
       <View style={styles.categoryGrid}>
-        {categories.map((item: any) => (
+        {categories.map((item: Asset) => (
           <TouchableOpacity
             key={item.id}
             style={styles.categoryItem}
@@ -142,7 +199,7 @@ export const MenuGrid = () => {
           </TouchableOpacity>
         ))}
 
-        {/* Menu All - Menggunakan asset dari database jika ada */}
+        {/* Menu All */}
         <TouchableOpacity
           style={styles.categoryItem}
           activeOpacity={0.8}
@@ -154,7 +211,6 @@ export const MenuGrid = () => {
                 style={styles.categoryIcon}
               />
             ) : (
-              // Fallback icon jika tidak ada di database
               <Image
                 source={{ uri: 'https://cdn-icons-png.flaticon.com/512/2311/2311523.png' }}
                 style={styles.categoryIcon}
@@ -167,6 +223,7 @@ export const MenuGrid = () => {
         </TouchableOpacity>
       </View>
 
+      {/* Modal All Services */}
       <Modal
         visible={showModal}
         transparent={true}
@@ -177,7 +234,7 @@ export const MenuGrid = () => {
             <View style={styles.dragHandle} />
             <Text style={styles.modalTitle}>Semua Layanan</Text>
             <View style={styles.modalGrid}>
-              {popularServices.map((item: any) => (
+              {popularServices.map((item: Asset) => (
                 <TouchableOpacity
                   key={item.id}
                   style={styles.modalItem}

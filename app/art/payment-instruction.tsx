@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import * as Clipboard from 'expo-clipboard';
-import { useLocalSearchParams, useRouter, } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
     ActivityIndicator,
@@ -15,18 +15,18 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 
+const API_BASE = 'https://backend.tangerangfast.online/api';
+
 const PaymentInstruction = () => {
     const router = useRouter();
     const params = useLocalSearchParams();
-    const insets = useSafeAreaInsets(); // Untuk menangani notch/poni layar
+    const insets = useSafeAreaInsets();
 
     const [timeLeft, setTimeLeft] = useState('');
     const [isChecking, setIsChecking] = useState(false);
-
-    // Ref untuk polling agar tidak kehilangan konteks saat re-render
+    const [isNavigating, setIsNavigating] = useState(false);
     const pollingInterval = useRef<any>(null);
 
-    // Parsing data paymentInfo dari params
     const paymentInfo = useMemo(() => {
         try {
             return params.paymentInfo ? JSON.parse(params.paymentInfo as string) : null;
@@ -36,10 +36,9 @@ const PaymentInstruction = () => {
         }
     }, [params.paymentInfo]);
 
-    // Tentukan apakah ini QRIS atau VA
+    const orderType = params.orderType || 'art';
     const isQRIS = !!paymentInfo?.qris_url;
 
-    // --- FIX KEDIP: Memoize URL QRIS ---
     const memoizedQrUrl = useMemo(() => {
         if (paymentInfo?.qris_url) {
             return `${paymentInfo.qris_url}?t=${new Date().getTime()}`;
@@ -47,13 +46,37 @@ const PaymentInstruction = () => {
         return null;
     }, [paymentInfo?.qris_url]);
 
-    // --- FUNGSI CEK STATUS ---
+    // ============================================================
+    // 🔥 NAVIGASI KE HALAMAN MATCHING (UNTUK ART)
+    // ============================================================
+    const navigateToMatching = (orderIdParam?: string) => {
+        if (isNavigating) return;
+        setIsNavigating(true);
+
+        const orderId = orderIdParam || paymentInfo?.order_id || paymentInfo?.pesanan_id;
+        console.log('🔀 Navigasi ke /art/matching dengan orderId:', orderId);
+
+        // 🔥 Gunakan replace agar tidak bisa back ke halaman payment
+        router.replace({
+            pathname: '/art/matching',
+            params: {
+                orderId: String(orderId || ''),
+                from: 'payment_success',
+                orderStatus: 'matching',
+                totalPayment: String(paymentInfo?.amount || 0)
+            }
+        });
+    };
+
+    // ============================================================
+    // 🔥 CEK STATUS PEMBAYARAN
+    // ============================================================
     const checkPaymentStatus = async (isAuto = false) => {
-        if (!paymentInfo?.partner_reff) return;
+        const partnerReff = paymentInfo?.partner_reff;
+        if (!partnerReff || isNavigating) return;
 
         if (!isAuto) {
             setIsChecking(true);
-            // Menampilkan feedback ke user bahwa pengecekan sedang berlangsung
             Toast.show({
                 type: 'info',
                 text1: 'Mengecek Pembayaran',
@@ -63,12 +86,24 @@ const PaymentInstruction = () => {
         }
 
         try {
-            const partnerReff = paymentInfo.partner_reff;
-            const response = await axios.get(`https://backend.tangerangfast.online/api/payment/check-status/${partnerReff}?t=${new Date().getTime()}`);
+            let endpoint;
+            if (orderType === 'art') {
+                endpoint = `${API_BASE}/art-payment/status/${partnerReff}`;
+            } else {
+                endpoint = `${API_BASE}/payment/check-status/${partnerReff}`;
+            }
 
+            const response = await axios.get(`${endpoint}?t=${new Date().getTime()}`);
             const paymentStatus = response.data?.status;
 
-            if (paymentStatus === 'SUCCESS') {
+            console.log(`📊 Status Pembayaran (${orderType}):`, paymentStatus);
+
+            // 🔥 Cek semua kemungkinan status sukses
+            if (paymentStatus === 'SUCCESS' ||
+                paymentStatus === 'paid' ||
+                paymentStatus === 'settlement' ||
+                paymentStatus === 'SETTLED') {
+
                 if (pollingInterval.current) {
                     clearInterval(pollingInterval.current);
                     pollingInterval.current = null;
@@ -76,28 +111,25 @@ const PaymentInstruction = () => {
 
                 Toast.show({
                     type: 'success',
-                    text1: 'Pembayaran Berhasil!',
-                    text2: 'Membuka progres pesanan...',
+                    text1: '✅ Pembayaran Berhasil!',
+                    text2: orderType === 'art' ? 'Mengarahkan ke halaman matching...' : 'Mengarahkan ke detail pesanan...',
                     visibilityTime: 2000,
                 });
 
-                const idPesanan = paymentInfo?.order_id;
+                const idPesanan = paymentInfo?.order_id || paymentInfo?.pesanan_id;
 
-                if (idPesanan) {
-                    // Gunakan push agar params benar-benar terkirim dan memicu re-render
-                    router.push({
-                        pathname: '/(tabs)/riwayat',
-                        params: { orderId: String(idPesanan) }
-                    });
-                } else {
-                    router.replace('/(tabs)/riwayat');
-                }
+                setTimeout(() => {
+                    if (orderType === 'art') {
+                        navigateToMatching(idPesanan);
+                    }
+                }, 1500);
+
+                return;
             } else {
-                // Jika manual klik dan belum sukses
                 if (!isAuto) {
                     Toast.show({
                         type: 'error',
-                        text1: 'Belum Terdeteksi',
+                        text1: '⏳ Belum Terdeteksi',
                         text2: 'Silakan selesaikan pembayaran terlebih dahulu.',
                         visibilityTime: 2000,
                     });
@@ -123,7 +155,7 @@ const PaymentInstruction = () => {
 
         pollingInterval.current = setInterval(() => {
             checkPaymentStatus(true);
-        }, 6000);
+        }, 5000);
 
         const timer = setInterval(() => {
             const now = new Date().getTime();
@@ -158,12 +190,12 @@ const PaymentInstruction = () => {
         });
     };
 
-    if (!paymentInfo) return <View style={styles.center}><ActivityIndicator size="large" color="#673AB7" /></View>;
+    if (!paymentInfo) return <View style={styles.center}><ActivityIndicator size="large" color="#3b5bdb" /></View>;
 
     return (
         <View style={{ flex: 1, backgroundColor: '#fff' }}>
-            {/* --- HEADER KUSTOM --- */}
-            <View style={[styles.customHeader]}>
+            {/* --- HEADER KUSTOM WARNA BIRU --- */}
+            <View style={[styles.customHeader, { backgroundColor: '#3b5bdb' }]}>
                 <View style={styles.headerContent}>
                     <TouchableOpacity onPress={() => router.back()} style={styles.headerBackBtn}>
                         <Ionicons name="arrow-back" size={24} color="#fff" />
@@ -177,7 +209,7 @@ const PaymentInstruction = () => {
                 <View style={styles.content}>
 
                     <View style={styles.mainCard}>
-                        <Text style={styles.methodTitle}>
+                        <Text style={[styles.methodTitle, { color: '#3b5bdb' }]}>
                             {isQRIS ? "QRIS" : `${paymentInfo.bank_name || 'BANK'} Virtual Account`}
                         </Text>
 
@@ -208,9 +240,9 @@ const PaymentInstruction = () => {
                                         <Text style={styles.label}>Nomor Virtual Account</Text>
                                         <View style={styles.row}>
                                             <Text style={styles.valueBoldLarge}>{paymentInfo.va_number}</Text>
-                                            <TouchableOpacity style={styles.copyBtn} onPress={() => copyToClipboard(paymentInfo.va_number)}>
-                                                <Ionicons name="copy-outline" size={16} color="#673AB7" />
-                                                <Text style={styles.copyText}>Salin</Text>
+                                            <TouchableOpacity style={[styles.copyBtn, { backgroundColor: '#E8EDFD' }]} onPress={() => copyToClipboard(paymentInfo.va_number)}>
+                                                <Ionicons name="copy-outline" size={16} color="#3b5bdb" />
+                                                <Text style={[styles.copyText, { color: '#3b5bdb' }]}>Salin</Text>
                                             </TouchableOpacity>
                                         </View>
                                     </>
@@ -233,10 +265,10 @@ const PaymentInstruction = () => {
 
                                 <Text style={styles.label}>Total Pembayaran</Text>
                                 <View style={styles.row}>
-                                    <Text style={styles.amountBig}>Rp {Number(paymentInfo.amount).toLocaleString('id-ID')}</Text>
-                                    <TouchableOpacity style={styles.copyBtn} onPress={() => copyToClipboard(String(paymentInfo.amount))}>
-                                        <Ionicons name="copy-outline" size={16} color="#673AB7" />
-                                        <Text style={styles.copyText}>Salin</Text>
+                                    <Text style={[styles.amountBig, { color: '#3b5bdb' }]}>Rp {Number(paymentInfo.amount).toLocaleString('id-ID')}</Text>
+                                    <TouchableOpacity style={[styles.copyBtn, { backgroundColor: '#E8EDFD' }]} onPress={() => copyToClipboard(String(paymentInfo.amount))}>
+                                        <Ionicons name="copy-outline" size={16} color="#3b5bdb" />
+                                        <Text style={[styles.copyText, { color: '#3b5bdb' }]}>Salin</Text>
                                     </TouchableOpacity>
                                 </View>
                             </View>
@@ -258,22 +290,20 @@ const PaymentInstruction = () => {
             </ScrollView>
 
             {/* --- FOOTER DENGAN SAFE AREA --- */}
-            <View style={styles.footer}>
+            <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
                 {timeLeft === "EXPIRED" ? (
-                    /* JIKA EXPIRED: Hanya tampil satu tombol utama */
                     <TouchableOpacity
-                        style={[styles.btnAction, { backgroundColor: '#673AB7' }]}
+                        style={[styles.btnAction, { backgroundColor: '#3b5bdb' }]}
                         onPress={() => router.replace('/')}
                     >
                         <Text style={styles.btnActionText}>Kembali ke Beranda</Text>
                     </TouchableOpacity>
                 ) : (
-                    /* JIKA MASIH AKTIF: Tampilkan dua tombol (Cek Status & Batalkan) */
                     <View>
                         <TouchableOpacity
-                            style={[styles.btnAction, { backgroundColor: isChecking ? '#ccc' : '#673AB7', marginBottom: 10 }]}
+                            style={[styles.btnAction, { backgroundColor: isChecking ? '#ccc' : '#3b5bdb', marginBottom: 10 }]}
                             onPress={() => checkPaymentStatus(false)}
-                            disabled={isChecking}
+                            disabled={isChecking || isNavigating}
                         >
                             {isChecking ? (
                                 <ActivityIndicator color="#fff" />
@@ -292,17 +322,14 @@ const PaymentInstruction = () => {
                 )}
             </View>
 
-            {/* Komponen Toast harus ada di paling bawah View utama */}
             <Toast />
         </View>
     );
 };
 
-export default PaymentInstruction;
-
 const styles = StyleSheet.create({
     customHeader: {
-        backgroundColor: '#673AB7',
+        backgroundColor: '#3b5bdb',
         elevation: 4,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
@@ -316,10 +343,10 @@ const styles = StyleSheet.create({
         backgroundColor: 'transparent',
     },
     btnCancelText: {
-        color: '#64748b', // Warna abu-abu yang elegan
+        color: '#64748b',
         fontSize: 14,
         fontWeight: '600',
-        textDecorationLine: 'underline' // Memberikan kesan bahwa ini adalah opsi sekunder
+        textDecorationLine: 'underline',
     },
     headerContent: {
         height: 56,
@@ -340,31 +367,169 @@ const styles = StyleSheet.create({
     },
     scrollContent: { paddingBottom: 150 },
     content: { padding: 20 },
-    mainCard: { backgroundColor: '#fff', borderRadius: 15, padding: 20, elevation: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8 },
-    methodTitle: { fontSize: 20, fontWeight: 'bold', textAlign: 'center', color: '#673AB7' },
-    label: { color: '#777', fontSize: 12, marginTop: 15, textTransform: 'uppercase' },
-    labelCenter: { color: '#888', fontSize: 13, textAlign: 'center', marginTop: 15 },
-    valueBold: { fontSize: 16, fontWeight: 'bold', color: '#333', marginTop: 3 },
-    valueBoldLarge: { fontSize: 20, fontWeight: 'bold', color: '#000' },
-    timerText: { fontSize: 28, fontWeight: 'bold', color: '#D32F2F', textAlign: 'center' },
-    divider: { height: 1, backgroundColor: '#f0f0f0', marginVertical: 15 },
-    row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 5 },
-    amountBig: { fontSize: 24, fontWeight: 'bold', color: '#673AB7' },
-    copyBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3E5F5', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
-    copyText: { color: '#673AB7', fontWeight: 'bold', marginLeft: 5, fontSize: 12 },
-    qrContainer: { alignItems: 'center', marginVertical: 10 },
-    qrHeader: { color: '#666', marginBottom: 15, fontSize: 14 },
-    qrBorder: { padding: 10, backgroundColor: '#fff', borderRadius: 10, borderWidth: 1, borderColor: '#eee' },
-    qrImage: { width: 220, height: 220 },
-    poweredBy: { marginTop: 15, color: '#aaa', fontSize: 12 },
-    caraBayarTitle: { fontSize: 18, fontWeight: 'bold', marginTop: 25, color: '#333' },
-    instructionBox: { marginTop: 10, backgroundColor: '#F8F9FA', padding: 15, borderRadius: 10 },
-    instructionStep: { fontSize: 14, color: '#555', marginBottom: 10, lineHeight: 20 },
-    footer: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#fff', padding: 20, borderTopWidth: 1, borderTopColor: '#eee' },
-    btnAction: { height: 55, borderRadius: 12, justifyContent: 'center', alignItems: 'center', elevation: 2 },
-    btnActionText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
-    center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    expiredContainer: { alignItems: 'center', paddingVertical: 30 },
-    expiredTitle: { fontSize: 22, fontWeight: 'bold', color: '#EF4444', marginTop: 10 },
-    expiredSub: { textAlign: 'center', color: '#64748b', fontSize: 14, marginTop: 10, lineHeight: 22, paddingHorizontal: 10 }
+    mainCard: {
+        backgroundColor: '#fff',
+        borderRadius: 15,
+        padding: 20,
+        elevation: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+    },
+    methodTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        color: '#3b5bdb',
+    },
+    label: {
+        color: '#777',
+        fontSize: 12,
+        marginTop: 15,
+        textTransform: 'uppercase',
+    },
+    labelCenter: {
+        color: '#888',
+        fontSize: 13,
+        textAlign: 'center',
+        marginTop: 15,
+    },
+    valueBold: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#333',
+        marginTop: 3,
+    },
+    valueBoldLarge: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#000',
+    },
+    timerText: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        color: '#D32F2F',
+        textAlign: 'center',
+    },
+    divider: {
+        height: 1,
+        backgroundColor: '#f0f0f0',
+        marginVertical: 15,
+    },
+    row: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginTop: 5,
+    },
+    amountBig: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: '#3b5bdb',
+    },
+    copyBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#E8EDFD',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 8,
+    },
+    copyText: {
+        color: '#3b5bdb',
+        fontWeight: 'bold',
+        marginLeft: 5,
+        fontSize: 12,
+    },
+    qrContainer: {
+        alignItems: 'center',
+        marginVertical: 10,
+    },
+    qrHeader: {
+        color: '#666',
+        marginBottom: 15,
+        fontSize: 14,
+    },
+    qrBorder: {
+        padding: 10,
+        backgroundColor: '#fff',
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: '#eee',
+    },
+    qrImage: {
+        width: 220,
+        height: 220,
+    },
+    poweredBy: {
+        marginTop: 15,
+        color: '#aaa',
+        fontSize: 12,
+    },
+    caraBayarTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginTop: 25,
+        color: '#333',
+    },
+    instructionBox: {
+        marginTop: 10,
+        backgroundColor: '#F8F9FA',
+        padding: 15,
+        borderRadius: 10,
+    },
+    instructionStep: {
+        fontSize: 14,
+        color: '#555',
+        marginBottom: 10,
+        lineHeight: 20,
+    },
+    footer: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: '#fff',
+        padding: 20,
+        borderTopWidth: 1,
+        borderTopColor: '#eee',
+    },
+    btnAction: {
+        height: 55,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+        elevation: 2,
+    },
+    btnActionText: {
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: 16,
+    },
+    center: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    expiredContainer: {
+        alignItems: 'center',
+        paddingVertical: 30,
+    },
+    expiredTitle: {
+        fontSize: 22,
+        fontWeight: 'bold',
+        color: '#EF4444',
+        marginTop: 10,
+    },
+    expiredSub: {
+        textAlign: 'center',
+        color: '#64748b',
+        fontSize: 14,
+        marginTop: 10,
+        lineHeight: 22,
+        paddingHorizontal: 10,
+    },
 });
+
+export default PaymentInstruction;
