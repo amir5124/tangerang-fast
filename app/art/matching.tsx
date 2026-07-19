@@ -1,6 +1,7 @@
-// MatchingScreen.js - Versi Final (Hanya file ini)
+// MatchingScreen.js - Versi dengan Auto Redirect saat Approved
 
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
@@ -23,28 +24,71 @@ const API_BASE = 'https://backend.tangerangfast.online/api';
 const ILUSTRASI_URL = 'https://res.cloudinary.com/dgsdmgcc7/image/upload/v1782052100/ChatGPT_Image_Jun_13_2026_11_49_54_AM_1_jg4xvi.png';
 const HEADER_BLUE = '#2f6fed';
 
-const POLLING_INTERVAL = 15000; // 15 detik
-const BACKGROUND_INTERVAL = 60000; // 60 detik
+const POLLING_INTERVAL = 15000;
+const BACKGROUND_INTERVAL = 60000;
+
+// ============================================================
+// 🔥 MAP STATUS
+// ============================================================
+const getStepFromStatus = (status: string): number => {
+    const stepMap: Record<string, number> = {
+        'pending': 0, 'paid': 1, 'matching': 2, 'approved': 3,
+        'calling': 4, 'working': 5, 'completed': 6,
+        'rejected': -1, 'cancelled': -1
+    };
+    return stepMap[status] ?? 0;
+};
+
+const getStatusMessage = (status: string): string => {
+    const messageMap: Record<string, string> = {
+        'pending': '⏳ Menunggu pembayaran...',
+        'paid': '💳 Pembayaran berhasil, mencari kandidat...',
+        'matching': '🔍 Mencari kandidat terbaik...',
+        'approved': '✅ Kandidat telah disetujui!',
+        'calling': '📞 Conference call dengan kandidat...',
+        'working': '👷 Kandidat sedang bekerja...',
+        'completed': '✅ Pesanan selesai!',
+        'rejected': '❌ Kandidat ditolak',
+        'cancelled': '❌ Pesanan dibatalkan'
+    };
+    return messageMap[status] || '⏳ Memproses...';
+};
+
+const getProgressFromStatus = (status: string): number => {
+    const progressMap: Record<string, number> = {
+        'pending': 10, 'paid': 25, 'matching': 40,
+        'approved': 55, 'calling': 70, 'working': 85,
+        'completed': 100, 'rejected': 100, 'cancelled': 100
+    };
+    return progressMap[status] ?? 0;
+};
+
+const isFinalStatus = (status: string): boolean => {
+    return ['completed', 'rejected', 'cancelled'].includes(status);
+};
+
+const canProceed = (status: string): boolean => {
+    return ['approved', 'completed'].includes(status);
+};
+
+const canCancel = (status: string): boolean => {
+    return !['completed', 'rejected', 'cancelled'].includes(status);
+};
 
 const MatchingScreen = () => {
     const router = useRouter();
     const params = useLocalSearchParams() as any;
 
-    const [orderStatus, setOrderStatus] = useState(params.orderStatus || 'matching');
+    const [orderStatus, setOrderStatus] = useState(params.orderStatus || 'pending');
     const [matchingStatus, setMatchingStatus] = useState(params.matchingStatus || 'pending');
+    const [orderData, setOrderData] = useState<any>(null);
 
-    const [progress, setProgress] = useState(
-        params.orderStatus === 'approved' ? 100 :
-            params.orderStatus === 'matching' ? 75 : 0
-    );
-    const [statusMessage, setStatusMessage] = useState(
-        params.orderStatus === 'approved' ? '✅ Kandidat telah disetujui!' :
-            params.orderStatus === 'matching' ? 'Menunggu persetujuan kandidat...' :
-                'Mencocokkan data...'
-    );
+    const [progress, setProgress] = useState(getProgressFromStatus(orderStatus));
+    const [statusMessage, setStatusMessage] = useState(getStatusMessage(orderStatus));
     const [showCancelModal, setShowCancelModal] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [isPolling, setIsPolling] = useState(false);
+    const [isRedirecting, setIsRedirecting] = useState(false);
 
     const pollingInterval = useRef<NodeJS.Timeout | null>(null);
     const appState = useRef(AppState.currentState);
@@ -58,7 +102,7 @@ const MatchingScreen = () => {
     // 🔥 CEK STATUS PESANAN DARI BACKEND
     // ============================================================
     const checkOrderStatus = async () => {
-        if (!orderId || isPolling) return;
+        if (!orderId || isPolling || isRedirecting) return;
 
         setIsPolling(true);
         try {
@@ -66,50 +110,87 @@ const MatchingScreen = () => {
 
             if (response.data.success) {
                 const data = response.data.data;
-                const mainStatus = data.status || 'matching';
+                setOrderData(data);
+
+                const mainStatus = data.status || 'pending';
                 const matchStatus = data.matching_status || 'pending';
 
-                // 🔥 Logika gabungan status
                 let finalStatus = mainStatus;
 
-                // Jika status 'paid' dan matching_status 'pending' -> tampilkan 'matching'
                 if (mainStatus === 'paid' && matchStatus === 'pending') {
                     finalStatus = 'matching';
                 }
-                // Jika matching_status sudah 'approved' atau 'rejected', override
-                if (matchStatus === 'approved' || matchStatus === 'rejected') {
-                    finalStatus = matchStatus;
+                if (matchStatus === 'approved') {
+                    finalStatus = 'approved';
                 }
-                // Jika matching_status 'cancelled'
+                if (matchStatus === 'rejected') {
+                    finalStatus = 'rejected';
+                }
                 if (matchStatus === 'cancelled') {
                     finalStatus = 'cancelled';
                 }
 
-                // 🔥 Update state
                 setMatchingStatus(matchStatus);
 
-                // 🔥 Hanya update jika status berubah
                 if (finalStatus !== orderStatus) {
                     setOrderStatus(finalStatus);
+                    setProgress(getProgressFromStatus(finalStatus));
+                    setStatusMessage(getStatusMessage(finalStatus));
 
-                    if (finalStatus === 'approved' || finalStatus === 'completed') {
-                        setProgress(100);
-                        setStatusMessage('✅ Kandidat telah disetujui!');
-                        Toast.show({
-                            type: 'success',
-                            text1: '🎉 Kandidat Disetujui!',
-                            text2: 'Silakan lanjutkan ke tahap berikutnya.',
-                            visibilityTime: 3000,
-                        });
-                    } else if (finalStatus === 'rejected') {
-                        setProgress(100);
-                        setStatusMessage('❌ Kandidat ditolak');
-                    } else if (finalStatus === 'cancelled') {
-                        setProgress(100);
-                        setStatusMessage('❌ Pesanan dibatalkan');
-                    } else if (finalStatus === 'matching' || finalStatus === 'pending') {
-                        setProgress(75);
-                        setStatusMessage('Menunggu persetujuan kandidat...');
+                    const toastConfig: Record<string, any> = {
+                        'approved': { type: 'success', text1: '✅ Kandidat Disetujui!', text2: 'Mengarahkan ke halaman approval...' },
+                        'completed': { type: 'success', text1: '✅ Pesanan Selesai!', text2: 'Terima kasih telah menggunakan layanan kami.' },
+                        'rejected': { type: 'info', text1: '❌ Kandidat Ditolak', text2: 'Silakan cari kandidat lain.' },
+                        'cancelled': { type: 'error', text1: '❌ Pesanan Dibatalkan', text2: 'Pesanan telah dibatalkan.' },
+                        'calling': { type: 'info', text1: '📞 Conference Call', text2: 'Tim kami akan menghubungi Anda.' },
+                        'working': { type: 'info', text1: '👷 Kandidat Bekerja', text2: 'Kandidat sudah mulai bekerja.' },
+                        'matching': { type: 'info', text1: '🔍 Mencari Kandidat', text2: 'Kami sedang mencari kandidat terbaik.' },
+                        'paid': { type: 'success', text1: '💳 Pembayaran Berhasil', text2: 'Memulai proses pencarian kandidat.' }
+                    };
+
+                    const config = toastConfig[finalStatus];
+                    if (config) {
+                        Toast.show({ type: config.type, text1: config.text1, text2: config.text2, visibilityTime: 3000 });
+                    }
+
+                    // 🔥🔥🔥 AUTO REDIRECT KE APPROVAL SAAT STATUS APPROVED 🔥🔥🔥
+                    if (finalStatus === 'approved' && !isRedirecting) {
+                        console.log('🚀 Auto redirecting to approval page...');
+                        setIsRedirecting(true);
+
+                        // Stop polling
+                        if (pollingInterval.current) {
+                            clearInterval(pollingInterval.current);
+                            pollingInterval.current = null;
+                        }
+
+                        // Simpan data ke storage
+                        try {
+                            const dataToSave = {
+                                orderId: orderId,
+                                orderData: data,
+                                totalPayment: totalPayment,
+                                kandidatId: kandidatId || data?.worker_id || '',
+                                kandidatNama: kandidatNama || data?.worker_nama || '',
+                                timestamp: Date.now()
+                            };
+                            await AsyncStorage.setItem('approval_order_data', JSON.stringify(dataToSave));
+                            console.log('✅ Data saved to storage before auto redirect');
+                        } catch (error) {
+                            console.error('❌ Error saving to storage:', error);
+                        }
+
+                        // Redirect setelah delay singkat
+                        setTimeout(() => {
+                            router.replace({
+                                pathname: '/art/approval',
+                                params: {
+                                    orderId: orderId,
+                                    fromStorage: 'true',
+                                    autoRedirect: 'true'
+                                }
+                            });
+                        }, 2000);
                     }
                 }
             }
@@ -124,10 +205,7 @@ const MatchingScreen = () => {
     // 🔥 EFFECT: POLLING
     // ============================================================
     useEffect(() => {
-        // 🔥 Stop polling jika status final
-        const isFinal = ['approved', 'completed', 'cancelled', 'rejected'].includes(orderStatus);
-
-        if (isFinal) {
+        if (isFinalStatus(orderStatus) || isRedirecting) {
             if (pollingInterval.current) {
                 clearInterval(pollingInterval.current);
                 pollingInterval.current = null;
@@ -142,7 +220,6 @@ const MatchingScreen = () => {
         const subscription = AppState.addEventListener('change', (nextAppState) => {
             if (pollingInterval.current) {
                 clearInterval(pollingInterval.current);
-
                 if (nextAppState === 'active') {
                     pollingInterval.current = setInterval(checkOrderStatus, POLLING_INTERVAL);
                     checkOrderStatus();
@@ -202,27 +279,44 @@ const MatchingScreen = () => {
     };
 
     // ============================================================
-    // 🔥 HANDLE LANJUTKAN
+    // 🔥 HANDLE LANJUTKAN - KE HALAMAN APPROVAL (MANUAL)
     // ============================================================
-    const handleLanjutkan = () => {
-        // 🔥 Cek status approved (hanya approved/completed yang bisa lanjut)
-        const canProceed = ['approved', 'completed'].includes(orderStatus);
+    const handleLanjutkan = async () => {
+        console.log('🔍 handleLanjutkan dipanggil, orderStatus:', orderStatus);
 
-        if (!canProceed) {
-            Toast.show({
-                type: 'info',
-                text1: '⏳ Mohon Tunggu',
-                text2: orderStatus === 'matching' || orderStatus === 'pending'
-                    ? 'Proses matching masih berlangsung...'
-                    : 'Status pesanan belum approved.',
-                visibilityTime: 2000,
-            });
+        if (!canProceed(orderStatus)) {
+            let subMessage = 'Proses masih berlangsung...';
+            if (orderStatus === 'pending') subMessage = 'Silakan selesaikan pembayaran terlebih dahulu.';
+            else if (orderStatus === 'paid' || orderStatus === 'matching') subMessage = 'Proses matching masih berlangsung...';
+            else if (orderStatus === 'calling') subMessage = 'Proses conference call sedang berlangsung...';
+            else if (orderStatus === 'working') subMessage = 'Kandidat sedang bekerja...';
+            else if (orderStatus === 'rejected') subMessage = 'Kandidat ditolak, silakan cari kandidat lain.';
+            else if (orderStatus === 'cancelled') subMessage = 'Pesanan telah dibatalkan.';
+
+            Toast.show({ type: 'info', text1: '⏳ Mohon Tunggu', text2: subMessage, visibilityTime: 2000 });
             return;
         }
 
+        // Stop polling
         if (pollingInterval.current) {
             clearInterval(pollingInterval.current);
             pollingInterval.current = null;
+        }
+
+        // Simpan data ke storage
+        try {
+            const dataToSave = {
+                orderId: orderId,
+                orderData: orderData,
+                totalPayment: totalPayment,
+                kandidatId: kandidatId || orderData?.worker_id || '',
+                kandidatNama: kandidatNama || orderData?.worker_nama || '',
+                timestamp: Date.now()
+            };
+            await AsyncStorage.setItem('approval_order_data', JSON.stringify(dataToSave));
+            console.log('✅ Data saved to storage');
+        } catch (error) {
+            console.error('❌ Error saving to storage:', error);
         }
 
         Toast.show({
@@ -234,100 +328,105 @@ const MatchingScreen = () => {
 
         setTimeout(() => {
             router.push({
-                pathname: '/approval',
+                pathname: '/art/approval',
                 params: {
                     orderId: orderId,
-                    kandidatId: kandidatId,
-                    kandidatNama: kandidatNama,
-                    totalPayment: totalPayment,
+                    fromStorage: 'true'
                 }
             });
         }, 1500);
     };
 
     // ============================================================
-    // EFFECT: Simulasi progress (fallback)
+    // 🔥 HANDLE BAYAR
     // ============================================================
-    useEffect(() => {
-        if ((orderStatus === 'matching' || orderStatus === 'pending') && progress < 75) {
-            const messages = [
-                'Mencocokkan data...',
-                'Menganalisis kebutuhan...',
-                'Mencari kandidat terbaik...',
-                'Hampir selesai...',
-            ];
-
-            let interval: NodeJS.Timeout;
-            let progressValue = progress;
-
-            const timer = setTimeout(() => {
-                interval = setInterval(() => {
-                    progressValue += Math.random() * 1.5 + 0.5;
-                    if (progressValue >= 75) {
-                        progressValue = 75;
-                        setStatusMessage('Menunggu persetujuan kandidat...');
-                        clearInterval(interval);
-                    } else {
-                        const idx = Math.floor((progressValue / 75) * messages.length);
-                        setStatusMessage(messages[Math.min(idx, messages.length - 1)]);
-                    }
-                    setProgress(Math.min(progressValue, 75));
-                }, 800);
-            }, 1000);
-
-            return () => {
-                clearTimeout(timer);
-                if (interval) clearInterval(interval);
-            };
+    const handleBayar = () => {
+        if (orderStatus === 'pending') {
+            router.push({
+                pathname: '/art/art-babysitter',
+                params: {
+                    orderId: orderId,
+                    totalPayment: totalPayment,
+                }
+            });
         }
-    }, [orderStatus]);
+    };
 
     // ============================================================
-    // RENDER
+    // 🔥 RENDER
     // ============================================================
-    const isApproved = ['approved', 'completed'].includes(orderStatus);
+    const isApproved = canProceed(orderStatus);
     const isCancelled = orderStatus === 'cancelled';
     const isRejected = orderStatus === 'rejected';
-    const isMatching = orderStatus === 'matching' || orderStatus === 'pending' || orderStatus === 'paid';
+    const isPending = orderStatus === 'pending';
+    const isMatching = ['pending', 'paid', 'matching', 'approved', 'calling', 'working'].includes(orderStatus);
+
+    const getStatusIcon = () => {
+        if (isCancelled || isRejected) return 'close';
+        if (orderStatus === 'approved' || orderStatus === 'completed') return 'checkmark';
+        if (orderStatus === 'pending') return 'time-outline';
+        if (orderStatus === 'paid') return 'cash-outline';
+        if (orderStatus === 'matching') return 'search-outline';
+        if (orderStatus === 'calling') return 'call-outline';
+        if (orderStatus === 'working') return 'build-outline';
+        return 'time-outline';
+    };
+
+    const getStatusColor = () => {
+        if (isCancelled || isRejected) return '#EF4444';
+        if (orderStatus === 'approved' || orderStatus === 'completed') return '#2ecc71';
+        if (orderStatus === 'pending') return '#f59e0b';
+        if (orderStatus === 'paid') return '#3B82F6';
+        if (orderStatus === 'matching') return '#8B5CF6';
+        if (orderStatus === 'calling') return '#EC4899';
+        if (orderStatus === 'working') return '#F97316';
+        return '#f59e0b';
+    };
+
+    const getStatusLabel = (status: string): string => {
+        const labelMap: Record<string, string> = {
+            'pending': 'Menunggu Pembayaran',
+            'paid': 'Dibayar',
+            'matching': 'Mencari Kandidat',
+            'approved': '✅ Disetujui',
+            'calling': '📞 Conference Call',
+            'working': '👷 Bekerja',
+            'completed': '✅ Selesai',
+            'rejected': '❌ Ditolak',
+            'cancelled': '❌ Dibatalkan'
+        };
+        return labelMap[status] || status;
+    };
 
     return (
         <View style={styles.container}>
             <View style={styles.header}>
-                <TouchableOpacity
-                    onPress={() => router.back()}
-                    style={styles.backButton}
-                >
+                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={24} color="#fff" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Matching</Text>
+                <Text style={styles.headerTitle}>Status Pesanan</Text>
                 <View style={{ width: 40 }} />
             </View>
 
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 <View style={styles.content}>
                     <View style={styles.successIconContainer}>
-                        <View style={[
-                            styles.successIcon,
-                            isCancelled || isRejected ? { backgroundColor: '#EF4444' } :
-                                isApproved ? { backgroundColor: '#2ecc71' } :
-                                    { backgroundColor: '#f59e0b' }
-                        ]}>
-                            <Ionicons
-                                name={
-                                    isCancelled || isRejected ? 'close' :
-                                        isApproved ? 'checkmark' : 'time-outline'
-                                }
-                                size={40}
-                                color="#fff"
-                            />
+                        <View style={[styles.successIcon, { backgroundColor: getStatusColor() }]}>
+                            <Ionicons name={getStatusIcon()} size={40} color="#fff" />
                         </View>
                     </View>
 
                     <Text style={styles.successTitle}>
                         {isCancelled ? '❌ Pesanan Dibatalkan' :
                             isRejected ? '❌ Kandidat Ditolak' :
-                                isApproved ? '✅ Kandidat Disetujui!' :
-                                    'Yay Pembayaran kamu berhasil'}
+                                orderStatus === 'approved' ? '✅ Kandidat Disetujui!' :
+                                    orderStatus === 'completed' ? '✅ Pesanan Selesai!' :
+                                        orderStatus === 'pending' ? '⏳ Menunggu Pembayaran' :
+                                            orderStatus === 'paid' ? '💳 Pembayaran Berhasil' :
+                                                orderStatus === 'matching' ? '🔍 Mencari Kandidat' :
+                                                    orderStatus === 'calling' ? '📞 Conference Call' :
+                                                        orderStatus === 'working' ? '👷 Kandidat Bekerja' :
+                                                            '⏳ Memproses...'}
                     </Text>
 
                     <Image source={{ uri: ILUSTRASI_URL }} style={styles.illustration} resizeMode="cover" />
@@ -335,33 +434,40 @@ const MatchingScreen = () => {
                     <Text style={styles.matchingTitle}>
                         {isCancelled ? 'Pesanan telah dibatalkan' :
                             isRejected ? 'Kandidat tidak disetujui' :
-                                isApproved ? 'Kandidat telah disetujui!' :
-                                    'Sedang Proses Matching ART/ Baby Sitter Kamu'}
+                                orderStatus === 'approved' ? 'Kandidat telah disetujui, mengarahkan ke halaman approval...' :
+                                    orderStatus === 'completed' ? 'Pesanan telah selesai!' :
+                                        orderStatus === 'pending' ? 'Selesaikan pembayaran untuk melanjutkan' :
+                                            orderStatus === 'paid' ? 'Pembayaran berhasil, mencari kandidat...' :
+                                                orderStatus === 'matching' ? 'Sedang mencari kandidat terbaik...' :
+                                                    orderStatus === 'calling' ? 'Proses wawancara dengan kandidat...' :
+                                                        orderStatus === 'working' ? 'Kandidat sedang bekerja...' :
+                                                            'Proses berlangsung...'}
                     </Text>
 
                     <Text style={styles.matchingDescription}>
                         {isCancelled ? 'Anda dapat membuat pesanan baru kapan saja.' :
                             isRejected ? 'Silakan cari kandidat lain atau buat pesanan baru.' :
-                                isApproved ? 'Kandidat sudah disetujui, silakan lanjutkan ke tahap berikutnya.' :
-                                    'Kami akan mencarikan kandidat yang sesuai dengan kebutuhan kamu proses 1-3 Jam ..'}
+                                orderStatus === 'approved' ? 'Kandidat sudah disetujui. Anda akan diarahkan ke halaman approval.' :
+                                    orderStatus === 'completed' ? 'Pesanan telah selesai, terima kasih telah menggunakan layanan kami.' :
+                                        orderStatus === 'pending' ? 'Lakukan pembayaran untuk memulai proses pencarian kandidat.' :
+                                            orderStatus === 'paid' ? 'Kami akan segera mencari kandidat yang sesuai dengan kebutuhan Anda.' :
+                                                orderStatus === 'matching' ? 'Proses pencarian kandidat memakan waktu 1-3 jam.' :
+                                                    orderStatus === 'calling' ? 'Tim kami akan menghubungi Anda untuk conference call.' :
+                                                        orderStatus === 'working' ? 'Kandidat sudah mulai bekerja sesuai kesepakatan.' :
+                                                            'Kami akan mencarikan kandidat yang sesuai dengan kebutuhan Anda.'}
                     </Text>
 
                     <View style={styles.progressContainer}>
                         <View style={styles.progressTrack}>
-                            <View style={[
-                                styles.progressFill,
-                                {
-                                    width: `${progress}%`,
-                                    backgroundColor: isCancelled || isRejected ? '#EF4444' :
-                                        isApproved ? '#2ecc71' : HEADER_BLUE
-                                }
-                            ]} />
+                            <View style={[styles.progressFill, { width: `${progress}%`, backgroundColor: getStatusColor() }]} />
                         </View>
                         <Text style={styles.progressText}>{Math.round(progress)}%</Text>
-                        <Text style={[styles.statusText, isApproved && { color: '#2ecc71', fontWeight: '600' }]}>
+                        <Text style={[styles.statusText, (orderStatus === 'approved' || orderStatus === 'completed') && { color: '#2ecc71', fontWeight: '600' }]}>
                             {statusMessage}
                             {isMatching && isPolling && ' 🔄'}
                             {isMatching && !isPolling && progress < 100 && ' ⏳'}
+                            {orderStatus === 'approved' && !isRedirecting && ' 🚀 Mengarahkan...'}
+                            {isRedirecting && ' 🔄 Mengalihkan...'}
                         </Text>
                     </View>
 
@@ -370,15 +476,9 @@ const MatchingScreen = () => {
             </ScrollView>
 
             <View style={styles.bottomBar}>
-                {!isCancelled && !isRejected && (
-                    <TouchableOpacity
-                        style={[styles.btnBatal, styles.btnBottom]}
-                        onPress={handleBatal}
-                        disabled={isLoading}
-                    >
-                        <Text style={styles.btnBatalText}>
-                            {isLoading ? 'Memproses...' : 'Batal'}
-                        </Text>
+                {canCancel(orderStatus) && !isRedirecting && (
+                    <TouchableOpacity style={[styles.btnBatal, styles.btnBottom]} onPress={handleBatal} disabled={isLoading || isRedirecting}>
+                        <Text style={styles.btnBatalText}>{isLoading ? 'Memproses...' : 'Batal'}</Text>
                     </TouchableOpacity>
                 )}
 
@@ -386,18 +486,29 @@ const MatchingScreen = () => {
                     style={[
                         styles.btnLanjutkan,
                         styles.btnBottom,
-                        !isApproved && styles.btnDisabled,
-                        isCancelled && { backgroundColor: '#6b7280' },
-                        isRejected && { backgroundColor: '#6b7280' },
+                        !canProceed(orderStatus) && !isPending && styles.btnDisabled,
+                        (isCancelled || isRejected) && { backgroundColor: '#6b7280' },
+                        isPending && { backgroundColor: '#f59e0b' },
+                        (orderStatus === 'approved' || orderStatus === 'completed') && { backgroundColor: '#2ecc71' },
+                        isRedirecting && { backgroundColor: '#94A3B8' },
                     ]}
-                    onPress={handleLanjutkan}
-                    disabled={!isApproved || isLoading}
+                    onPress={() => {
+                        if (isPending) {
+                            handleBayar();
+                        } else if (!isRedirecting) {
+                            handleLanjutkan();
+                        }
+                    }}
+                    disabled={(!canProceed(orderStatus) && !isPending) || isLoading || isRedirecting}
                 >
                     <Text style={styles.btnLanjutkanText}>
                         {isCancelled ? 'Pesanan Dibatalkan' :
                             isRejected ? 'Kandidat Ditolak' :
-                                isApproved ? 'Lanjutkan' :
-                                    isLoading ? 'Memproses...' : 'Menunggu Approval'}
+                                orderStatus === 'approved' ? isRedirecting ? 'Mengalihkan...' : 'Lanjutkan ✅' :
+                                    orderStatus === 'completed' ? 'Selesai ✅' :
+                                        isPending ? 'Bayar Sekarang' :
+                                            isLoading ? 'Memproses...' :
+                                                'Menunggu Proses'}
                     </Text>
                 </TouchableOpacity>
             </View>
@@ -410,7 +521,7 @@ const MatchingScreen = () => {
                         <View style={styles.modalHandle} />
                         <Text style={styles.modalTitle}>Mohon diperhatikan</Text>
                         <Text style={styles.modalDesc}>
-                            pesanan yang dibatalkan setelah proses pencocokan (matching) kandidat
+                            Pesanan yang dibatalkan setelah proses pencocokan (matching) kandidat
                             berlangsung tidak dapat dikembalikan 100%. Akan dikenakan biaya
                             administrasi sebesar 10% dari total transaksi.
                         </Text>

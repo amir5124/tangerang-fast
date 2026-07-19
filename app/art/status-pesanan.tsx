@@ -1,8 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
+import axios from 'axios';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
+    ActivityIndicator,
     Animated,
+    AppState,
     Image,
     Linking,
     Platform,
@@ -14,6 +17,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 
 // ─── Color Tokens ────────────────────────────────────────────────────────────
 const BLUE = '#2563EB';
@@ -24,13 +28,9 @@ const TEXT_PRIMARY = '#1E293B';
 const TEXT_SECONDARY = '#64748B';
 const DIVIDER = '#E2E8F0';
 
-// ─── Progress Steps ───────────────────────────────────────────────────────────
-const STEPS = [
-    { id: 1, label: 'Pembayaran Diterima', sub: 'Pesanan kamu telah dikonfirmasi', done: true },
-    { id: 2, label: 'Administrasi & Verifikasi', sub: 'Tim kami sedang memproses dokumen', done: true },
-    { id: 3, label: 'Conference Call', sub: 'Wawancara dengan kandidat', done: false },
-    { id: 4, label: 'Kandidat Siap Bekerja', sub: 'Proses selesai, kandidat siap ditempatkan', done: false },
-];
+const API_BASE = 'https://backend.tangerangfast.online/api';
+const POLLING_INTERVAL = 15000; // 15 detik
+const BACKGROUND_INTERVAL = 60000; // 60 detik
 
 // ─── Format Rupiah ────────────────────────────────────────────────────────────
 const formatRupiah = (angka: number) =>
@@ -42,42 +42,252 @@ const formatRupiahShort = (angka: number) => {
     return String(angka);
 };
 
+// ─── Map Status ke Step ──────────────────────────────────────────────────────
+const getStepFromStatus = (status: string): number => {
+    const stepMap: Record<string, number> = {
+        'pending': 0,
+        'paid': 0,
+        'matching': 1,
+        'approved': 2,
+        'calling': 3,
+        'working': 4,
+        'completed': 4,
+        'rejected': -1,
+        'cancelled': -1
+    };
+    return stepMap[status] ?? 0;
+};
+
+// ─── Map Status ke Label ──────────────────────────────────────────────────────
+const getStatusLabel = (status: string): string => {
+    const labelMap: Record<string, string> = {
+        'pending': 'Menunggu Pembayaran',
+        'paid': 'Pembayaran Berhasil',
+        'matching': 'Mencari Kandidat',
+        'approved': 'Kandidat Disetujui',
+        'calling': 'Conference Call',
+        'working': 'Bekerja',
+        'completed': 'Selesai',
+        'rejected': 'Ditolak',
+        'cancelled': 'Dibatalkan'
+    };
+    return labelMap[status] || status;
+};
+
 // ─── Component ────────────────────────────────────────────────────────────────
 const MatchingScreen = () => {
     const router = useRouter();
     const params = useLocalSearchParams() as any;
 
-    // Data yang dikirim dari PaymentScreen
+    const [loading, setLoading] = useState(true);
+    const [orderStatus, setOrderStatus] = useState(params.orderStatus || 'pending');
+    const [orderData, setOrderData] = useState<any>(null);
+    const [isPolling, setIsPolling] = useState(false);
+
+    const pollingInterval = useRef<NodeJS.Timeout | null>(null);
+    const appState = useRef(AppState.currentState);
+
+    // Data dari params
     const orderId = params.orderId || 'ORD-000';
     const totalPayment = Number(params.totalPayment || 0);
-    const kandidatNama = params.kandidatNama || 'Kandidat';
-    const kandidatId = params.kandidatId || '-';
+    const kandidatNama = params.kandidatNama || orderData?.worker_nama || 'Kandidat';
+    const kandidatId = params.kandidatId || orderData?.worker_id || '-';
 
-    // Data kandidat statis (bisa juga di-pass via params bila perlu)
+    // Data kandidat
     const kandidat = {
         nama: kandidatNama,
-        umur: params.kandidatUmur || 27,
-        asal: params.kandidatAsal || 'DKI Jakarta',
-        pengalaman: params.kandidatPengalaman || '2 Tahun',
-        gajiMin: Number(params.gajiMin || 1_500_000),
-        gajiMax: Number(params.gajiMax || 2_500_000),
-        foto: params.kandidatFoto || 'https://randomuser.me/api/portraits/women/78.jpg',
+        umur: params.kandidatUmur || orderData?.worker_umur || 27,
+        asal: params.kandidatAsal || orderData?.worker_asal || 'DKI Jakarta',
+        pengalaman: params.kandidatPengalaman || orderData?.worker_exp || '2 Tahun',
+        gajiMin: Number(params.gajiMin || orderData?.worker_gaji_min || 1_500_000),
+        gajiMax: Number(params.gajiMax || orderData?.worker_gaji_max || 2_500_000),
+        foto: params.kandidatFoto || orderData?.worker_foto || 'https://randomuser.me/api/portraits/women/78.jpg',
     };
 
-    // Animated line heights for step connector
+    // ─── Progress Steps ──────────────────────────────────────────────────────
+    const STEPS = [
+        { id: 1, label: 'Pembayaran & Verifikasi', sub: 'Pesanan kamu telah dikonfirmasi', status: ['pending', 'paid'] },
+        { id: 2, label: 'Mencari Kandidat', sub: 'Kami sedang mencari kandidat terbaik', status: ['matching'] },
+        { id: 3, label: 'Kandidat Disetujui', sub: 'Kandidat telah disetujui, menunggu conference call', status: ['approved'] },
+        { id: 4, label: 'Conference Call', sub: 'Wawancara dengan kandidat', status: ['calling'] },
+        { id: 5, label: 'Bekerja & Selesai', sub: 'Kandidat siap bekerja', status: ['working', 'completed'] },
+    ];
+
+    // ─── Tentukan Step Aktif ──────────────────────────────────────────────────
+    const getActiveStep = (status: string): number => {
+        const stepMap: Record<string, number> = {
+            'pending': 0,
+            'paid': 0,
+            'matching': 1,
+            'approved': 2,
+            'calling': 3,
+            'working': 4,
+            'completed': 4,
+            'rejected': -1,
+            'cancelled': -1
+        };
+        return stepMap[status] ?? 0;
+    };
+
+    const activeStep = getActiveStep(orderStatus);
+
+    // ─── Animated line heights for step connector ──────────────────────────
     const lineAnims = STEPS.slice(0, -1).map(() => useRef(new Animated.Value(0)).current);
 
     useEffect(() => {
         const animations = lineAnims.map((anim, i) =>
             Animated.timing(anim, {
-                toValue: 1,
+                toValue: i < activeStep ? 1 : 0,
                 duration: 500,
                 delay: i * 300 + 400,
                 useNativeDriver: false,
             })
         );
         Animated.stagger(200, animations).start();
-    }, []);
+    }, [activeStep]);
+
+    // ─── CEK APAKAH STATUS FINAL (STOP POLLING) ──────────────────────────────
+    const isFinalStatus = (status: string): boolean => {
+        // 🔥 working dan completed dianggap final, polling berhenti
+        return ['working', 'completed', 'rejected', 'cancelled'].includes(status);
+    };
+
+    // ─── CEK APAKAH STATUS SUDAH SELESAI ──────────────────────────────────────
+    const isDone = (status: string): boolean => {
+        return ['working', 'completed'].includes(status);
+    };
+
+    // ─── CEK STATUS PESANAN DARI BACKEND ──────────────────────────────────
+    const checkOrderStatus = async () => {
+        if (!orderId || isPolling) return;
+
+        setIsPolling(true);
+        try {
+            console.log('📊 Checking status for order:', orderId);
+            const response = await axios.get(`${API_BASE}/pesanan/${orderId}`);
+
+            if (response.data.success) {
+                const data = response.data.data;
+                setOrderData(data);
+
+                const mainStatus = data.status || 'pending';
+                const matchStatus = data.matching_status || 'pending';
+
+                console.log('📊 Main Status:', mainStatus);
+                console.log('📊 Matching Status:', matchStatus);
+
+                // Logika gabungan status
+                let finalStatus = mainStatus;
+
+                if (mainStatus === 'paid' && matchStatus === 'pending') {
+                    finalStatus = 'matching';
+                }
+                if (matchStatus === 'approved') {
+                    finalStatus = 'approved';
+                }
+                if (matchStatus === 'rejected') {
+                    finalStatus = 'rejected';
+                }
+                if (matchStatus === 'cancelled') {
+                    finalStatus = 'cancelled';
+                }
+
+                // Update jika status berubah
+                if (finalStatus !== orderStatus) {
+                    console.log('🔄 Status berubah dari', orderStatus, 'ke', finalStatus);
+                    setOrderStatus(finalStatus);
+
+                    // Toast notification untuk status tertentu
+                    const toastMessages: Record<string, { type: string; text1: string; text2: string }> = {
+                        'approved': { type: 'success', text1: '✅ Kandidat Disetujui!', text2: 'Menunggu jadwal conference call.' },
+                        'calling': { type: 'info', text1: '📞 Conference Call', text2: 'Tim kami akan menghubungi Anda.' },
+                        'working': { type: 'success', text1: '👷 Kandidat Bekerja', text2: 'Kandidat sudah mulai bekerja. Proses selesai!' },
+                        'completed': { type: 'success', text1: '✅ Pesanan Selesai!', text2: 'Terima kasih telah menggunakan layanan kami.' },
+                        'rejected': { type: 'info', text1: '❌ Kandidat Ditolak', text2: 'Silakan cari kandidat lain.' },
+                        'cancelled': { type: 'error', text1: '❌ Pesanan Dibatalkan', text2: 'Pesanan telah dibatalkan.' },
+                    };
+
+                    const config = toastMessages[finalStatus];
+                    if (config) {
+                        Toast.show({
+                            type: config.type as any,
+                            text1: config.text1,
+                            text2: config.text2,
+                            visibilityTime: 3000,
+                        });
+                    }
+
+                    // 🔥 Jika status sudah final (working/completed/rejected/cancelled), stop polling
+                    if (isFinalStatus(finalStatus)) {
+                        console.log('🛑 Status final, menghentikan polling');
+                        if (pollingInterval.current) {
+                            clearInterval(pollingInterval.current);
+                            pollingInterval.current = null;
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('❌ Gagal cek status:', error);
+        } finally {
+            setIsPolling(false);
+            setLoading(false);
+        }
+    };
+
+    // ─── EFFECT: POLLING ──────────────────────────────────────────────────────
+    useEffect(() => {
+        // 🔥 Jika status sudah final (working, completed, rejected, cancelled), stop polling
+        if (isFinalStatus(orderStatus)) {
+            console.log('🛑 Status final, tidak melakukan polling');
+            if (pollingInterval.current) {
+                clearInterval(pollingInterval.current);
+                pollingInterval.current = null;
+            }
+            setLoading(false);
+            return;
+        }
+
+        checkOrderStatus();
+
+        pollingInterval.current = setInterval(checkOrderStatus, POLLING_INTERVAL);
+
+        const subscription = AppState.addEventListener('change', (nextAppState) => {
+            if (pollingInterval.current) {
+                clearInterval(pollingInterval.current);
+
+                if (nextAppState === 'active') {
+                    pollingInterval.current = setInterval(checkOrderStatus, POLLING_INTERVAL);
+                    checkOrderStatus();
+                } else {
+                    pollingInterval.current = setInterval(checkOrderStatus, BACKGROUND_INTERVAL);
+                }
+            }
+        });
+
+        return () => {
+            if (pollingInterval.current) {
+                clearInterval(pollingInterval.current);
+            }
+            subscription.remove();
+        };
+    }, [orderId, orderStatus]);
+
+    if (loading) {
+        return (
+            <SafeAreaView style={styles.safe}>
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={BLUE} />
+                    <Text style={styles.loadingText}>Memuat status pesanan...</Text>
+                </View>
+            </SafeAreaView>
+        );
+    }
+
+    const isCancelled = orderStatus === 'cancelled';
+    const isRejected = orderStatus === 'rejected';
+    const isCompleted = isDone(orderStatus);
+    const isPollingActive = !isFinalStatus(orderStatus) && isPolling;
 
     return (
         <SafeAreaView style={styles.safe}>
@@ -96,19 +306,17 @@ const MatchingScreen = () => {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scroll}
             >
-
-                {/* ── Hero Banner ── */}
-                <View style={styles.heroBanner}>
-                    <View style={styles.heroIconWrap}>
-                        <Ionicons name="checkmark-circle" size={28} color={BLUE} />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                        <Text style={styles.heroTitle}>
-                            Selamat! Kandidat Berhasil Ditemukan,{' '}
-                            <Text style={{ color: BLUE }}>Pantau status kamu disini</Text>
+                {/* ── Status Badge ── */}
+                <View style={styles.statusBadgeContainer}>
+                    <View style={[styles.statusBadge, { backgroundColor: isCompleted ? '#D1FAE5' : isCancelled || isRejected ? '#FEE2E2' : BLUE_LIGHT }]}>
+                        <Text style={[styles.statusBadgeText, { color: isCompleted ? '#059669' : isCancelled || isRejected ? '#DC2626' : BLUE }]}>
+                            {isCancelled ? '❌ Dibatalkan' :
+                                isRejected ? '❌ Ditolak' :
+                                    isCompleted ? '✅ Selesai' :
+                                        `⏳ ${getStatusLabel(orderStatus)}`}
                         </Text>
-                        <Text style={styles.heroOrderId}>No. Pesanan: {orderId}</Text>
                     </View>
+                    <Text style={styles.statusOrderId}>No. Pesanan: {orderId}</Text>
                 </View>
 
                 {/* ── Kandidat Card ── */}
@@ -120,7 +328,7 @@ const MatchingScreen = () => {
                                 style={styles.avatar}
                                 resizeMode="cover"
                             />
-                            <View style={styles.onlineDot} />
+                            <View style={[styles.onlineDot, { backgroundColor: isCompleted ? '#22C55E' : '#F59E0B' }]} />
                         </View>
 
                         <View style={styles.kandidatInfo}>
@@ -151,7 +359,8 @@ const MatchingScreen = () => {
 
                     {STEPS.map((step, index) => {
                         const isLast = index === STEPS.length - 1;
-                        const isActive = !step.done && (index === 0 || STEPS[index - 1].done);
+                        const isDone = index < activeStep;
+                        const isActive = index === activeStep;
 
                         return (
                             <View key={step.id} style={styles.stepRow}>
@@ -160,19 +369,18 @@ const MatchingScreen = () => {
                                     <View
                                         style={[
                                             styles.stepCircle,
-                                            step.done && styles.stepCircleDone,
-                                            isActive && styles.stepCircleActive,
+                                            isDone && styles.stepCircleDone,
+                                            isActive && !isCompleted && styles.stepCircleActive,
+                                            (isCancelled || isRejected) && styles.stepCircleError,
+                                            isCompleted && styles.stepCircleDone,
                                         ]}
                                     >
-                                        {step.done ? (
+                                        {isDone || isCompleted ? (
                                             <Ionicons name="checkmark" size={14} color="#fff" />
+                                        ) : isActive && !isCompleted ? (
+                                            <ActivityIndicator size="small" color="#fff" />
                                         ) : (
-                                            <View
-                                                style={[
-                                                    styles.stepInnerDot,
-                                                    isActive && { backgroundColor: '#fff' },
-                                                ]}
-                                            />
+                                            <View style={styles.stepInnerDot} />
                                         )}
                                     </View>
 
@@ -180,7 +388,7 @@ const MatchingScreen = () => {
                                         <Animated.View
                                             style={[
                                                 styles.stepLine,
-                                                step.done && {
+                                                (isDone || isCompleted) && {
                                                     backgroundColor: BLUE,
                                                     opacity: lineAnims[index],
                                                 },
@@ -194,13 +402,19 @@ const MatchingScreen = () => {
                                     <Text
                                         style={[
                                             styles.stepLabel,
-                                            step.done && { color: TEXT_PRIMARY, fontWeight: '700' },
-                                            isActive && { color: BLUE, fontWeight: '700' },
+                                            (isDone || isCompleted) && { color: TEXT_PRIMARY, fontWeight: '700' },
+                                            isActive && !isCompleted && { color: BLUE, fontWeight: '700' },
+                                            (isCancelled || isRejected) && { color: '#DC2626' },
                                         ]}
                                     >
                                         {step.label}
                                     </Text>
-                                    <Text style={styles.stepSub}>{step.sub}</Text>
+                                    <Text style={styles.stepSub}>
+                                        {isCancelled ? 'Pesanan dibatalkan' :
+                                            isRejected ? 'Kandidat ditolak' :
+                                                isCompleted && isLast ? '✅ Proses selesai!' :
+                                                    step.sub}
+                                    </Text>
                                 </View>
                             </View>
                         );
@@ -209,16 +423,25 @@ const MatchingScreen = () => {
                     <View style={styles.noteBox}>
                         <Ionicons name="information-circle-outline" size={16} color={BLUE_MID} />
                         <Text style={styles.noteText}>
-                            Status & progress akan disesuaikan seperti Administrasi, Conference Call, dll.
+                            {isCancelled ? 'Pesanan telah dibatalkan. Anda dapat membuat pesanan baru.' :
+                                isRejected ? 'Kandidat ditolak. Silakan cari kandidat lain.' :
+                                    isCompleted ? '🎉 Selamat! Proses telah selesai. Kandidat siap bekerja.' :
+                                        `Status: ${getStatusLabel(orderStatus)} - Pantau terus progress pesanan Anda.`}
                         </Text>
                     </View>
                 </View>
 
-                {/* ── Info Box ── */}
-                <View style={styles.infoBox}>
-                    <Ionicons name="time-outline" size={18} color={BLUE} />
-                    <Text style={styles.infoBoxText}>
-                        Proses matching biasanya memakan waktu 1–3 hari kerja. Tim kami akan menghubungi kamu segera.
+                {/* ── Status Update Info ── */}
+                <View style={[styles.infoBox, isCompleted && { backgroundColor: '#D1FAE5', borderColor: '#6EE7B7' }]}>
+                    <Ionicons
+                        name={isCompleted ? "checkmark-circle" : "time-outline"}
+                        size={18}
+                        color={isCompleted ? '#059669' : BLUE}
+                    />
+                    <Text style={[styles.infoBoxText, isCompleted && { color: '#065F46' }]}>
+                        {isCompleted ? '✅ Proses selesai! Kandidat sudah bekerja.' :
+                            isPollingActive ? '🔄 Memperbarui status...' :
+                                'Status akan diperbarui secara otomatis. Silakan pantau halaman ini.'}
                     </Text>
                 </View>
 
@@ -235,6 +458,8 @@ const MatchingScreen = () => {
                     <Text style={styles.helpBtnText}>Pusat Bantuan</Text>
                 </TouchableOpacity>
             </View>
+
+            <Toast />
         </SafeAreaView>
     );
 };
@@ -242,6 +467,8 @@ const MatchingScreen = () => {
 // ─── Styles ──────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
     safe: { flex: 1, backgroundColor: '#F8FAFC' },
+    loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    loadingText: { marginTop: 12, fontSize: 14, color: TEXT_SECONDARY },
 
     /* Header */
     header: {
@@ -261,33 +488,28 @@ const styles = StyleSheet.create({
 
     scroll: { padding: 16, paddingBottom: 100 },
 
-    /* Hero banner */
-    heroBanner: {
-        backgroundColor: BLUE_LIGHT,
-        borderRadius: 14,
-        padding: 16,
+    /* Status Badge */
+    statusBadgeContainer: {
         flexDirection: 'row',
-        alignItems: 'flex-start',
-        marginBottom: 12,
-        borderWidth: 1,
-        borderColor: '#BFDBFE',
-    },
-    heroIconWrap: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: '#fff',
         alignItems: 'center',
-        justifyContent: 'center',
-        marginRight: 12,
-        elevation: 2,
-        shadowColor: BLUE,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
+        justifyContent: 'space-between',
+        marginBottom: 12,
     },
-    heroTitle: { fontSize: 15, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 22, flexShrink: 1 },
-    heroOrderId: { fontSize: 12, color: TEXT_SECONDARY, marginTop: 4 },
+    statusBadge: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20,
+        backgroundColor: BLUE_LIGHT,
+    },
+    statusBadgeText: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: BLUE,
+    },
+    statusOrderId: {
+        fontSize: 12,
+        color: TEXT_SECONDARY,
+    },
 
     /* Card */
     card: {
@@ -360,6 +582,10 @@ const styles = StyleSheet.create({
     stepCircleActive: {
         backgroundColor: BLUE_MID,
         borderColor: BLUE,
+    },
+    stepCircleError: {
+        backgroundColor: '#DC2626',
+        borderColor: '#DC2626',
     },
     stepInnerDot: {
         width: 8,

@@ -26,6 +26,19 @@ interface Asset {
   image_url: string;
 }
 
+interface ArtOrder {
+  id: number;
+  order_id: string;
+  status: string;
+  matching_status: string;
+  pay_status: string;
+  cust_nama: string;
+  total: number;
+  tgl: string;
+  jam: string;
+  // ... field lainnya
+}
+
 export const MenuGrid: React.FC = () => {
   const router = useRouter();
   const [dbAssets, setDbAssets] = useState<Asset[]>([]);
@@ -64,7 +77,7 @@ export const MenuGrid: React.FC = () => {
     setIsCheckingOrder(true);
 
     try {
-      // 🔥 Ambil user data dari storage (key: 'userData'), sama seperti di DetailKontakScreen
+      // 🔥 Ambil user data dari storage (key: 'userData')
       const jsonValue = await storage.get('userData');
 
       if (!jsonValue) {
@@ -86,10 +99,54 @@ export const MenuGrid: React.FC = () => {
       const { hasActiveOrder, activeOrder } = await checkActiveArtOrder(customerId);
 
       if (hasActiveOrder && activeOrder) {
-        // 🔥 Ada pesanan aktif -> redirect ke MatchingScreen
+        // 🔥 Cek status order
+        const orderStatus = activeOrder.status || 'pending';
+        const payStatus = activeOrder.pay_status || 'pending';
+
+        console.log('📊 Status Order:', orderStatus);
+        console.log('📊 Pay Status:', payStatus);
+
+        // ============================================================
+        // 🔥 LOGIKA REDIRECT BERDASARKAN STATUS
+        // ============================================================
+
+
+
+        // 2️⃣ Jika status 'paid' dan matching_status 'pending' - arahkan ke MatchingScreen
+        if (orderStatus === 'paid' && activeOrder.matching_status === 'pending') {
+          console.log('➡️ Status PAID - Redirect ke MatchingScreen');
+          navigateToMatching(activeOrder);
+          return;
+        }
+
+        // 3️⃣ Jika status 'matching', 'calling', 'working' - arahkan ke MatchingScreen
+        if (['matching', 'calling', 'working'].includes(orderStatus)) {
+          console.log(`➡️ Status ${orderStatus.toUpperCase()} - Redirect ke MatchingScreen`);
+          navigateToMatching(activeOrder);
+          return;
+        }
+
+        // 4️⃣ Jika status 'approved', 'completed' - arahkan ke MatchingScreen
+        if (['approved', 'completed'].includes(orderStatus)) {
+          console.log(`➡️ Status ${orderStatus.toUpperCase()} - Redirect ke MatchingScreen`);
+          navigateToMatching(activeOrder);
+          return;
+        }
+
+        // 5️⃣ Jika status 'rejected', 'cancelled' - arahkan ke art-babysitter (buat baru)
+        if (['rejected', 'cancelled'].includes(orderStatus)) {
+          console.log(`➡️ Status ${orderStatus.toUpperCase()} - Redirect ke art-babysitter (buat baru)`);
+          router.push('/art/art-babysitter');
+          return;
+        }
+
+        // 6️⃣ Default - arahkan ke MatchingScreen untuk safety
+        console.log('➡️ Default - Redirect ke MatchingScreen');
         navigateToMatching(activeOrder);
+
       } else {
         // Tidak ada pesanan aktif -> ke halaman ART
+        console.log('➡️ Tidak ada order aktif - Redirect ke art-babysitter');
         router.push('/art/art-babysitter');
       }
     } catch (error) {
