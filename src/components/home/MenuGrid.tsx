@@ -13,7 +13,17 @@ import {
   View
 } from 'react-native';
 import api from '../../utils/api';
-import { checkActiveArtOrder, navigateToMatching } from '../../utils/checkActiveArtOrder';
+import {
+  checkActiveArtOrder,
+  navigateToMatching,
+  navigateToStatusPesanan,
+} from '../../utils/checkActiveArtOrder';
+import {
+  STATUS_PESANAN_GROUP_STATUSES,
+  MATCHING_GROUP_STATUSES,
+  INACTIVE_STATUSES,
+  OrderStatus,
+} from '../../utils/orderStatusConfig';
 import { Shimmer } from './Shimmer';
 
 const { width: windowWidth } = Dimensions.get('window');
@@ -24,19 +34,6 @@ interface Asset {
   key_name: string;
   display_name: string;
   image_url: string;
-}
-
-interface ArtOrder {
-  id: number;
-  order_id: string;
-  status: string;
-  matching_status: string;
-  pay_status: string;
-  cust_nama: string;
-  total: number;
-  tgl: string;
-  jam: string;
-  // ... field lainnya
 }
 
 export const MenuGrid: React.FC = () => {
@@ -71,17 +68,18 @@ export const MenuGrid: React.FC = () => {
 
   // ============================================================
   // 🔥 CEK PESANAN ART AKTIF SEBELUM MASUK HALAMAN ART
+  // Status SELALU diambil fresh dari database (API). customerId
+  // saja yang diambil dari storage lokal (identitas user).
+  // Grouping status pakai sumber tunggal: orderStatusConfig.ts
   // ============================================================
   const handleArtPress = async (): Promise<void> => {
     if (isCheckingOrder) return;
     setIsCheckingOrder(true);
 
     try {
-      // 🔥 Ambil user data dari storage (key: 'userData')
       const jsonValue = await storage.get('userData');
 
       if (!jsonValue) {
-        // Jika tidak ada data user, langsung ke halaman ART
         router.push('/art/art-babysitter');
         return;
       }
@@ -96,56 +94,49 @@ export const MenuGrid: React.FC = () => {
         return;
       }
 
+      // 🔥 Status order fresh dari DATABASE via API
       const { hasActiveOrder, activeOrder } = await checkActiveArtOrder(customerId);
 
       if (hasActiveOrder && activeOrder) {
-        // 🔥 Cek status order
-        const orderStatus = activeOrder.status || 'pending';
-        const payStatus = activeOrder.pay_status || 'pending';
+        const orderStatus = (activeOrder.status || 'pending') as OrderStatus;
 
         console.log('📊 Status Order:', orderStatus);
-        console.log('📊 Pay Status:', payStatus);
+        console.log('📊 Matching Status:', activeOrder.matching_status);
 
-        // ============================================================
-        // 🔥 LOGIKA REDIRECT BERDASARKAN STATUS
-        // ============================================================
+        // 1️⃣ Sudah disetujui & seterusnya (approved, calling, berangkat_*, working)
+        //    → halaman Status Pesanan
+        if (STATUS_PESANAN_GROUP_STATUSES.includes(orderStatus)) {
+          console.log(`➡️ Status ${orderStatus.toUpperCase()} - Redirect ke /art/status-pesanan`);
+          navigateToStatusPesanan(activeOrder);
+          return;
+        }
 
-
-
-        // 2️⃣ Jika status 'paid' dan matching_status 'pending' - arahkan ke MatchingScreen
+        // 2️⃣ Sudah bayar tapi belum masuk tahap matching
         if (orderStatus === 'paid' && activeOrder.matching_status === 'pending') {
-          console.log('➡️ Status PAID - Redirect ke MatchingScreen');
+          console.log('➡️ Status PAID (menunggu pencarian mitra) - Redirect ke MatchingScreen');
           navigateToMatching(activeOrder);
           return;
         }
 
-        // 3️⃣ Jika status 'matching', 'calling', 'working' - arahkan ke MatchingScreen
-        if (['matching', 'calling', 'working'].includes(orderStatus)) {
+        // 3️⃣ Sedang proses pencarian mitra (matching / dicari ulang)
+        if (MATCHING_GROUP_STATUSES.includes(orderStatus)) {
           console.log(`➡️ Status ${orderStatus.toUpperCase()} - Redirect ke MatchingScreen`);
           navigateToMatching(activeOrder);
           return;
         }
 
-        // 4️⃣ Jika status 'approved', 'completed' - arahkan ke MatchingScreen
-        if (['approved', 'completed'].includes(orderStatus)) {
-          console.log(`➡️ Status ${orderStatus.toUpperCase()} - Redirect ke MatchingScreen`);
-          navigateToMatching(activeOrder);
-          return;
-        }
-
-        // 5️⃣ Jika status 'rejected', 'cancelled' - arahkan ke art-babysitter (buat baru)
-        if (['rejected', 'cancelled'].includes(orderStatus)) {
+        // 4️⃣ Status tidak aktif (harusnya sudah difilter backend, ini jaga-jaga)
+        if (INACTIVE_STATUSES.includes(orderStatus)) {
           console.log(`➡️ Status ${orderStatus.toUpperCase()} - Redirect ke art-babysitter (buat baru)`);
           router.push('/art/art-babysitter');
           return;
         }
 
-        // 6️⃣ Default - arahkan ke MatchingScreen untuk safety
-        console.log('➡️ Default - Redirect ke MatchingScreen');
+        // 5️⃣ Default aman (status 'pending' atau tak dikenali)
+        console.log(`➡️ Status ${orderStatus.toUpperCase()} - Default ke MatchingScreen`);
         navigateToMatching(activeOrder);
 
       } else {
-        // Tidak ada pesanan aktif -> ke halaman ART
         console.log('➡️ Tidak ada order aktif - Redirect ke art-babysitter');
         router.push('/art/art-babysitter');
       }
@@ -157,7 +148,6 @@ export const MenuGrid: React.FC = () => {
     }
   };
 
-  // Filter Jasa Terpopuler untuk Modal "All"
   const popularServices = dbAssets.filter((asset: Asset) =>
     asset.key_name?.includes('popular_service')
   );
@@ -177,7 +167,6 @@ export const MenuGrid: React.FC = () => {
     .filter((item): item is Asset => item !== undefined);
 
   const handlePress = (keyName: string): void => {
-    // 🔥 KHUSUS ART/BABYSITTER - cek pesanan aktif
     if (keyName === 'icon_rigid') {
       handleArtPress();
       return;
@@ -256,7 +245,6 @@ export const MenuGrid: React.FC = () => {
           </TouchableOpacity>
         ))}
 
-        {/* Menu All */}
         <TouchableOpacity
           style={styles.categoryItem}
           activeOpacity={0.8}
@@ -280,7 +268,6 @@ export const MenuGrid: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Modal All Services */}
       <Modal
         visible={showModal}
         transparent={true}

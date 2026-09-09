@@ -1,6 +1,7 @@
 // 1. Impor SDK Firebase Compat (Versi paling stabil untuk Service Worker)
-importScripts('https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/9.22.1/firebase-messaging-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/12.17.1/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/12.17.1/firebase-installations-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/12.17.1/firebase-messaging-compat.js');
 
 // 2. Inisialisasi Firebase
 // Data ini harus sesuai dengan yang ada di Firebase Console & _layout.tsx kamu

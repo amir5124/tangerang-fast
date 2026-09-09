@@ -48,11 +48,15 @@ const PaymentScreen = () => {
     const [toastMsg, setToastMsg] = useState('');
     const [imageError, setImageError] = useState(false);
 
-    // States Voucher
+    // States Voucher (kode manual)
     const [isVoucherModalVisible, setVoucherModalVisible] = useState(false);
     const [voucherCodeInput, setVoucherCodeInput] = useState('');
     const [appliedVoucher, setAppliedVoucher] = useState<any>(null);
     const [isValidatingVoucher, setIsValidatingVoucher] = useState(false);
+
+    // 🔥 States Voucher Komplain (otomatis, tanpa kode, gratis biaya jasa)
+    const [komplainVoucher, setKomplainVoucher] = useState<any>(null);
+    const [loadingKomplainVoucher, setLoadingKomplainVoucher] = useState(true);
 
     // --- STATE BIAYA LAYANAN DINAMIS ---
     const [biayaLayanan, setBiayaLayanan] = useState<number>(0);
@@ -80,8 +84,26 @@ const PaymentScreen = () => {
         }
     };
 
+    // 🔥 Cek voucher diskon dari komplain yang sudah disetujui admin
+    const fetchKomplainVoucher = async () => {
+        try {
+            const custId = data.customer_id || 1;
+            const response = await axios.get(
+                `${MAIN_API_BASE}/pesanan/complaints/voucher/${custId}`,
+            );
+            if (response.data.success && response.data.data) {
+                setKomplainVoucher(response.data.data);
+            }
+        } catch (error) {
+            console.error('Gagal mengambil voucher komplain:', error);
+        } finally {
+            setLoadingKomplainVoucher(false);
+        }
+    };
+
     useEffect(() => {
         fetchServiceFee();
+        fetchKomplainVoucher();
     }, []);
 
     // --- LOGIKA PERHITUNGAN BIAYA ---
@@ -96,7 +118,16 @@ const PaymentScreen = () => {
     };
 
     const biayaTransaksi = calculateBiayaTransaksi();
-    const discountAmount = appliedVoucher ? appliedVoucher.discount_amount : 0;
+
+    // 🔥 Voucher komplain (otomatis, gratis biaya jasa) HANYA memotong
+    // hargaDasar — biaya layanan aplikasi & biaya transaksi tetap dibayar.
+    // Mutually exclusive dengan voucher kode manual: kalau voucher komplain
+    // aktif, voucher kode manual tidak berlaku sama sekali.
+    const discountAmount = komplainVoucher
+        ? Math.round(hargaDasar * (Number(komplainVoucher.discount_percent) / 100))
+        : appliedVoucher
+            ? appliedVoucher.discount_amount
+            : 0;
 
     // Rumus Final: (Dasar + Layanan + Transaksi) - Diskon
     const totalKeseluruhan =
@@ -121,6 +152,18 @@ const PaymentScreen = () => {
     };
 
     const handleCheckVoucher = async () => {
+        // 🔥 Blokir voucher kode manual kalau voucher komplain sedang aktif
+        if (komplainVoucher) {
+            setVoucherModalVisible(false);
+            Toast.show({
+                type: 'error',
+                text1: 'Tidak bisa digabung',
+                text2: 'Kamu sudah punya voucher kandidat gratis, tidak bisa pakai kode voucher lain.',
+                visibilityTime: 2500,
+            });
+            return;
+        }
+
         if (!voucherCodeInput) {
             Toast.show({
                 type: 'error',
@@ -249,6 +292,7 @@ const PaymentScreen = () => {
             kategori: data.kategori || 'ART',
             catatan: data.catatan || '',
             kode_voucher: appliedVoucher ? appliedVoucher.code : null,
+            komplain_voucher_id: komplainVoucher ? komplainVoucher.id : null, // 🔥 tambahan (audit trail)
 
             // Layanan
             layanan: JSON.stringify([
@@ -317,6 +361,20 @@ const PaymentScreen = () => {
             console.log('📩 [ART Payment] Payment Response:', JSON.stringify(paymentResponse.data, null, 2));
 
             if (paymentResponse.data.success) {
+                // 🔥 Tandai voucher komplain sudah dipakai (kalau dipakai di order ini)
+                if (komplainVoucher) {
+                    try {
+                        await axios.put(
+                            `${MAIN_API_BASE}/pesanan/complaints/voucher/${komplainVoucher.id}/use`,
+                            { pesanan_id: pesananId }
+                        );
+                        console.log('✅ Voucher komplain ditandai terpakai');
+                    } catch (voucherError) {
+                        // Tidak menggagalkan alur order kalau ini error — cukup di-log
+                        console.error('⚠️ Gagal menandai voucher komplain terpakai:', voucherError);
+                    }
+                }
+
                 Toast.show({
                     type: 'success',
                     text1: '✅ Pesanan ART Berhasil!',
@@ -550,37 +608,53 @@ const PaymentScreen = () => {
                     )}
                 </View>
 
-                {/* Voucher Section */}
-                <TouchableOpacity
-                    style={styles.promoCard}
-                    onPress={() => setVoucherModalVisible(true)}>
-                    <View style={styles.row}>
-                        <View
-                            style={[
-                                styles.voucherIconBg,
-                                appliedVoucher && { backgroundColor: '#2ecc71' },
-                            ]}>
-                            <Ionicons name="pricetag" size={14} color="#fff" />
+                {/* 🔥 Voucher Section — voucher komplain (otomatis) atau kode manual */}
+                {komplainVoucher ? (
+                    <View style={[styles.promoCard, { backgroundColor: '#F0FDF4' }]}>
+                        <View style={styles.row}>
+                            <View style={[styles.voucherIconBg, { backgroundColor: '#22C55E' }]}>
+                                <Ionicons name="gift" size={14} color="#fff" />
+                            </View>
+                            <Text style={[styles.promoText, { color: '#166534', fontWeight: 'bold' }]}>
+                                Voucher Kandidat Gratis ({komplainVoucher.discount_percent}%)
+                            </Text>
                         </View>
-                        <Text
-                            style={[
-                                styles.promoText,
-                                appliedVoucher && { color: '#2ecc71', fontWeight: 'bold' },
-                            ]}>
-                            {appliedVoucher
-                                ? `Voucher: ${appliedVoucher.code}`
-                                : 'Gunakan voucher Anda!'}
+                        <Text style={{ color: '#166534', fontWeight: 'bold', fontSize: 12 }}>
+                            -{formatRupiah(discountAmount)}
                         </Text>
                     </View>
-                    <View style={styles.row}>
-                        {appliedVoucher && (
-                            <Text style={{ color: '#2ecc71', marginRight: 5, fontSize: 12 }}>
-                                -{formatRupiah(discountAmount)}
+                ) : (
+                    <TouchableOpacity
+                        style={styles.promoCard}
+                        onPress={() => setVoucherModalVisible(true)}>
+                        <View style={styles.row}>
+                            <View
+                                style={[
+                                    styles.voucherIconBg,
+                                    appliedVoucher && { backgroundColor: '#2ecc71' },
+                                ]}>
+                                <Ionicons name="pricetag" size={14} color="#fff" />
+                            </View>
+                            <Text
+                                style={[
+                                    styles.promoText,
+                                    appliedVoucher && { color: '#2ecc71', fontWeight: 'bold' },
+                                ]}>
+                                {appliedVoucher
+                                    ? `Voucher: ${appliedVoucher.code}`
+                                    : 'Gunakan voucher Anda!'}
                             </Text>
-                        )}
-                        <Ionicons name="chevron-forward" size={18} color="#666" />
-                    </View>
-                </TouchableOpacity>
+                        </View>
+                        <View style={styles.row}>
+                            {appliedVoucher && (
+                                <Text style={{ color: '#2ecc71', marginRight: 5, fontSize: 12 }}>
+                                    -{formatRupiah(discountAmount)}
+                                </Text>
+                            )}
+                            <Ionicons name="chevron-forward" size={18} color="#666" />
+                        </View>
+                    </TouchableOpacity>
+                )}
 
                 {/* 🔥 Detail Layanan - UBAH LABEL */}
                 <View style={styles.card}>
@@ -622,10 +696,10 @@ const PaymentScreen = () => {
                         </Text>
                     </View>
 
-                    {appliedVoucher && (
+                    {(appliedVoucher || komplainVoucher) && (
                         <View style={styles.serviceItem}>
                             <Text style={[styles.serviceName, { color: '#2ecc71' }]}>
-                                Diskon Voucher
+                                {komplainVoucher ? 'Diskon Voucher Komplain' : 'Diskon Voucher'}
                             </Text>
                             <Text style={[styles.servicePrice, { color: '#2ecc71' }]}>
                                 -{formatRupiah(discountAmount)}

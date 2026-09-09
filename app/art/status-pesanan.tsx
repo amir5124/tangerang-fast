@@ -7,23 +7,42 @@ import {
     Animated,
     AppState,
     Image,
+    KeyboardAvoidingView,
     Linking,
+    Modal,
     Platform,
     SafeAreaView,
     ScrollView,
     StatusBar,
     StyleSheet,
     Text,
+    TextInput,
     TouchableOpacity,
     View,
 } from 'react-native';
 import Toast from 'react-native-toast-message';
+
+// 🔥 SUMBER KEBENARAN TUNGGAL — semua label/step/status HARUS dari sini,
+// jangan bikin mapping status baru di file ini.
+import {
+    formatRupiah,
+    formatRupiahShort,
+    formatTanggalID,
+    getActiveStep,
+    getDepartureMethodLabel,
+    getStatusLabel,
+    isDoneStatus,
+    isFinalStatus,
+    OrderStatus,
+    STEPS,
+} from '../../src/utils/orderStatusConfig';
 
 // ─── Color Tokens ────────────────────────────────────────────────────────────
 const BLUE = '#2563EB';
 const BLUE_LIGHT = '#EFF6FF';
 const BLUE_DARK = '#1E40AF';
 const BLUE_MID = '#3B82F6';
+const GREEN = '#22C55E';
 const TEXT_PRIMARY = '#1E293B';
 const TEXT_SECONDARY = '#64748B';
 const DIVIDER = '#E2E8F0';
@@ -32,66 +51,32 @@ const API_BASE = 'https://backend.tangerangfast.online/api';
 const POLLING_INTERVAL = 15000; // 15 detik
 const BACKGROUND_INTERVAL = 60000; // 60 detik
 
-// ─── Format Rupiah ────────────────────────────────────────────────────────────
-const formatRupiah = (angka: number) =>
-    'Rp' + Number(angka).toLocaleString('id-ID');
-
-const formatRupiahShort = (angka: number) => {
-    if (angka >= 1_000_000) return (angka / 1_000_000).toFixed(1).replace('.0', '') + 'jt';
-    if (angka >= 1_000) return (angka / 1_000).toFixed(0) + 'rb';
-    return String(angka);
-};
-
-// ─── Map Status ke Step ──────────────────────────────────────────────────────
-const getStepFromStatus = (status: string): number => {
-    const stepMap: Record<string, number> = {
-        'pending': 0,
-        'paid': 0,
-        'matching': 1,
-        'approved': 2,
-        'calling': 3,
-        'working': 4,
-        'completed': 4,
-        'rejected': -1,
-        'cancelled': -1
-    };
-    return stepMap[status] ?? 0;
-};
-
-// ─── Map Status ke Label ──────────────────────────────────────────────────────
-const getStatusLabel = (status: string): string => {
-    const labelMap: Record<string, string> = {
-        'pending': 'Menunggu Pembayaran',
-        'paid': 'Pembayaran Berhasil',
-        'matching': 'Mencari Kandidat',
-        'approved': 'Kandidat Disetujui',
-        'calling': 'Conference Call',
-        'working': 'Bekerja',
-        'completed': 'Selesai',
-        'rejected': 'Ditolak',
-        'cancelled': 'Dibatalkan'
-    };
-    return labelMap[status] || status;
-};
-
 // ─── Component ────────────────────────────────────────────────────────────────
-const MatchingScreen = () => {
+const StatusPesananScreen = () => {
     const router = useRouter();
     const params = useLocalSearchParams() as any;
 
     const [loading, setLoading] = useState(true);
-    const [orderStatus, setOrderStatus] = useState(params.orderStatus || 'pending');
+    const [orderStatus, setOrderStatus] = useState<OrderStatus>(
+        (params.orderStatus as OrderStatus) || 'pending'
+    );
     const [orderData, setOrderData] = useState<any>(null);
     const [isPolling, setIsPolling] = useState(false);
 
+    // ── Fitur Komplain ──
+    const [complaintModalVisible, setComplaintModalVisible] = useState(false);
+    const [complaintReason, setComplaintReason] = useState('');
+    const [submittingComplaint, setSubmittingComplaint] = useState(false);
+    const [activeVoucher, setActiveVoucher] = useState<any>(null);
+    const [orderComplaint, setOrderComplaint] = useState<any>(null);
+
     const pollingInterval = useRef<NodeJS.Timeout | null>(null);
-    const appState = useRef(AppState.currentState);
 
     // Data dari params
     const orderId = params.orderId || 'ORD-000';
-    const totalPayment = Number(params.totalPayment || 0);
+    const custId = params.custId || orderData?.cust_id;
+    const totalPayment = Number(params.totalPayment || orderData?.total || 0);
     const kandidatNama = params.kandidatNama || orderData?.worker_nama || 'Kandidat';
-    const kandidatId = params.kandidatId || orderData?.worker_id || '-';
 
     // Data kandidat
     const kandidat = {
@@ -104,35 +89,19 @@ const MatchingScreen = () => {
         foto: params.kandidatFoto || orderData?.worker_foto || 'https://randomuser.me/api/portraits/women/78.jpg',
     };
 
-    // ─── Progress Steps ──────────────────────────────────────────────────────
-    const STEPS = [
-        { id: 1, label: 'Pembayaran & Verifikasi', sub: 'Pesanan kamu telah dikonfirmasi', status: ['pending', 'paid'] },
-        { id: 2, label: 'Mencari Kandidat', sub: 'Kami sedang mencari kandidat terbaik', status: ['matching'] },
-        { id: 3, label: 'Kandidat Disetujui', sub: 'Kandidat telah disetujui, menunggu conference call', status: ['approved'] },
-        { id: 4, label: 'Conference Call', sub: 'Wawancara dengan kandidat', status: ['calling'] },
-        { id: 5, label: 'Bekerja & Selesai', sub: 'Kandidat siap bekerja', status: ['working', 'completed'] },
-    ];
+    // ── Data Conference Call (dinamis dari backend) ──
+    const gomeetLink: string | undefined = orderData?.gomeet_link;
+    const callDate: string | undefined = orderData?.call_date;
+    const callSlot: string | undefined = orderData?.call_slot;
 
-    // ─── Tentukan Step Aktif ──────────────────────────────────────────────────
-    const getActiveStep = (status: string): number => {
-        const stepMap: Record<string, number> = {
-            'pending': 0,
-            'paid': 0,
-            'matching': 1,
-            'approved': 2,
-            'calling': 3,
-            'working': 4,
-            'completed': 4,
-            'rejected': -1,
-            'cancelled': -1
-        };
-        return stepMap[status] ?? 0;
-    };
+    // ── Data Keberangkatan (dinamis dari backend) ──
+    const departureMethod: string | undefined = orderData?.departure_method;
+    const departureDate: string | undefined = orderData?.departure_date;
 
     const activeStep = getActiveStep(orderStatus);
 
     // ─── Animated line heights for step connector ──────────────────────────
-    const lineAnims = STEPS.slice(0, -1).map(() => useRef(new Animated.Value(0)).current);
+    const lineAnims = useRef(STEPS.slice(0, -1).map(() => new Animated.Value(0))).current;
 
     useEffect(() => {
         const animations = lineAnims.map((anim, i) =>
@@ -146,20 +115,9 @@ const MatchingScreen = () => {
         Animated.stagger(200, animations).start();
     }, [activeStep]);
 
-    // ─── CEK APAKAH STATUS FINAL (STOP POLLING) ──────────────────────────────
-    const isFinalStatus = (status: string): boolean => {
-        // 🔥 working dan completed dianggap final, polling berhenti
-        return ['working', 'completed', 'rejected', 'cancelled'].includes(status);
-    };
-
-    // ─── CEK APAKAH STATUS SUDAH SELESAI ──────────────────────────────────────
-    const isDone = (status: string): boolean => {
-        return ['working', 'completed'].includes(status);
-    };
-
     // ─── CEK STATUS PESANAN DARI BACKEND ──────────────────────────────────
     const checkOrderStatus = async () => {
-        if (!orderId || isPolling) return;
+        if (!orderId) return;
 
         setIsPolling(true);
         try {
@@ -170,41 +128,26 @@ const MatchingScreen = () => {
                 const data = response.data.data;
                 setOrderData(data);
 
-                const mainStatus = data.status || 'pending';
-                const matchStatus = data.matching_status || 'pending';
+                // 🔥 Backend (updateStatusPesanan/updateMatchingStatus) sudah
+                // menyinkronkan kolom `status` sebagai sumber kebenaran utama,
+                // jadi tidak perlu lagi logika gabungan status di client.
+                const finalStatus: OrderStatus = (data.status || 'pending') as OrderStatus;
 
-                console.log('📊 Main Status:', mainStatus);
-                console.log('📊 Matching Status:', matchStatus);
-
-                // Logika gabungan status
-                let finalStatus = mainStatus;
-
-                if (mainStatus === 'paid' && matchStatus === 'pending') {
-                    finalStatus = 'matching';
-                }
-                if (matchStatus === 'approved') {
-                    finalStatus = 'approved';
-                }
-                if (matchStatus === 'rejected') {
-                    finalStatus = 'rejected';
-                }
-                if (matchStatus === 'cancelled') {
-                    finalStatus = 'cancelled';
-                }
-
-                // Update jika status berubah
                 if (finalStatus !== orderStatus) {
                     console.log('🔄 Status berubah dari', orderStatus, 'ke', finalStatus);
                     setOrderStatus(finalStatus);
 
-                    // Toast notification untuk status tertentu
                     const toastMessages: Record<string, { type: string; text1: string; text2: string }> = {
-                        'approved': { type: 'success', text1: '✅ Kandidat Disetujui!', text2: 'Menunggu jadwal conference call.' },
-                        'calling': { type: 'info', text1: '📞 Conference Call', text2: 'Tim kami akan menghubungi Anda.' },
-                        'working': { type: 'success', text1: '👷 Kandidat Bekerja', text2: 'Kandidat sudah mulai bekerja. Proses selesai!' },
-                        'completed': { type: 'success', text1: '✅ Pesanan Selesai!', text2: 'Terima kasih telah menggunakan layanan kami.' },
-                        'rejected': { type: 'info', text1: '❌ Kandidat Ditolak', text2: 'Silakan cari kandidat lain.' },
-                        'cancelled': { type: 'error', text1: '❌ Pesanan Dibatalkan', text2: 'Pesanan telah dibatalkan.' },
+                        approved: { type: 'success', text1: '✅ Kandidat Disetujui!', text2: 'Menunggu jadwal conference call.' },
+                        calling: { type: 'info', text1: '📞 Conference Call', text2: 'Tim kami akan menghubungi Anda.' },
+                        berangkat_dari_cicana: { type: 'info', text1: '🚗 Kandidat Berangkat', text2: 'Kandidat sedang dalam perjalanan.' },
+                        berangkat_cek_kesehatan: { type: 'info', text1: '🏥 Cek Kesehatan', text2: 'Kandidat sedang menjalani pemeriksaan kesehatan.' },
+                        berangkat_siap_diantar: { type: 'info', text1: '📦 Siap Diantar', text2: 'Kandidat siap diantar/dijemput.' },
+                        working: { type: 'success', text1: '👷 Kandidat Bekerja', text2: 'Kandidat sudah mulai bekerja.' },
+                        completed: { type: 'success', text1: '✅ Pesanan Selesai!', text2: 'Terima kasih telah menggunakan layanan kami.' },
+                        rejected: { type: 'info', text1: '❌ Kandidat Ditolak', text2: 'Silakan cari kandidat lain.' },
+                        rejected_searching: { type: 'info', text1: '🔄 Mencari Kandidat Lain', text2: 'Kami sedang mencarikan kandidat pengganti.' },
+                        cancelled: { type: 'error', text1: '❌ Pesanan Dibatalkan', text2: 'Pesanan telah dibatalkan.' },
                     };
 
                     const config = toastMessages[finalStatus];
@@ -217,7 +160,7 @@ const MatchingScreen = () => {
                         });
                     }
 
-                    // 🔥 Jika status sudah final (working/completed/rejected/cancelled), stop polling
+                    // 🔥 Stop polling kalau status sudah final
                     if (isFinalStatus(finalStatus)) {
                         console.log('🛑 Status final, menghentikan polling');
                         if (pollingInterval.current) {
@@ -237,7 +180,6 @@ const MatchingScreen = () => {
 
     // ─── EFFECT: POLLING ──────────────────────────────────────────────────────
     useEffect(() => {
-        // 🔥 Jika status sudah final (working, completed, rejected, cancelled), stop polling
         if (isFinalStatus(orderStatus)) {
             console.log('🛑 Status final, tidak melakukan polling');
             if (pollingInterval.current) {
@@ -271,7 +213,131 @@ const MatchingScreen = () => {
             }
             subscription.remove();
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [orderId, orderStatus]);
+
+    // ─── CEK APAKAH PESANAN INI SUDAH PERNAH DIKOMPLAIN ──────────────────────
+    const checkOrderComplaint = async () => {
+        if (!orderId) return;
+        try {
+            const response = await axios.get(`${API_BASE}/pesanan/complaints/pesanan/${orderId}`);
+            if (response.data.success) {
+                setOrderComplaint(response.data.data);
+            }
+        } catch (error) {
+            console.error('❌ Gagal cek status komplain:', error);
+        }
+    };
+
+    useEffect(() => {
+        checkOrderComplaint();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [orderId]);
+
+    // ─── CEK VOUCHER DISKON AKTIF (dari komplain yang sudah di-approve) ──────
+    const checkActiveVoucher = async () => {
+        if (!custId) return;
+        try {
+            const response = await axios.get(`${API_BASE}/pesanan/complaints/voucher/${custId}`);
+            if (response.data.success) {
+                setActiveVoucher(response.data.data);
+            }
+        } catch (error) {
+            console.error('❌ Gagal cek voucher diskon:', error);
+        }
+    };
+
+    useEffect(() => {
+        checkActiveVoucher();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [custId]);
+
+    // ─── SUBMIT KOMPLAIN ──────────────────────────────────────────────────────
+    const handleSubmitComplaint = async () => {
+        if (!complaintReason.trim()) {
+            Toast.show({
+                type: 'error',
+                text1: 'Alasan wajib diisi',
+                text2: 'Ceritakan dulu masalahnya sebelum mengirim komplain.',
+            });
+            return;
+        }
+        if (!custId) {
+            Toast.show({
+                type: 'error',
+                text1: 'Gagal mengirim komplain',
+                text2: 'Data customer tidak ditemukan.',
+            });
+            return;
+        }
+
+        setSubmittingComplaint(true);
+        try {
+            const response = await axios.post(`${API_BASE}/pesanan/complaints`, {
+                pesanan_id: orderId,
+                cust_id: custId,
+                reason: complaintReason.trim(),
+            });
+
+            if (response.data.success) {
+                Toast.show({
+                    type: 'success',
+                    text1: '✅ Komplain terkirim',
+                    text2: 'Menunggu review dari admin.',
+                });
+                setOrderComplaint(response.data.data);
+                setComplaintModalVisible(false);
+                setComplaintReason('');
+            }
+        } catch (error: any) {
+            console.error('❌ Gagal mengirim komplain:', error);
+            Toast.show({
+                type: 'error',
+                text1: 'Gagal mengirim komplain',
+                text2: error?.response?.data?.message || 'Silakan coba lagi.',
+            });
+        } finally {
+            setSubmittingComplaint(false);
+        }
+    };
+
+    // ─── NAVIGASI KE ORDER KANDIDAT BARU ──────────────────────────────────────
+    const handleOrderBaru = () => {
+        // 🔧 Sesuaikan path ini dengan route halaman "buat pesanan ART baru"
+        // di project kamu (mis. daftar kandidat / halaman pemesanan awal).
+        router.push('/art/art-babysitter');
+    };
+
+    // ─── HANDLE BUKA LINK GOMEET ──────────────────────────────────────────────
+    const handleOpenGomeet = async () => {
+        if (!gomeetLink) {
+            Toast.show({
+                type: 'error',
+                text1: 'Link belum tersedia',
+                text2: 'Link conference call belum dijadwalkan oleh admin.',
+            });
+            return;
+        }
+        try {
+            const supported = await Linking.canOpenURL(gomeetLink);
+            if (supported) {
+                await Linking.openURL(gomeetLink);
+            } else {
+                Toast.show({
+                    type: 'error',
+                    text1: 'Tidak bisa membuka link',
+                    text2: 'Link tidak valid atau aplikasi tidak tersedia.',
+                });
+            }
+        } catch (error) {
+            console.error('❌ Gagal membuka link Gomeet:', error);
+            Toast.show({
+                type: 'error',
+                text1: 'Gagal membuka link',
+                text2: 'Silakan coba lagi.',
+            });
+        }
+    };
 
     if (loading) {
         return (
@@ -286,8 +352,29 @@ const MatchingScreen = () => {
 
     const isCancelled = orderStatus === 'cancelled';
     const isRejected = orderStatus === 'rejected';
-    const isCompleted = isDone(orderStatus);
+    const isCompleted = isDoneStatus(orderStatus);
     const isPollingActive = !isFinalStatus(orderStatus) && isPolling;
+
+    // Kondisi tampil card GoMeet: status calling, ATAU status setelahnya
+    // (berangkat_*, working, completed) tapi link-nya masih ada — supaya
+    // user tetap bisa lihat riwayat link setelah conference call selesai.
+    const showGomeetCard = !!gomeetLink && activeStep >= 3;
+
+    // Kondisi tampil card Keberangkatan: status berangkat_* atau setelahnya
+    const showDepartureCard = activeStep >= 4 && (departureMethod || departureDate);
+
+    // ── Status komplain untuk pesanan ini (kalau sudah pernah diajukan) ──
+    const complaintStatusConfig: Record<string, { label: string; bg: string; border: string; text: string; icon: any }> = {
+        pending: { label: 'Sedang Direview', bg: '#FEF3C7', border: '#FDE68A', text: '#92400E', icon: 'time-outline' },
+        approved: { label: 'Komplain Disetujui', bg: '#D1FAE5', border: '#6EE7B7', text: '#065F46', icon: 'checkmark-circle-outline' },
+        rejected: { label: 'Komplain Ditolak', bg: '#FEE2E2', border: '#FECACA', text: '#991B1B', icon: 'close-circle-outline' },
+    };
+    const complaintBadge = orderComplaint ? complaintStatusConfig[orderComplaint.status] : null;
+
+    // 🔥 Tombol "Ajukan Komplain" hanya boleh muncul setelah pesanan SELESAI
+    // (status === 'completed'). Kalau sudah pernah komplain, badge status
+    // komplain tetap tampil apa pun status pesanannya.
+    const showComplaintButton = !orderComplaint && isCompleted;
 
     return (
         <SafeAreaView style={styles.safe}>
@@ -318,6 +405,17 @@ const MatchingScreen = () => {
                     </View>
                     <Text style={styles.statusOrderId}>No. Pesanan: {orderId}</Text>
                 </View>
+
+                {/* ── Banner Voucher Diskon Aktif (dari komplain yang di-approve) ── */}
+                {!!activeVoucher && (
+                    <View style={styles.voucherBanner}>
+                        <Ionicons name="gift-outline" size={18} color="#B45309" />
+                        <Text style={styles.voucherBannerText}>
+                            🎉 Kamu punya voucher kandidat gratis (diskon {Number(activeVoucher.discount_percent)}%)!
+                            Otomatis dipakai saat kamu order kandidat baru.
+                        </Text>
+                    </View>
+                )}
 
                 {/* ── Kandidat Card ── */}
                 <View style={styles.card}>
@@ -353,13 +451,94 @@ const MatchingScreen = () => {
                     )}
                 </View>
 
-                {/* ── Progress Timeline ── */}
+                {/* ── 🔥 Card Conference Call (GoMeet) — DINAMIS ── */}
+                {showGomeetCard && (
+                    <View style={[styles.card, styles.gomeetCard]}>
+                        <View style={styles.gomeetHeader}>
+                            <View style={styles.gomeetIconWrap}>
+                                <Ionicons name="videocam" size={20} color="#fff" />
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.gomeetTitle}>Jadwal Conference Call</Text>
+                                <Text style={styles.gomeetSub}>Wawancara dengan kandidat via Google Meet</Text>
+                            </View>
+                        </View>
+
+                        <View style={styles.gomeetDetailRow}>
+                            <Ionicons name="calendar-outline" size={16} color={TEXT_SECONDARY} />
+                            <Text style={styles.gomeetDetailText}>
+                                {formatTanggalID(callDate)}
+                            </Text>
+                        </View>
+
+                        {!!callSlot && (
+                            <View style={styles.gomeetDetailRow}>
+                                <Ionicons name="time-outline" size={16} color={TEXT_SECONDARY} />
+                                <Text style={styles.gomeetDetailText}>Pukul {callSlot}</Text>
+                            </View>
+                        )}
+
+                        <View style={styles.gomeetDetailRow}>
+                            <Ionicons name="link-outline" size={16} color={TEXT_SECONDARY} />
+                            <Text style={styles.gomeetDetailText} numberOfLines={1}>
+                                {gomeetLink}
+                            </Text>
+                        </View>
+
+                        <TouchableOpacity
+                            style={styles.gomeetBtn}
+                            activeOpacity={0.85}
+                            onPress={handleOpenGomeet}
+                        >
+                            <Ionicons name="videocam-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
+                            <Text style={styles.gomeetBtnText}>Gabung Google Meet</Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
+
+                {/* ── 🔥 Card Proses Keberangkatan — DINAMIS ── */}
+                {showDepartureCard && (
+                    <View style={[styles.card, styles.departureCard]}>
+                        <View style={styles.gomeetHeader}>
+                            <View style={[styles.gomeetIconWrap, { backgroundColor: GREEN }]}>
+                                <Ionicons name="car-outline" size={20} color="#fff" />
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.gomeetTitle}>Proses Keberangkatan</Text>
+                                <Text style={styles.gomeetSub}>{getStatusLabel(orderStatus)}</Text>
+                            </View>
+                        </View>
+
+                        {!!departureMethod && (
+                            <View style={styles.gomeetDetailRow}>
+                                <Ionicons name="navigate-outline" size={16} color={TEXT_SECONDARY} />
+                                <Text style={styles.gomeetDetailText}>
+                                    {getDepartureMethodLabel(departureMethod)}
+                                </Text>
+                            </View>
+                        )}
+
+                        {!!departureDate && (
+                            <View style={styles.gomeetDetailRow}>
+                                <Ionicons name="calendar-outline" size={16} color={TEXT_SECONDARY} />
+                                <Text style={styles.gomeetDetailText}>
+                                    {formatTanggalID(departureDate)}
+                                </Text>
+                            </View>
+                        )}
+                    </View>
+                )}
+
+                {/* ── Progress Timeline — SEMUA STEP dari STEPS (config terpusat) ──
+                     Catatan: step terakhir "Bekerja & Selesai" sudah menampung
+                     dua status backend (`working` & `completed`) sekaligus,
+                     lihat STATUS_STEP_MAP di orderStatusConfig.ts. ── */}
                 <View style={styles.card}>
                     <Text style={styles.sectionTitle}>Progress Pesanan</Text>
 
                     {STEPS.map((step, index) => {
                         const isLast = index === STEPS.length - 1;
-                        const isDone = index < activeStep;
+                        const stepDone = index < activeStep;
                         const isActive = index === activeStep;
 
                         return (
@@ -369,13 +548,13 @@ const MatchingScreen = () => {
                                     <View
                                         style={[
                                             styles.stepCircle,
-                                            isDone && styles.stepCircleDone,
+                                            stepDone && styles.stepCircleDone,
                                             isActive && !isCompleted && styles.stepCircleActive,
                                             (isCancelled || isRejected) && styles.stepCircleError,
                                             isCompleted && styles.stepCircleDone,
                                         ]}
                                     >
-                                        {isDone || isCompleted ? (
+                                        {stepDone || isCompleted ? (
                                             <Ionicons name="checkmark" size={14} color="#fff" />
                                         ) : isActive && !isCompleted ? (
                                             <ActivityIndicator size="small" color="#fff" />
@@ -388,7 +567,7 @@ const MatchingScreen = () => {
                                         <Animated.View
                                             style={[
                                                 styles.stepLine,
-                                                (isDone || isCompleted) && {
+                                                (stepDone || isCompleted) && {
                                                     backgroundColor: BLUE,
                                                     opacity: lineAnims[index],
                                                 },
@@ -402,7 +581,7 @@ const MatchingScreen = () => {
                                     <Text
                                         style={[
                                             styles.stepLabel,
-                                            (isDone || isCompleted) && { color: TEXT_PRIMARY, fontWeight: '700' },
+                                            (stepDone || isCompleted) && { color: TEXT_PRIMARY, fontWeight: '700' },
                                             isActive && !isCompleted && { color: BLUE, fontWeight: '700' },
                                             (isCancelled || isRejected) && { color: '#DC2626' },
                                         ]}
@@ -413,7 +592,7 @@ const MatchingScreen = () => {
                                         {isCancelled ? 'Pesanan dibatalkan' :
                                             isRejected ? 'Kandidat ditolak' :
                                                 isCompleted && isLast ? '✅ Proses selesai!' :
-                                                    step.sub}
+                                                    isActive ? getStatusLabel(orderStatus) : step.sub}
                                     </Text>
                                 </View>
                             </View>
@@ -429,6 +608,44 @@ const MatchingScreen = () => {
                                         `Status: ${getStatusLabel(orderStatus)} - Pantau terus progress pesanan Anda.`}
                         </Text>
                     </View>
+                </View>
+
+                {/* ── Aksi: Komplain & Order Kandidat Baru ── */}
+                <View style={styles.actionRow}>
+                    {orderComplaint && complaintBadge ? (
+                        // Sudah pernah komplain → tampilkan badge status komplain,
+                        // apa pun status pesanannya sekarang.
+                        <View
+                            style={[
+                                styles.complaintStatusBox,
+                                { backgroundColor: complaintBadge.bg, borderColor: complaintBadge.border },
+                            ]}
+                        >
+                            <Ionicons name={complaintBadge.icon} size={16} color={complaintBadge.text} />
+                            <Text style={[styles.complaintStatusText, { color: complaintBadge.text }]}>
+                                {complaintBadge.label}
+                            </Text>
+                        </View>
+                    ) : showComplaintButton ? (
+                        // 🔥 Belum pernah komplain & pesanan sudah SELESAI → tombol muncul.
+                        <TouchableOpacity
+                            style={styles.complaintBtn}
+                            activeOpacity={0.85}
+                            onPress={() => setComplaintModalVisible(true)}
+                        >
+                            <Ionicons name="alert-circle-outline" size={18} color="#DC2626" style={{ marginRight: 8 }} />
+                            <Text style={styles.complaintBtnText}>Ajukan Komplain</Text>
+                        </TouchableOpacity>
+                    ) : null}
+
+                    <TouchableOpacity
+                        style={styles.newOrderBtn}
+                        activeOpacity={0.85}
+                        onPress={handleOrderBaru}
+                    >
+                        <Ionicons name="add-circle-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
+                        <Text style={styles.newOrderBtnText}>Order Kandidat Baru</Text>
+                    </TouchableOpacity>
                 </View>
 
                 {/* ── Status Update Info ── */}
@@ -460,6 +677,64 @@ const MatchingScreen = () => {
             </View>
 
             <Toast />
+
+            {/* ── Modal Ajukan Komplain ── */}
+            <Modal
+                visible={complaintModalVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setComplaintModalVisible(false)}
+            >
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                    style={styles.modalOverlay}
+                >
+                    <View style={styles.modalCard}>
+                        <Text style={styles.modalTitle}>Ajukan Komplain</Text>
+                        <Text style={styles.modalSub}>
+                            Ceritakan masalah yang kamu alami dengan pesanan ini. Tim admin akan
+                            meninjau komplain kamu terlebih dahulu.
+                        </Text>
+
+                        <TextInput
+                            style={styles.modalInput}
+                            placeholder="Tulis alasan komplain di sini..."
+                            placeholderTextColor="#94A3B8"
+                            multiline
+                            numberOfLines={5}
+                            value={complaintReason}
+                            onChangeText={setComplaintReason}
+                            editable={!submittingComplaint}
+                        />
+
+                        <View style={styles.modalActions}>
+                            <TouchableOpacity
+                                style={styles.modalCancelBtn}
+                                onPress={() => {
+                                    if (!submittingComplaint) {
+                                        setComplaintModalVisible(false);
+                                        setComplaintReason('');
+                                    }
+                                }}
+                            >
+                                <Text style={styles.modalCancelText}>Batal</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[styles.modalSubmitBtn, submittingComplaint && { opacity: 0.6 }]}
+                                onPress={handleSubmitComplaint}
+                                disabled={submittingComplaint}
+                            >
+                                {submittingComplaint ? (
+                                    <ActivityIndicator size="small" color="#fff" />
+                                ) : (
+                                    <Text style={styles.modalSubmitText}>Kirim Komplain</Text>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </KeyboardAvoidingView>
+            </Modal>
         </SafeAreaView>
     );
 };
@@ -470,7 +745,6 @@ const styles = StyleSheet.create({
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     loadingText: { marginTop: 12, fontSize: 14, color: TEXT_SECONDARY },
 
-    /* Header */
     header: {
         backgroundColor: BLUE,
         flexDirection: 'row',
@@ -488,7 +762,6 @@ const styles = StyleSheet.create({
 
     scroll: { padding: 16, paddingBottom: 100 },
 
-    /* Status Badge */
     statusBadgeContainer: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -511,7 +784,6 @@ const styles = StyleSheet.create({
         color: TEXT_SECONDARY,
     },
 
-    /* Card */
     card: {
         backgroundColor: '#fff',
         borderRadius: 14,
@@ -525,7 +797,6 @@ const styles = StyleSheet.create({
     },
     sectionTitle: { fontSize: 15, fontWeight: '700', color: TEXT_PRIMARY, marginBottom: 16 },
 
-    /* Kandidat */
     kandidatRow: { flexDirection: 'row', alignItems: 'flex-start' },
     avatarWrap: { position: 'relative', marginRight: 14 },
     avatar: {
@@ -562,7 +833,50 @@ const styles = StyleSheet.create({
     },
     paymentChipText: { fontSize: 12, color: BLUE, fontWeight: '600' },
 
-    /* Timeline */
+    gomeetCard: {
+        borderWidth: 1.5,
+        borderColor: '#BFDBFE',
+        backgroundColor: '#F8FBFF',
+    },
+    departureCard: {
+        borderWidth: 1.5,
+        borderColor: '#BBF7D0',
+        backgroundColor: '#F7FEF9',
+    },
+    gomeetHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 14,
+        gap: 12,
+    },
+    gomeetIconWrap: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: BLUE,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    gomeetTitle: { fontSize: 14, fontWeight: '700', color: TEXT_PRIMARY },
+    gomeetSub: { fontSize: 12, color: TEXT_SECONDARY, marginTop: 2 },
+    gomeetDetailRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 8,
+    },
+    gomeetDetailText: { flex: 1, fontSize: 13, color: TEXT_PRIMARY, fontWeight: '500' },
+    gomeetBtn: {
+        marginTop: 8,
+        backgroundColor: BLUE,
+        borderRadius: 12,
+        paddingVertical: 13,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    gomeetBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+
     stepRow: { flexDirection: 'row', marginBottom: 0 },
     stepLeft: { alignItems: 'center', width: 36, marginRight: 14 },
     stepCircle: {
@@ -605,7 +919,6 @@ const styles = StyleSheet.create({
     stepLabel: { fontSize: 14, fontWeight: '500', color: TEXT_SECONDARY, lineHeight: 20 },
     stepSub: { fontSize: 12, color: '#94A3B8', marginTop: 2, lineHeight: 17 },
 
-    /* Note */
     noteBox: {
         flexDirection: 'row',
         backgroundColor: BLUE_LIGHT,
@@ -617,7 +930,6 @@ const styles = StyleSheet.create({
     },
     noteText: { flex: 1, fontSize: 12, color: BLUE_DARK, lineHeight: 18 },
 
-    /* Info */
     infoBox: {
         flexDirection: 'row',
         backgroundColor: '#F0FDF4',
@@ -630,7 +942,6 @@ const styles = StyleSheet.create({
     },
     infoBoxText: { flex: 1, fontSize: 12, color: '#166534', lineHeight: 18 },
 
-    /* Bottom CTA */
     bottomBar: {
         position: 'absolute',
         bottom: 0,
@@ -655,6 +966,106 @@ const styles = StyleSheet.create({
         shadowRadius: 6,
     },
     helpBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+
+    /* Voucher Banner */
+    voucherBanner: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 8,
+        backgroundColor: '#FEF3C7',
+        borderWidth: 1,
+        borderColor: '#FDE68A',
+        borderRadius: 12,
+        padding: 12,
+        marginBottom: 12,
+    },
+    voucherBannerText: { flex: 1, fontSize: 12.5, color: '#92400E', lineHeight: 18, fontWeight: '600' },
+
+    /* Action Row: Komplain & Order Baru */
+    actionRow: {
+        flexDirection: 'row',
+        gap: 10,
+        marginBottom: 12,
+    },
+    complaintBtn: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#FEF2F2',
+        borderWidth: 1.5,
+        borderColor: '#FECACA',
+        borderRadius: 12,
+        paddingVertical: 12,
+    },
+    complaintBtnText: { color: '#DC2626', fontSize: 13.5, fontWeight: '700' },
+    complaintStatusBox: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1.5,
+        borderRadius: 12,
+        paddingVertical: 12,
+        gap: 6,
+    },
+    complaintStatusText: { fontSize: 12.5, fontWeight: '700', textAlign: 'center' },
+    newOrderBtn: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: GREEN,
+        borderRadius: 12,
+        paddingVertical: 12,
+    },
+    newOrderBtnText: { color: '#fff', fontSize: 13.5, fontWeight: '700' },
+
+    /* Modal Komplain */
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(15, 23, 42, 0.55)',
+        justifyContent: 'center',
+        padding: 20,
+    },
+    modalCard: {
+        backgroundColor: '#fff',
+        borderRadius: 16,
+        padding: 20,
+    },
+    modalTitle: { fontSize: 17, fontWeight: '800', color: TEXT_PRIMARY, marginBottom: 6 },
+    modalSub: { fontSize: 12.5, color: TEXT_SECONDARY, lineHeight: 18, marginBottom: 14 },
+    modalInput: {
+        borderWidth: 1.5,
+        borderColor: DIVIDER,
+        borderRadius: 12,
+        padding: 12,
+        fontSize: 14,
+        color: TEXT_PRIMARY,
+        textAlignVertical: 'top',
+        minHeight: 110,
+        marginBottom: 16,
+    },
+    modalActions: { flexDirection: 'row', gap: 10 },
+    modalCancelBtn: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 13,
+        borderRadius: 12,
+        borderWidth: 1.5,
+        borderColor: DIVIDER,
+    },
+    modalCancelText: { color: TEXT_SECONDARY, fontSize: 14, fontWeight: '700' },
+    modalSubmitBtn: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 13,
+        borderRadius: 12,
+        backgroundColor: '#DC2626',
+    },
+    modalSubmitText: { color: '#fff', fontSize: 14, fontWeight: '700' },
 });
 
-export default MatchingScreen;
+export default StatusPesananScreen;

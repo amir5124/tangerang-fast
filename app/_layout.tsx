@@ -16,7 +16,7 @@ import Toast, {
 
 // IMPORT FIREBASE (Hanya untuk Listener Web)
 import { getApps, initializeApp } from 'firebase/app';
-import { getMessaging, onMessage } from 'firebase/messaging';
+import { getMessaging, isSupported, onMessage } from 'firebase/messaging';
 
 // IMPORT FUNGSI REGISTRASI PUSAT
 import { registerForPushNotificationsAsync } from '../src/utils/usePushNotifications';
@@ -32,10 +32,10 @@ const firebaseConfig = {
   appId: '1:206607018424:web:4f0ddad4a1a6fc3aa7074d',
 };
 
-// Inisialisasi Firebase untuk Web Listener
+// Inisialisasi Firebase App saja di top-level (aman, tidak butuh browser API)
+// Jangan inisialisasi `messaging` di sini — pindahkan ke dalam useEffect
 const app =
   getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-const messaging = Platform.OS === 'web' ? getMessaging(app) : null;
 
 // Konfigurasi Foreground Handler (Native)
 Notifications.setNotificationHandler({
@@ -71,13 +71,37 @@ const toastConfig: ToastConfig = {
   ),
 };
 
+// --- KOMPONEN CONNECTION BANNER (SUDAH DIPERBAIKI) ---
+// Web: pakai navigator.onLine + event listener (lebih reliable)
+// Native: tetap pakai NetInfo
 const ConnectionBanner = () => {
-  const [isConnected, setIsConnected] = useState<boolean | null>(true);
+  const [isConnected, setIsConnected] = useState<boolean>(true);
+
   useEffect(() => {
-    const unsubscribe = NetInfo.addEventListener(state => {
-      setIsConnected(state.isConnected !== false);
-    });
-    return () => unsubscribe();
+    if (Platform.OS === 'web') {
+      // Guard kalau window/navigator belum siap (SSR/static render)
+      if (typeof navigator === 'undefined') return;
+
+      // Set state awal sesuai kondisi browser saat ini
+      setIsConnected(navigator.onLine);
+
+      const handleOnline = () => setIsConnected(true);
+      const handleOffline = () => setIsConnected(false);
+
+      window.addEventListener('online', handleOnline);
+      window.addEventListener('offline', handleOffline);
+
+      return () => {
+        window.removeEventListener('online', handleOnline);
+        window.removeEventListener('offline', handleOffline);
+      };
+    } else {
+      // --- NATIVE (Android/iOS) tetap pakai NetInfo ---
+      const unsubscribe = NetInfo.addEventListener(state => {
+        setIsConnected(state.isConnected !== false);
+      });
+      return () => unsubscribe();
+    }
   }, []);
 
   if (isConnected) return null;
@@ -112,7 +136,6 @@ function RootLayoutContent() {
       }
     };
 
-    // Gunakan type assertion untuk memberi tahu TypeScript bahwa navigator.serviceWorker pasti ada
     (navigator as Navigator & { serviceWorker: ServiceWorkerContainer }).serviceWorker
       .addEventListener('message', handleSwMessage);
 
@@ -129,17 +152,30 @@ function RootLayoutContent() {
     });
 
     // B. Listener Web Foreground
-    if (Platform.OS === 'web' && messaging) {
-      onMessage(messaging, payload => {
-        // Refresh unread count ketika ada notifikasi baru
-        // Ini akan di-handle oleh ChatProvider secara otomatis
-        Toast.show({
-          type: 'success',
-          text1: payload.notification?.title || 'Informasi Baru',
-          text2: payload.notification?.body || 'Klik untuk detail',
-          onPress: () => handleRedirect(payload.data),
+    // Inisialisasi messaging DI SINI (client-side, setelah komponen mount),
+    // bukan di top-level module, dan dicek dulu dengan isSupported()
+    let unsubscribeOnMessage: (() => void) | undefined;
+
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      isSupported()
+        .then(supported => {
+          if (!supported) {
+            console.warn('⚠️ Firebase Messaging tidak didukung di browser ini.');
+            return;
+          }
+          const messaging = getMessaging(app);
+          unsubscribeOnMessage = onMessage(messaging, payload => {
+            Toast.show({
+              type: 'success',
+              text1: payload.notification?.title || 'Informasi Baru',
+              text2: payload.notification?.body || 'Klik untuk detail',
+              onPress: () => handleRedirect(payload.data),
+            });
+          });
+        })
+        .catch(err => {
+          console.warn('⚠️ Gagal cek dukungan Firebase Messaging:', err);
         });
-      });
     }
 
     // C. Listener Native Foreground
@@ -164,6 +200,7 @@ function RootLayoutContent() {
     return () => {
       if (notificationListener.current) notificationListener.current.remove();
       if (responseListener.current) responseListener.current.remove();
+      if (unsubscribeOnMessage) unsubscribeOnMessage();
     };
   }, []);
 
