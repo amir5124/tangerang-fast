@@ -6,6 +6,7 @@ import React, { useEffect, useState } from 'react';
 import {
     Alert,
     Platform,
+    Pressable,
     RefreshControl,
     ScrollView,
     StyleSheet,
@@ -149,23 +150,24 @@ const CleaningServiceScreen = () => {
 
     return (
         <View style={{ flex: 1, backgroundColor: '#fff' }}>
-            <Stack.Screen
-                options={{
-                    headerTitle: "Cleaning Service",
-                    headerShown: true,
-                    headerTintColor: '#fff',
-                    headerStyle: { backgroundColor: '#0c57fe' },
-                    headerTitleAlign: 'center',
-                }}
-            />
+            {/* ✅ Matikan header native — supaya tidak dobel dengan spacer top global di _layout.tsx */}
+            <Stack.Screen options={{ headerShown: false }} />
+
+            {/* ✅ Header manual, konsisten dengan pola halaman lain di app kamu */}
+            <View style={styles.header}>
+                <Pressable
+                    onPress={() => router.back()}
+                    style={({ pressed }) => [styles.backButton, { opacity: pressed ? 0.6 : 1 }]}
+                >
+                    <Ionicons name="arrow-back" size={22} color="#fff" />
+                </Pressable>
+                <Text style={styles.headerTitle}>Cleaning Service</Text>
+                <View style={{ width: 40 }} />
+            </View>
+
             <ScrollView refreshControl={
                 <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchData(); }} />
             }>
-                {/* <Image
-                    source={{ uri: 'https://res.cloudinary.com/dgsdmgcc7/image/upload/v1769362154/WhatsApp_Image_2026-01-25_at_21.44.58_zspvbv.jpg' }}
-                    style={styles.banner}
-                /> */}
-
                 <View style={styles.locationBox}>
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                         <Ionicons name="location-sharp" size={18} color="#0c57fe" />
@@ -196,7 +198,7 @@ const CleaningServiceScreen = () => {
                                 vendorId={item.id}
                                 userId={item.user_id}
                                 services={item.services || ""}
-                                category="cleaning"  // <-- TAMBAHKAN INI
+                                category="cleaning"
                             />
                         ))
                     )}
@@ -212,6 +214,26 @@ const styles = StyleSheet.create({
     locationTitle: { fontWeight: '800', fontSize: 14, marginLeft: 4, color: '#1E293B' },
     addressText: { fontSize: 13, color: '#64748B', marginTop: 4, marginLeft: 22 },
     divider: { height: 8, backgroundColor: '#F8F9FA' },
+    header: {
+        backgroundColor: '#0c57fe',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+    },
+    backButton: {
+        width: 40,
+        alignItems: 'flex-start',
+        justifyContent: 'center',
+    },
+    headerTitle: {
+        color: '#fff',
+        fontSize: 18,
+        fontWeight: '700',
+        textAlign: 'center',
+        flex: 1,
+    },
 });
 
 export default CleaningServiceScreen;

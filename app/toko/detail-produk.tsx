@@ -472,10 +472,19 @@ const styles = StyleSheet.create({
         backgroundColor: '#F4F5F7',
     },
     header: {
-        backgroundColor: '#1E5CFF',
-        padding: 15,
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        backgroundColor: '#0c57fe',
+        borderBottomWidth: 1,
+        borderBottomColor: '#f0f0f0',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2,
     },
     backButton: {
         marginRight: 12,
@@ -483,7 +492,9 @@ const styles = StyleSheet.create({
     headerTitle: {
         color: '#fff',
         fontSize: 18,
-        fontWeight: '700',
+        fontWeight: 'bold',
+        textAlign: 'center',
+        flex: 1,
     },
     centerState: {
         flex: 1,

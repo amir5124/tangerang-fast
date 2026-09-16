@@ -1393,7 +1393,9 @@ const styles = StyleSheet.create({
     headerTitle: {
         color: '#fff',
         fontSize: 18,
-        fontWeight: '700',
+        fontWeight: 'bold',
+        textAlign: 'center',
+        flex: 1,
     },
     content: {
         flex: 1,

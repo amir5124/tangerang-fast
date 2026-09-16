@@ -4,7 +4,7 @@ import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const BASE_URL = 'https://backend.tangerangfast.online';
-const FALLBACK_IMAGE = 'https://res.cloudinary.com/dgsdmgcc7/image/upload/v1765947871/tbang_guj0k3.webp';
+const FALLBACK_IMAGE = 'https://res.cloudinary.com/dgsdmgcc7/image/upload/v1789559103/icon-baru_kixbch.png';
 
 interface ServiceCardProps {
     vendorName: string;

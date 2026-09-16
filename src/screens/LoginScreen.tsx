@@ -287,9 +287,7 @@ const LoginScreen = () => {
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.logoContainer}>
           <Image
-            source={{
-              uri: 'https://res.cloudinary.com/dgsdmgcc7/image/upload/v1770989052/Salinan_LOGO_TF_1-removebg-preview_ybdbz0.png',
-            }}
+            source={require('../../assets/images/icon-baru.png')}
             style={styles.logoImage}
             resizeMode="contain"
           />

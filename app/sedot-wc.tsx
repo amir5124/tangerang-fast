@@ -6,6 +6,7 @@ import React, { useEffect, useState } from 'react';
 import {
     Alert,
     Platform,
+    Pressable,
     RefreshControl,
     ScrollView,
     StyleSheet,
@@ -168,23 +169,24 @@ const ServiceWcScreen = () => {
 
     return (
         <View style={{ flex: 1, backgroundColor: '#fff' }}>
-            <Stack.Screen
-                options={{
-                    headerTitle: "Sedot WC",
-                    headerShown: true,
-                    headerTintColor: '#fff',
-                    headerStyle: { backgroundColor: '#0c57fe' },
-                    headerTitleAlign: 'center',
-                }}
-            />
+            {/* ✅ Matikan header native — supaya tidak dobel dengan spacer top global di _layout.tsx */}
+            <Stack.Screen options={{ headerShown: false }} />
+
+            {/* ✅ Header manual, konsisten dengan pola halaman lain di app kamu */}
+            <View style={styles.header}>
+                <Pressable
+                    onPress={() => router.back()}
+                    style={({ pressed }) => [styles.backButton, { opacity: pressed ? 0.6 : 1 }]}
+                >
+                    <Ionicons name="arrow-back" size={22} color="#fff" />
+                </Pressable>
+                <Text style={styles.headerTitle}>Sedot WC</Text>
+                <View style={{ width: 40 }} />
+            </View>
+
             <ScrollView refreshControl={
                 <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchData(); }} />
             }>
-                {/* <Image
-                    source={{ uri: 'https://res.cloudinary.com/dgsdmgcc7/image/upload/v1769338997/WhatsApp_Image_2026-01-25_at_14.59.14_yrbtgo.jpg' }}
-                    style={styles.banner}
-                /> */}
-
                 <View style={styles.locationBox}>
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                         <Ionicons name="location-sharp" size={18} color="#0c57fe" />
@@ -256,26 +258,25 @@ const styles = StyleSheet.create({
         marginTop: 8,
         textAlign: 'center',
     },
-    customHeader: {
+    header: {
         backgroundColor: '#0c57fe',
-    },
-    headerContent: {
-        height: 56,
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 15,
         justifyContent: 'space-between',
+        paddingHorizontal: 16,
+        paddingVertical: 14,
     },
     backButton: {
-        padding: 5,
+        width: 40,
+        alignItems: 'flex-start',
+        justifyContent: 'center',
     },
     headerTitle: {
         color: '#fff',
         fontSize: 18,
-        fontWeight: 'bold',
+        fontWeight: '700',
         textAlign: 'center',
         flex: 1,
-        marginRight: 10,
     },
 });
 

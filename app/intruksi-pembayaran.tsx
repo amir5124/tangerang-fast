@@ -158,7 +158,7 @@ const PaymentInstruction = () => {
         });
     };
 
-    if (!paymentInfo) return <View style={styles.center}><ActivityIndicator size="large" color="#673AB7" /></View>;
+    if (!paymentInfo) return <View style={styles.center}><ActivityIndicator size="large" color="#0c57fe" /></View>;
 
     return (
         <View style={{ flex: 1, backgroundColor: '#fff' }}>
@@ -209,7 +209,7 @@ const PaymentInstruction = () => {
                                         <View style={styles.row}>
                                             <Text style={styles.valueBoldLarge}>{paymentInfo.va_number}</Text>
                                             <TouchableOpacity style={styles.copyBtn} onPress={() => copyToClipboard(paymentInfo.va_number)}>
-                                                <Ionicons name="copy-outline" size={16} color="#673AB7" />
+                                                <Ionicons name="copy-outline" size={16} color="#0c57fe" />
                                                 <Text style={styles.copyText}>Salin</Text>
                                             </TouchableOpacity>
                                         </View>
@@ -235,7 +235,7 @@ const PaymentInstruction = () => {
                                 <View style={styles.row}>
                                     <Text style={styles.amountBig}>Rp {Number(paymentInfo.amount).toLocaleString('id-ID')}</Text>
                                     <TouchableOpacity style={styles.copyBtn} onPress={() => copyToClipboard(String(paymentInfo.amount))}>
-                                        <Ionicons name="copy-outline" size={16} color="#673AB7" />
+                                        <Ionicons name="copy-outline" size={16} color="#0c57fe" />
                                         <Text style={styles.copyText}>Salin</Text>
                                     </TouchableOpacity>
                                 </View>
@@ -262,7 +262,7 @@ const PaymentInstruction = () => {
                 {timeLeft === "EXPIRED" ? (
                     /* JIKA EXPIRED: Hanya tampil satu tombol utama */
                     <TouchableOpacity
-                        style={[styles.btnAction, { backgroundColor: '#673AB7' }]}
+                        style={[styles.btnAction, { backgroundColor: '#0c57fe' }]}
                         onPress={() => router.replace('/')}
                     >
                         <Text style={styles.btnActionText}>Kembali ke Beranda</Text>
@@ -271,7 +271,7 @@ const PaymentInstruction = () => {
                     /* JIKA MASIH AKTIF: Tampilkan dua tombol (Cek Status & Batalkan) */
                     <View>
                         <TouchableOpacity
-                            style={[styles.btnAction, { backgroundColor: isChecking ? '#ccc' : '#673AB7', marginBottom: 10 }]}
+                            style={[styles.btnAction, { backgroundColor: isChecking ? '#ccc' : '#0c57fe', marginBottom: 10 }]}
                             onPress={() => checkPaymentStatus(false)}
                             disabled={isChecking}
                         >
@@ -302,7 +302,7 @@ export default PaymentInstruction;
 
 const styles = StyleSheet.create({
     customHeader: {
-        backgroundColor: '#673AB7',
+        backgroundColor: '#0c57fe',
         elevation: 4,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
@@ -341,7 +341,7 @@ const styles = StyleSheet.create({
     scrollContent: { paddingBottom: 150 },
     content: { padding: 20 },
     mainCard: { backgroundColor: '#fff', borderRadius: 15, padding: 20, elevation: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8 },
-    methodTitle: { fontSize: 20, fontWeight: 'bold', textAlign: 'center', color: '#673AB7' },
+    methodTitle: { fontSize: 20, fontWeight: 'bold', textAlign: 'center', color: '#0c57fe' },
     label: { color: '#777', fontSize: 12, marginTop: 15, textTransform: 'uppercase' },
     labelCenter: { color: '#888', fontSize: 13, textAlign: 'center', marginTop: 15 },
     valueBold: { fontSize: 16, fontWeight: 'bold', color: '#333', marginTop: 3 },
@@ -349,9 +349,9 @@ const styles = StyleSheet.create({
     timerText: { fontSize: 28, fontWeight: 'bold', color: '#D32F2F', textAlign: 'center' },
     divider: { height: 1, backgroundColor: '#f0f0f0', marginVertical: 15 },
     row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 5 },
-    amountBig: { fontSize: 24, fontWeight: 'bold', color: '#673AB7' },
+    amountBig: { fontSize: 24, fontWeight: 'bold', color: '#0c57fe' },
     copyBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3E5F5', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
-    copyText: { color: '#673AB7', fontWeight: 'bold', marginLeft: 5, fontSize: 12 },
+    copyText: { color: '#0c57fe', fontWeight: 'bold', marginLeft: 5, fontSize: 12 },
     qrContainer: { alignItems: 'center', marginVertical: 10 },
     qrHeader: { color: '#666', marginBottom: 15, fontSize: 14 },
     qrBorder: { padding: 10, backgroundColor: '#fff', borderRadius: 10, borderWidth: 1, borderColor: '#eee' },

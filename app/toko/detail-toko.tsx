@@ -293,7 +293,7 @@ export default function DetailToko() {
                     >
                         <Ionicons name="arrow-back" size={22} color="#fff" />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Toko</Text>
+                    <Text style={styles.headerTitle}>Detail Toko</Text>
                 </View>
                 <View style={styles.centerState}>
                     <ActivityIndicator size="large" color="#1E5CFF" />
@@ -313,7 +313,7 @@ export default function DetailToko() {
                     >
                         <Ionicons name="arrow-back" size={22} color="#fff" />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Toko</Text>
+                    <Text style={styles.headerTitle}>Detail Toko</Text>
                 </View>
                 <View style={styles.centerState}>
                     <Ionicons name="alert-circle-outline" size={48} color="#CCC" />
@@ -340,7 +340,7 @@ export default function DetailToko() {
                 >
                     <Ionicons name="arrow-back" size={22} color="#fff" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Toko</Text>
+                <Text style={styles.headerTitle}>Detail Toko</Text>
             </View>
 
             <FlatList
@@ -440,7 +440,9 @@ const styles = StyleSheet.create({
     headerTitle: {
         color: '#fff',
         fontSize: 18,
-        fontWeight: '700',
+        fontWeight: 'bold',
+        textAlign: 'center',
+        flex: 1,
     },
     centerState: {
         flex: 1,

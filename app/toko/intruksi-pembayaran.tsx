@@ -372,7 +372,7 @@ export default function PaymentInstruction() {
             </ScrollView>
 
             {/* ========== FOOTER ========== */}
-            <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
+            <View style={[styles.footer]}>
                 {timeLeft === "EXPIRED" ? (
                     <TouchableOpacity
                         style={[styles.btnAction, { backgroundColor: '#1E5CFF' }]}

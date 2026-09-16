@@ -17,6 +17,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import API from '../src/utils/api';
 import { storage } from '../src/utils/storage';
 
@@ -59,6 +60,8 @@ interface WalletResponse {
 const WalletScreen: React.FC = () => {
   const router = useRouter();
   const THEME_COLOR = '#0c57fe';
+
+  const insets = useSafeAreaInsets();
 
   // State Data Utama
   const [loading, setLoading] = useState(true);
@@ -461,7 +464,7 @@ const WalletScreen: React.FC = () => {
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { paddingBottom: insets.bottom + 16 }]}>
             <View style={styles.modalTopBar}>
               <View style={styles.modalHandle} />
             </View>

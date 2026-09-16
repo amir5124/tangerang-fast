@@ -278,7 +278,7 @@ const ExploreScreen: React.FC = () => {
       case 'promo': return { name: 'percent', color: '#D4E12D', family: 'Material' };
       case 'order': return { name: 'bag-handle-outline', color: '#0c57fe', family: 'Ionicons' };
       case 'system': return { name: 'help-circle', color: '#26D3B4', family: 'Ionicons' };
-      default: return { name: 'notifications', color: '#7D58B5', family: 'Ionicons' };
+      default: return { name: 'notifications', color: '#0c57fe', family: 'Ionicons' };
     }
   };
 

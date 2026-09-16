@@ -569,7 +569,7 @@ export default function TokoList() {
                 <View style={styles.searchBar}>
                     <TextInput
                         style={styles.searchInput}
-                        placeholder="Search .."
+                        placeholder="Cari produk atau bahan .."
                         placeholderTextColor="#B5B5B5"
                         value={search}
                         onChangeText={setSearch}
@@ -717,7 +717,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#E5E5E5',
         paddingHorizontal: 16,
-        paddingVertical: 12,
+        paddingVertical: 5,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',

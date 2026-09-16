@@ -3,9 +3,7 @@ import { useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
 import {
     Modal,
-    Platform,
     Pressable,
-    SafeAreaView,
     ScrollView,
     StatusBar,
     StyleSheet,
@@ -13,6 +11,7 @@ import {
     TextInput,
     View
 } from "react-native";
+import { useSafeAreaInsets } from 'react-native-safe-area-context'; // ✅ ganti dari 'react-native'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type KategoriType = "Menginap" | "Pulang Pergi" | "Inval";
@@ -25,9 +24,6 @@ interface FormState {
 }
 
 // ─── T&C Content ───────────────────────────────────────────────────────────
-interface TncPoint {
-    text: string;
-}
 interface TncSection {
     no: string | number;
     title: string;
@@ -404,6 +400,8 @@ const TermsModal = ({
     onConfirm: () => void;
     onClose: () => void;
 }) => {
+    // ✅ Modal render di layer terpisah dari <Stack>, jadi perlu insets sendiri
+    const insets = useSafeAreaInsets();
     const scrollRef = useRef<ScrollView>(null);
     const [showScrollBtn, setShowScrollBtn] = useState(true);
 
@@ -420,11 +418,12 @@ const TermsModal = ({
 
     return (
         <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-            <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
+            {/* ✅ View biasa (bukan SafeAreaView bawaan RN yang iOS-only) */}
+            <View style={{ flex: 1, backgroundColor: "#fff" }}>
                 <StatusBar barStyle="light-content" backgroundColor="#3b5bdb" />
 
-                {/* Header */}
-                <View style={styles.header}>
+                {/* Header — ✅ tambah insets.top */}
+                <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
                     <Pressable
                         onPress={onClose}
                         style={({ pressed }) => [styles.backButton, { opacity: pressed ? 0.6 : 1 }]}
@@ -466,7 +465,7 @@ const TermsModal = ({
                             style={({ pressed }) => ({
                                 position: "absolute",
                                 right: 16,
-                                bottom: 100,
+                                bottom: 60,
                                 width: 44,
                                 height: 44,
                                 borderRadius: 22,
@@ -485,14 +484,14 @@ const TermsModal = ({
                     )}
                 </View>
 
-                {/* Footer: checkbox + confirm */}
+                {/* Footer: checkbox + confirm — ✅ paddingBottom pakai insets.bottom dinamis */}
                 <View
                     style={{
                         borderTopWidth: 1,
                         borderTopColor: "#f3f4f6",
                         paddingHorizontal: 16,
                         paddingTop: 12,
-                        paddingBottom: Platform.OS === "ios" ? 28 : 16,
+                        paddingBottom: insets.bottom + 16,
                         backgroundColor: "white",
                     }}
                 >
@@ -540,7 +539,7 @@ const TermsModal = ({
                         </Text>
                     </Pressable>
                 </View>
-            </SafeAreaView>
+            </View>
         </Modal>
     );
 };
@@ -580,7 +579,8 @@ export default function ArtBabysitterScreen() {
     };
 
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: "#f0f4ff" }}>
+        // ✅ View biasa — top & bottom inset sudah dihandle global oleh _layout.tsx
+        <View style={{ flex: 1, backgroundColor: "#f0f4ff" }}>
             <StatusBar barStyle="light-content" backgroundColor="#3b5bdb" />
 
             <View style={styles.header}>
@@ -721,6 +721,8 @@ export default function ArtBabysitterScreen() {
             </ScrollView>
 
             {/* ── Fixed Bottom Button ──────────────────────────────────────────── */}
+            {/* Tidak diubah — posisinya relatif terhadap area flex yang sudah
+                dibatasi spacer global di _layout.tsx, jadi otomatis aman */}
             <View
                 style={{
                     position: "absolute",
@@ -730,7 +732,7 @@ export default function ArtBabysitterScreen() {
                     backgroundColor: "white",
                     paddingHorizontal: 16,
                     paddingTop: 12,
-                    paddingBottom: Platform.OS === "ios" ? 28 : 16,
+                    paddingBottom: 16,
                     borderTopWidth: 1,
                     borderTopColor: "#f3f4f6",
                 }}
@@ -763,7 +765,7 @@ export default function ArtBabysitterScreen() {
                 onConfirm={handleConfirmTnc}
                 onClose={() => setTncVisible(false)}
             />
-        </SafeAreaView>
+        </View>
     );
 }
 

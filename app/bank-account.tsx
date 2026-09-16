@@ -319,7 +319,7 @@ const BankAccountManager: React.FC = () => {
                 >
                     <Ionicons name="arrow-back-outline" size={24} color={PRIMARY_COLOR} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Manajemen Rekening</Text>
+                <Text style={styles.headerTitle}>Tambah Rekening</Text>
                 <View style={styles.headerRight} />
             </View>
 
