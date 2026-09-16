@@ -60,12 +60,12 @@ export default function Index() {
         <Animated.View
           style={{
             opacity: fadeAnim,
-            transform: [{scale: scaleAnim}],
+            transform: [{ scale: scaleAnim }],
             alignItems: 'center',
           }}>
           <Image
             source={{
-              uri: 'https://res.cloudinary.com/dgsdmgcc7/image/upload/v1770898632/Salinan_LOGO_TF_1_s7xulh.png',
+              uri: 'https://res.cloudinary.com/dgsdmgcc7/image/upload/v1789559103/icon-baru_kixbch.png',
             }}
             style={styles.logoImage}
             resizeMode="contain"

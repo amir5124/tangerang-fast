@@ -34,6 +34,7 @@ import {
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import API from '../../src/utils/api';
 import { storage } from '../../src/utils/storage';
@@ -166,6 +167,7 @@ const productSteps = [
 const RiwayatScreen: React.FC = () => {
   const params = useLocalSearchParams<{ orderId?: string }>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   // ============================================================
   // 🔥 STATE
@@ -1834,111 +1836,186 @@ const RiwayatScreen: React.FC = () => {
         onRequestClose={() => setShowCancelModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.cancelSKContent}>
+          <View
+            style={[
+              styles.cancelSKContent,
+              {
+                paddingBottom: Math.max(insets.bottom + 16, 24),
+              },
+            ]}
+          >
+
             <View style={styles.modalHandle} />
 
-            <View style={styles.cancelSKHeader}>
-              <Ionicons name="warning-outline" size={40} color="#ef4444" />
-              <Text style={styles.cancelSKTitle}>Batalkan Pesanan?</Text>
-              <Text style={styles.cancelSKSubtitle}>
-                Perhatikan syarat & ketentuan berikut sebelum membatalkan
-              </Text>
-            </View>
-
-            <View style={styles.cancelSKBox}>
-              <View style={styles.cancelSKItem}>
-                <Ionicons name="alert-circle-outline" size={20} color="#ef4444" />
-                <Text style={styles.cancelSKItemText}>
-                  Biaya admin <Text style={{ fontWeight: 'bold', color: '#ef4444' }}>PG (Payment Gateway)</Text> tidak akan dikembalikan
-                </Text>
-              </View>
-              <View style={styles.cancelSKItem}>
-                <Ionicons name="time-outline" size={20} color="#f59e0b" />
-                <Text style={styles.cancelSKItemText}>
-                  Dana akan dikembalikan ke saldo Anda dalam waktu 1x24 jam
-                </Text>
-              </View>
-              <View style={styles.cancelSKItem}>
-                <Ionicons name="refresh-outline" size={20} color="#3b82f6" />
-                <Text style={styles.cancelSKItemText}>
-                  Anda dapat memesan ulang kapan saja setelah pembatalan
-                </Text>
-              </View>
-            </View>
-
-            <TouchableOpacity
-              style={styles.skCheckboxRow}
-              onPress={() => setIsSKChecked(!isSKChecked)}
-              activeOpacity={0.7}
+            {/* BAGIAN YANG BISA SCROLL */}
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.cancelScrollContent}
+              keyboardShouldPersistTaps="handled"
             >
-              <View style={[styles.skCheckbox, isSKChecked && styles.skCheckboxChecked]}>
-                {isSKChecked && <Ionicons name="checkmark" size={14} color="#fff" />}
+              <View style={styles.cancelSKHeader}>
+                <Ionicons
+                  name="warning-outline"
+                  size={40}
+                  color="#ef4444"
+                />
+
+                <Text style={styles.cancelSKTitle}>
+                  Batalkan Pesanan?
+                </Text>
+
+                <Text style={styles.cancelSKSubtitle}>
+                  Perhatikan syarat & ketentuan berikut sebelum membatalkan
+                </Text>
               </View>
-              <Text style={styles.skCheckboxLabel}>
-                Saya setuju dengan syarat & ketentuan di atas
-              </Text>
-            </TouchableOpacity>
 
-            <Text style={styles.cancelSKLabel}>Pilih alasan pembatalan:</Text>
+              <View style={styles.cancelSKBox}>
+                <View style={styles.cancelSKItem}>
+                  <Ionicons
+                    name="alert-circle-outline"
+                    size={20}
+                    color="#ef4444"
+                  />
 
-            {cancelReasons.map(reason => (
+                  <Text style={styles.cancelSKItemText}>
+                    Biaya admin{' '}
+                    <Text style={{ fontWeight: 'bold', color: '#ef4444' }}>
+                      PG (Payment Gateway)
+                    </Text>{' '}
+                    tidak akan dikembalikan
+                  </Text>
+                </View>
+
+                <View style={styles.cancelSKItem}>
+                  <Ionicons
+                    name="time-outline"
+                    size={20}
+                    color="#f59e0b"
+                  />
+
+                  <Text style={styles.cancelSKItemText}>
+                    Dana akan dikembalikan ke saldo Anda dalam waktu 1x24 jam
+                  </Text>
+                </View>
+
+                <View style={styles.cancelSKItem}>
+                  <Ionicons
+                    name="refresh-outline"
+                    size={20}
+                    color="#3b82f6"
+                  />
+
+                  <Text style={styles.cancelSKItemText}>
+                    Anda dapat memesan ulang kapan saja setelah pembatalan
+                  </Text>
+                </View>
+              </View>
+
               <TouchableOpacity
-                key={reason}
-                style={styles.reasonOption}
-                onPress={() => setSelectedReason(reason)}
+                style={styles.skCheckboxRow}
+                onPress={() => setIsSKChecked(!isSKChecked)}
                 activeOpacity={0.7}
               >
                 <View
                   style={[
-                    styles.radioCircle,
-                    selectedReason === reason && {
-                      borderColor: '#0c57fe',
-                    },
+                    styles.skCheckbox,
+                    isSKChecked && styles.skCheckboxChecked,
                   ]}
                 >
-                  {selectedReason === reason && (
-                    <View style={styles.radioInner} />
+                  {isSKChecked && (
+                    <Ionicons
+                      name="checkmark"
+                      size={14}
+                      color="#fff"
+                    />
                   )}
                 </View>
-                <Text
-                  style={[
-                    styles.reasonText,
-                    selectedReason === reason && {
-                      color: '#1E293B',
-                      fontWeight: '600',
-                    },
-                  ]}
-                >
-                  {reason}
+
+                <Text style={styles.skCheckboxLabel}>
+                  Saya setuju dengan syarat & ketentuan di atas
                 </Text>
               </TouchableOpacity>
-            ))}
 
+              <Text style={styles.cancelSKLabel}>
+                Pilih alasan pembatalan:
+              </Text>
+
+              {cancelReasons.map(reason => (
+                <TouchableOpacity
+                  key={reason}
+                  style={styles.reasonOption}
+                  onPress={() => setSelectedReason(reason)}
+                  activeOpacity={0.7}
+                >
+                  <View
+                    style={[
+                      styles.radioCircle,
+                      selectedReason === reason && {
+                        borderColor: '#0c57fe',
+                      },
+                    ]}
+                  >
+                    {selectedReason === reason && (
+                      <View style={styles.radioInner} />
+                    )}
+                  </View>
+
+                  <Text
+                    style={[
+                      styles.reasonText,
+                      selectedReason === reason && {
+                        color: '#1E293B',
+                        fontWeight: '600',
+                      },
+                    ]}
+                  >
+                    {reason}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+
+              {/* Spacer supaya konten terakhir tidak menempel tombol */}
+              <View style={{ height: 10 }} />
+            </ScrollView>
+
+            {/* TOMBOL SELALU TERLIHAT */}
             <View style={styles.modalActions}>
               <TouchableOpacity
                 style={styles.btnKeep}
                 onPress={() => setShowCancelModal(false)}
               >
-                <Text style={styles.textKeep}>Kembali</Text>
+                <Text style={styles.textKeep}>
+                  Kembali
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={[
                   styles.btnConfirmCancel,
-                  (!selectedReason || !isSKChecked || isCancelling) && { opacity: 0.5 },
+                  (!selectedReason ||
+                    !isSKChecked ||
+                    isCancelling) && {
+                    opacity: 0.5,
+                  },
                 ]}
-                disabled={!selectedReason || !isSKChecked || isCancelling}
+                disabled={
+                  !selectedReason ||
+                  !isSKChecked ||
+                  isCancelling
+                }
                 onPress={handleCancelOrder}
               >
                 <Text style={styles.textConfirmCancel}>
-                  {isCancelling ? 'Memproses...' : 'Ya, Batalkan'}
+                  {isCancelling
+                    ? 'Memproses...'
+                    : 'Ya, Batalkan'}
                 </Text>
               </TouchableOpacity>
             </View>
+
           </View>
         </View>
       </Modal>
-
       {/* ============================================================
           🔥 MODAL KONFIRMASI PENERIMAAN PRODUK
           ============================================================ */}
@@ -2922,9 +2999,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    padding: 24,
-    paddingBottom: 30,
+    paddingTop: 12,
+    paddingHorizontal: 24,
+    paddingBottom: 16,
     maxHeight: '90%',
+    width: '100%',
+  },
+  cancelScrollContent: {
+    paddingBottom: 10,
   },
   cancelSKHeader: {
     alignItems: 'center',

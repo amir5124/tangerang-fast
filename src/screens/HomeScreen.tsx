@@ -257,7 +257,7 @@ export default function HomeScreen() {
                       source={
                         item.profile_picture
                           ? { uri: item.profile_picture.startsWith('http') ? item.profile_picture : `${IMAGE_BASE_URL}${item.profile_picture}` }
-                          : { uri: 'https://res.cloudinary.com/dgsdmgcc7/image/upload/v1770898632/Salinan_LOGO_TF_1_s7xulh.png' }
+                          : { uri: 'https://res.cloudinary.com/dgsdmgcc7/image/upload/v1789559103/icon-baru_kixbch.png' }
                       }
                       style={styles.profileImage}
                     />

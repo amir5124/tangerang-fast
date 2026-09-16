@@ -60,7 +60,17 @@
         }
       ],
       "expo-secure-store",
-      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notif-icon.png",
+          "color": "#0c57fe",
+          "sounds": [
+            "./assets/sounds/notification.mp3"
+          ],
+          "mode": "production"
+        }
+      ],
       [
         "expo-location",
         {
