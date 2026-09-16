@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Alert, ScrollView } from 'react-native';
-import { useTailwind } from 'tailwind-rn';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import API from '../utils/api';
+import React, { useEffect, useState } from 'react';
+import { Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { useTailwind } from 'tailwind-rn';
 
 const HomeScreen = ({ navigation }) => {
   const tailwind = useTailwind();
@@ -27,8 +26,8 @@ const HomeScreen = ({ navigation }) => {
       "Apakah Anda yakin ingin keluar?",
       [
         { text: "Batal", style: "cancel" },
-        { 
-          text: "Ya, Keluar", 
+        {
+          text: "Ya, Keluar",
           onPress: async () => {
             try {
               await AsyncStorage.clear(); // Hapus semua data (token, userData, dll)
@@ -36,7 +35,7 @@ const HomeScreen = ({ navigation }) => {
             } catch (e) {
               console.log('Error logout:', e);
             }
-          } 
+          }
         }
       ]
     );
@@ -45,7 +44,7 @@ const HomeScreen = ({ navigation }) => {
   return (
     <View style={tailwind('flex-1 bg-gray-50')}>
       {/* Header Ungu */}
-      <View style={[tailwind('p-6 pt-12 rounded-b-3xl shadow-lg'), { backgroundColor: '#633594' }]}>
+      <View style={[tailwind('p-6 pt-12 rounded-b-3xl shadow-lg'), { backgroundColor: '#0c57fe' }]}>
         <View style={tailwind('flex-row justify-between items-center')}>
           <View>
             <Text style={tailwind('text-white text-lg opacity-80')}>Selamat Datang,</Text>
@@ -53,7 +52,7 @@ const HomeScreen = ({ navigation }) => {
               {userData ? userData.full_name : 'Pelanggan'}
             </Text>
           </View>
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={handleLogout}
             style={tailwind('bg-red-500 p-2 rounded-lg')}
           >
@@ -74,14 +73,14 @@ const HomeScreen = ({ navigation }) => {
 
         {/* Placeholder Menu Jasa */}
         <Text style={tailwind('text-lg font-bold text-gray-800 mb-4')}>Layanan Kami</Text>
-        
+
         <View style={tailwind('flex-row flex-wrap justify-between')}>
           {['Cuci AC', 'Service Pompa', 'Listrik', 'Bangunan'].map((item, index) => (
-            <TouchableOpacity 
+            <TouchableOpacity
               key={index}
               style={tailwind('bg-white w-5/12 p-4 rounded-xl mb-4 items-center shadow-sm')}
             >
-              <View style={[tailwind('w-12 h-12 rounded-full mb-2 opacity-20'), { backgroundColor: '#633594' }]} />
+              <View style={[tailwind('w-12 h-12 rounded-full mb-2 opacity-20'), { backgroundColor: '#0c57fe' }]} />
               <Text style={tailwind('font-bold text-gray-700')}>{item}</Text>
             </TouchableOpacity>
           ))}

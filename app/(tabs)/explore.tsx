@@ -276,7 +276,7 @@ const ExploreScreen: React.FC = () => {
   const getIconConfig = (type: string) => {
     switch (type) {
       case 'promo': return { name: 'percent', color: '#D4E12D', family: 'Material' };
-      case 'order': return { name: 'bag-handle-outline', color: '#633594', family: 'Ionicons' };
+      case 'order': return { name: 'bag-handle-outline', color: '#0c57fe', family: 'Ionicons' };
       case 'system': return { name: 'help-circle', color: '#26D3B4', family: 'Ionicons' };
       default: return { name: 'notifications', color: '#7D58B5', family: 'Ionicons' };
     }
@@ -325,7 +325,7 @@ const ExploreScreen: React.FC = () => {
           <Text style={styles.sectionTitle}>Chat Kamu</Text>
 
           {loading ? (
-            <ActivityIndicator size="large" color="#633594" style={{ marginTop: 20 }} />
+            <ActivityIndicator size="large" color="#0c57fe" style={{ marginTop: 20 }} />
           ) : combinedChat.length > 0 ? (
             combinedChat.map((item) => {
               const config = getIconConfig(item.type);
@@ -491,11 +491,11 @@ const styles = StyleSheet.create({
   chatContent: { paddingVertical: 5 },
   chatHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   chatName: { fontSize: 15, fontWeight: '700', color: '#1E293B' },
-  unreadText: { color: '#633594', fontWeight: '800' },
+  unreadText: { color: '#0c57fe', fontWeight: '800' },
   chatTime: { fontSize: 11, color: '#94A3B8' },
   chatMessage: { fontSize: 13, color: '#64748B', marginTop: 2, flex: 1, marginRight: 8 },
   unreadMessage: { color: '#1E293B', fontWeight: '500' },
-  dotPurple: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#633594' },
+  dotPurple: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#0c57fe' },
   separator: { height: 1, backgroundColor: '#F1F5F9', marginTop: 12 },
 
   // Badge status order
@@ -599,7 +599,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   modalButton: {
-    backgroundColor: '#633594',
+    backgroundColor: '#0c57fe',
     margin: 20,
     padding: 12,
     borderRadius: 12,

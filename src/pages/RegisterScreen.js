@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
-import { useTailwind } from 'tailwind-rn';
-import messaging from '@react-native-firebase/messaging';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import messaging from '@react-native-firebase/messaging';
+import React, { useEffect, useState } from 'react';
+import { Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useTailwind } from 'tailwind-rn';
 import API from '../utils/api';
 
 const RegisterScreen = ({ navigation }) => {
@@ -49,7 +49,7 @@ const RegisterScreen = ({ navigation }) => {
       };
 
       const response = await API.post('/auth/register', payload);
-      
+
       Alert.alert("Berhasil", "Akun berhasil dibuat!");
       navigation.navigate('Login');
     } catch (error) {
@@ -62,7 +62,7 @@ const RegisterScreen = ({ navigation }) => {
   return (
     <ScrollView style={tailwind('flex-1 bg-white p-6')}>
       <View style={tailwind('mt-10')}>
-        <Text style={[tailwind('text-3xl font-bold'), { color: '#633594' }]}>Buat akun</Text>
+        <Text style={[tailwind('text-3xl font-bold'), { color: '#0c57fe' }]}>Buat akun</Text>
         <Text style={tailwind('text-gray-500 mt-2')}>Silakan masukkan detail Anda</Text>
       </View>
 
@@ -107,7 +107,7 @@ const RegisterScreen = ({ navigation }) => {
         <TouchableOpacity
           onPress={handleRegister}
           disabled={loading}
-          style={[tailwind('p-4 rounded-xl mt-4 items-center shadow-lg'), { backgroundColor: '#633594' }]}
+          style={[tailwind('p-4 rounded-xl mt-4 items-center shadow-lg'), { backgroundColor: '#0c57fe' }]}
         >
           <Text style={tailwind('text-white font-bold text-lg')}>
             {loading ? 'Memproses...' : 'Daftar'}
@@ -117,7 +117,7 @@ const RegisterScreen = ({ navigation }) => {
         {/* Login Link */}
         <View style={tailwind('mt-10 items-center')}>
           <Text style={tailwind('text-gray-600')}>Sudah punya akun?</Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={() => navigation.navigate('Login')}
             style={[tailwind('w-full p-4 rounded-xl mt-4 items-center border'), { borderColor: '#2ca942' }]}
           >

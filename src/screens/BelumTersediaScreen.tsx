@@ -82,14 +82,14 @@ const styles = StyleSheet.create({
         marginBottom: 40,
     },
     button: {
-        backgroundColor: '#633594', // Warna ungu branding Anda
+        backgroundColor: '#0c57fe', // Warna ungu branding Anda
         paddingVertical: 14,
         paddingHorizontal: 30,
         borderRadius: 12,
         width: '100%',
         alignItems: 'center',
         elevation: 2,
-        shadowColor: '#633594',
+        shadowColor: '#0c57fe',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.2,
         shadowRadius: 5,

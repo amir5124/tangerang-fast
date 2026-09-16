@@ -111,7 +111,7 @@ export const ServiceCard = ({
                         <Text style={styles.ratingText}>{rating}</Text>
                         <Text style={styles.reviewsText}>({reviewsCount})</Text>
                         {/* <Text style={styles.bullet}>•</Text> */}
-                        {/* <Ionicons name="navigate-circle-outline" size={14} color="#633594" style={{ marginRight: 2 }} /> */}
+                        {/* <Ionicons name="navigate-circle-outline" size={14} color="#0c57fe" style={{ marginRight: 2 }} /> */}
                         {/* <Text style={styles.distanceText}>{distance}</Text> */}
                     </View>
 
@@ -133,7 +133,7 @@ export const ServiceCard = ({
 
                     <View style={styles.detailLink}>
                         <Text style={[styles.detailText, !isOpen && { color: '#94A3B8' }]}>Lihat Detail</Text>
-                        <Ionicons name="chevron-forward" size={12} color={isOpen ? "#633594" : "#94A3B8"} />
+                        <Ionicons name="chevron-forward" size={12} color={isOpen ? "#0c57fe" : "#94A3B8"} />
                     </View>
                 </View>
 
@@ -175,16 +175,16 @@ const styles = StyleSheet.create({
     ratingText: { fontWeight: '700', fontSize: 13, marginLeft: 4, color: '#334155' },
     reviewsText: { fontSize: 12, color: '#94A3B8', marginLeft: 2 },
     bullet: { marginHorizontal: 8, color: '#CBD5E1' },
-    distanceText: { fontSize: 12, color: '#633594', fontWeight: '800' },
+    distanceText: { fontSize: 12, color: '#0c57fe', fontWeight: '800' },
     serviceListContainer: { marginBottom: 4 },
     descriptionText: { fontSize: 13, color: '#64748B', lineHeight: 18, marginBottom: 2 },
     descriptionTexts: { fontSize: 12, color: '#000', lineHeight: 18, marginBottom: 2 },
     detailLink: { flexDirection: 'row', alignItems: 'center', marginTop: 'auto', paddingTop: 8 },
-    detailText: { color: '#633594', fontSize: 11, fontWeight: '800', marginRight: 2 },
+    detailText: { color: '#0c57fe', fontSize: 11, fontWeight: '800', marginRight: 2 },
     rightContent: { alignItems: 'center', width: 85 },
     serviceImage: { width: 85, height: 85, borderRadius: 12, backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#F1F5F9' },
     orderButton: {
-        backgroundColor: '#633594',
+        backgroundColor: '#0c57fe',
         width: '100%',
         paddingVertical: 6,
         borderRadius: 8,

@@ -10,7 +10,6 @@ import {
     Platform,
     SafeAreaView,
     ScrollView,
-    StatusBar,
     StyleSheet,
     Text,
     TextInput,
@@ -310,7 +309,6 @@ const BankAccountManager: React.FC = () => {
 
     return (
         <SafeAreaView style={styles.safeArea}>
-            <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
             {/* HEADER WITH ARROW BACK */}
             <View style={styles.header}>
@@ -535,7 +533,7 @@ const BankAccountManager: React.FC = () => {
 };
 
 // ========== Styles ==========
-const PRIMARY_COLOR = '#633594';
+const PRIMARY_COLOR = '#0c57fe';
 const PRIMARY_DARK = '#4e2a75';
 
 const styles = StyleSheet.create({

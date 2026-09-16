@@ -138,7 +138,7 @@ export default function ProfileScreen() {
       return {
         uri: `https://ui-avatars.com/api/?name=${encodeURIComponent(
           user?.full_name || 'User',
-        )}&background=633594&color=fff&size=256`,
+        )}&background=0c57fe&color=fff&size=256`,
       };
     }
 
@@ -174,7 +174,7 @@ export default function ProfileScreen() {
   if (loading && !refreshing) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#633594" />
+        <ActivityIndicator size="large" color="#0c57fe" />
       </View>
     );
   }
@@ -200,7 +200,7 @@ export default function ProfileScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={['#633594']}
+            colors={['#0c57fe']}
           />
         }>
         <View style={styles.heroSection}>
@@ -235,7 +235,7 @@ export default function ProfileScreen() {
             style={styles.wideStatItem}
             activeOpacity={0.8}>
             <View style={styles.statIconCircle}>
-              <Ionicons name="wallet-outline" size={20} color="#633594" />
+              <Ionicons name="wallet-outline" size={20} color="#0c57fe" />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.wideStatLabel}>Saldo Wallet</Text>
@@ -301,7 +301,7 @@ export default function ProfileScreen() {
 const InfoItem = ({ icon, label, value }: any) => (
   <View style={styles.infoItem}>
     <View style={styles.iconCircle}>
-      <Ionicons name={icon} size={18} color="#633594" />
+      <Ionicons name={icon} size={18} color="#0c57fe" />
     </View>
     <View>
       <Text style={styles.infoLabel}>{label}</Text>
@@ -317,7 +317,7 @@ const MenuItem = ({ icon, label, onPress }: any) => (
     onPress={onPress}>
     <View style={styles.menuLeft}>
       <View style={styles.menuIconBg}>
-        <Ionicons name={icon} size={20} color="#633594" />
+        <Ionicons name={icon} size={20} color="#0c57fe" />
       </View>
       <Text style={styles.menuLabel}>{label}</Text>
     </View>
@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: '#633594',
+    backgroundColor: '#0c57fe',
     width: 32,
     height: 32,
     borderRadius: 16,
@@ -477,7 +477,7 @@ const styles = StyleSheet.create({
   wideStatValue: {
     fontSize: 20,
     fontWeight: '900',
-    color: '#633594',
+    color: '#0c57fe',
     marginTop: 2,
   },
   versionText: {

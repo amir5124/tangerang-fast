@@ -1,17 +1,17 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    Alert,
-    Platform,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 export default function ResetPasswordScreen() {
-  const {token} = useLocalSearchParams(); // Menangkap ?token=xyz
+  const { token } = useLocalSearchParams(); // Menangkap ?token=xyz
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const router = useRouter();
@@ -28,8 +28,8 @@ export default function ResetPasswordScreen() {
         'https://backend.tangerangfast.online/api/auth/reset-password',
         {
           method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({token, newPassword: password}),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, newPassword: password }),
         },
       );
 
@@ -83,8 +83,8 @@ const styles = StyleSheet.create({
     padding: 24,
     justifyContent: 'center',
   },
-  title: {fontSize: 24, fontWeight: '800', color: '#1E293B', marginBottom: 10},
-  subtitle: {fontSize: 15, color: '#64748B', marginBottom: 30},
+  title: { fontSize: 24, fontWeight: '800', color: '#1E293B', marginBottom: 10 },
+  subtitle: { fontSize: 15, color: '#64748B', marginBottom: 30 },
   input: {
     height: 56,
     borderWidth: 1,
@@ -95,12 +95,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   button: {
-    backgroundColor: '#633594',
+    backgroundColor: '#0c57fe',
     height: 56,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 10,
   },
-  buttonText: {color: '#FFF', fontSize: 16, fontWeight: '700'},
+  buttonText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
 });

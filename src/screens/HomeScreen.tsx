@@ -214,7 +214,7 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+      <StatusBar barStyle="light-content" backgroundColor="#ffffff" />
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
@@ -222,8 +222,8 @@ export default function HomeScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={['#633594']}
-            tintColor="#633594"
+            colors={['#0c57fe']}
+            tintColor="#0c57fe"
           />
         }>
 
@@ -450,7 +450,7 @@ const styles = StyleSheet.create({
   },
   dotActive: {
     width: 20,
-    backgroundColor: '#633594',
+    backgroundColor: '#0c57fe',
   },
   dotInactive: {
     width: 8,
@@ -459,7 +459,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#633594',
+    color: '#0c57fe',
     marginBottom: 15,
     paddingHorizontal: 20,
   },

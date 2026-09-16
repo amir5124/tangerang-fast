@@ -1031,7 +1031,7 @@ const RiwayatScreen: React.FC = () => {
   if (loading && !params.orderId) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#633594" />
+        <ActivityIndicator size="large" color="#0c57fe" />
       </View>
     );
   }
@@ -1141,7 +1141,7 @@ const RiwayatScreen: React.FC = () => {
           )}
           ListEmptyComponent={
             loading ? (
-              <ActivityIndicator size="large" color="#633594" />
+              <ActivityIndicator size="large" color="#0c57fe" />
             ) : (
               <View style={{ alignItems: 'center', justifyContent: 'center' }}>
                 <Inbox size={60} color="#CBD5E1" />
@@ -1157,7 +1157,7 @@ const RiwayatScreen: React.FC = () => {
           {detailLoading ? (
             <View
               style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-              <ActivityIndicator size="large" color="#633594" />
+              <ActivityIndicator size="large" color="#0c57fe" />
               <Text style={{ marginTop: 10, color: '#64748b' }}>
                 Mengambil data...
               </Text>
@@ -1168,7 +1168,7 @@ const RiwayatScreen: React.FC = () => {
                 <RefreshControl
                   refreshing={refreshing}
                   onRefresh={onRefresh}
-                  colors={['#633594']}
+                  colors={['#0c57fe']}
                 />
               }
               contentContainerStyle={{ padding: 15, paddingBottom: 100 }}>
@@ -1222,7 +1222,7 @@ const RiwayatScreen: React.FC = () => {
                         <View
                           style={[
                             styles.dot,
-                            { backgroundColor: isActive ? '#633594' : '#E2E8F0' },
+                            { backgroundColor: isActive ? '#0c57fe' : '#E2E8F0' },
                           ]}>
                           {isActive && <CheckCircle2 size={12} color="#fff" />}
                         </View>
@@ -1232,7 +1232,7 @@ const RiwayatScreen: React.FC = () => {
                               styles.line,
                               {
                                 backgroundColor:
-                                  index + 1 < curWeight ? '#633594' : '#E2E8F0',
+                                  index + 1 < curWeight ? '#0c57fe' : '#E2E8F0',
                               },
                             ]}
                           />
@@ -1261,7 +1261,7 @@ const RiwayatScreen: React.FC = () => {
                 {order.proof_image_url && (
                   <View style={styles.proofContainer}>
                     <View style={styles.proofHeader}>
-                      <ImageIcon size={16} color="#633594" />
+                      <ImageIcon size={16} color="#0c57fe" />
                       <Text style={styles.proofTitle}>
                         {isProduct ? 'Bukti Pengiriman' : 'Bukti Pengerjaan'}
                       </Text>
@@ -1504,7 +1504,7 @@ const RiwayatScreen: React.FC = () => {
                 {order.status === 'unpaid' && (
                   <View style={styles.paymentBox}>
                     <View style={styles.paymentBoxHeader}>
-                      <Clock size={18} color="#633594" />
+                      <Clock size={18} color="#0c57fe" />
                       <Text style={styles.paymentBoxTitle}>
                         Instruksi Pembayaran
                       </Text>
@@ -1578,7 +1578,7 @@ const RiwayatScreen: React.FC = () => {
                               ) : (
                                 <ActivityIndicator
                                   size="large"
-                                  color="#633594"
+                                  color="#0c57fe"
                                   style={{ padding: 40 }}
                                 />
                               )}
@@ -1611,7 +1611,7 @@ const RiwayatScreen: React.FC = () => {
                                 <Ionicons
                                   name="copy-outline"
                                   size={20}
-                                  color="#633594"
+                                  color="#0c57fe"
                                 />
                                 <Text style={styles.copyIconText}>Salin</Text>
                               </TouchableOpacity>
@@ -1705,7 +1705,7 @@ const RiwayatScreen: React.FC = () => {
 
                     <TouchableOpacity
                       style={{
-                        backgroundColor: '#633594',
+                        backgroundColor: '#0c57fe',
                         paddingVertical: 14,
                         paddingHorizontal: 20,
                         borderRadius: 16,
@@ -1892,7 +1892,7 @@ const RiwayatScreen: React.FC = () => {
                   style={[
                     styles.radioCircle,
                     selectedReason === reason && {
-                      borderColor: '#633594',
+                      borderColor: '#0c57fe',
                     },
                   ]}
                 >
@@ -2134,7 +2134,7 @@ const styles = StyleSheet.create({
   },
   listMitra: { fontSize: 15, fontWeight: '700', color: '#1E293B' },
   listDate: { fontSize: 12, color: '#64748B', marginLeft: 5 },
-  listPrice: { fontSize: 14, fontWeight: '700', color: '#633594', marginTop: 5 },
+  listPrice: { fontSize: 14, fontWeight: '700', color: '#0c57fe', marginTop: 5 },
   rowItem: { flexDirection: 'row', alignItems: 'center' },
   rowBetween: {
     flexDirection: 'row',
@@ -2213,7 +2213,7 @@ const styles = StyleSheet.create({
   totalValue: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#633594',
+    color: '#0c57fe',
   },
   orderMitraName: { fontSize: 18, fontWeight: '800' },
   orderSchedule: { fontSize: 13, color: '#64748B', marginTop: 5 },
@@ -2223,7 +2223,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 10,
   },
-  statusBadgeMainText: { color: '#633594', fontSize: 11, fontWeight: '800' },
+  statusBadgeMainText: { color: '#0c57fe', fontSize: 11, fontWeight: '800' },
   divider: { height: 1, backgroundColor: '#F1F5F9', marginVertical: 20 },
   stepRow: { flexDirection: 'row' },
   indicatorCol: { alignItems: 'center', marginRight: 15, width: 22 },
@@ -2265,13 +2265,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
-    borderColor: '#633594',
+    borderColor: '#0c57fe',
     padding: 14,
     borderRadius: 16,
   },
-  waBtnText: { marginLeft: 8, color: '#633594', fontWeight: '700' },
+  waBtnText: { marginLeft: 8, color: '#0c57fe', fontWeight: '700' },
   completeBtn: {
-    backgroundColor: '#633594',
+    backgroundColor: '#0c57fe',
     padding: 16,
     borderRadius: 16,
     alignItems: 'center',
@@ -2322,7 +2322,7 @@ const styles = StyleSheet.create({
     color: '#1E293B',
   },
   submitBtn: {
-    backgroundColor: '#633594',
+    backgroundColor: '#0c57fe',
     padding: 18,
     borderRadius: 18,
     alignItems: 'center',
@@ -2406,7 +2406,7 @@ const styles = StyleSheet.create({
   timerValue: {
     fontSize: 26,
     fontWeight: '800',
-    color: '#633594',
+    color: '#0c57fe',
     fontVariant: ['tabular-nums'],
   },
   instructionText: {
@@ -2450,7 +2450,7 @@ const styles = StyleSheet.create({
   copyIconText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#633594',
+    color: '#0c57fe',
   },
   amountCard: {
     marginTop: 5,
@@ -2471,7 +2471,7 @@ const styles = StyleSheet.create({
   },
   copyTextSmall: {
     fontSize: 12,
-    color: '#633594',
+    color: '#0c57fe',
     fontWeight: '600',
   },
   qrContainer: {
@@ -2505,7 +2505,7 @@ const styles = StyleSheet.create({
   },
   helperText: {
     fontSize: 12,
-    color: '#633594',
+    color: '#0c57fe',
     fontWeight: '600',
   },
   poweredBy: {
@@ -2563,7 +2563,7 @@ const styles = StyleSheet.create({
     height: 10,
     width: 10,
     borderRadius: 5,
-    backgroundColor: '#633594',
+    backgroundColor: '#0c57fe',
   },
   reasonText: {
     fontSize: 14,
@@ -2627,7 +2627,7 @@ const styles = StyleSheet.create({
   servicePrice: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#633594',
+    color: '#0c57fe',
   },
   biayaRow: {
     flexDirection: 'row',
@@ -2662,7 +2662,7 @@ const styles = StyleSheet.create({
   totalPrice: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#633594',
+    color: '#0c57fe',
   },
   paymentStatusRow: {
     flexDirection: 'row',
@@ -2738,12 +2738,12 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#633594',
+    borderColor: '#0c57fe',
   },
   confirmTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#633594',
+    color: '#0c57fe',
     marginBottom: 15,
   },
   rowBtn: {
@@ -2758,7 +2758,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
   },
-  btnPrimary: { backgroundColor: '#633594' },
+  btnPrimary: { backgroundColor: '#0c57fe' },
   btnOutline: { borderWidth: 1, borderColor: '#ef4444' },
   btnTextWhite: { color: '#fff', fontWeight: 'bold' },
   btnTextDanger: { color: '#ef4444', fontWeight: 'bold' },
@@ -2768,7 +2768,7 @@ const styles = StyleSheet.create({
   value: { fontSize: 15, fontWeight: '600', color: '#1e293b', marginTop: 2 },
   waBtn2: {
     flex: 1,
-    backgroundColor: '#633594',
+    backgroundColor: '#0c57fe',
     flexDirection: 'row',
     padding: 14,
     borderRadius: 12,
@@ -2777,7 +2777,7 @@ const styles = StyleSheet.create({
   },
   mapBtn: {
     flex: 1,
-    backgroundColor: '#633594',
+    backgroundColor: '#0c57fe',
     flexDirection: 'row',
     padding: 14,
     borderRadius: 12,
@@ -2787,7 +2787,7 @@ const styles = StyleSheet.create({
   waBtnText2: { color: '#fff', fontWeight: 'bold', marginLeft: 8 },
   actionContainer: { paddingHorizontal: 16, marginBottom: 40 },
   primaryBtnLarge: {
-    backgroundColor: '#633594',
+    backgroundColor: '#0c57fe',
     padding: 20,
     borderRadius: 15,
     alignItems: 'center',
@@ -2987,8 +2987,8 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   skCheckboxChecked: {
-    backgroundColor: '#633594',
-    borderColor: '#633594',
+    backgroundColor: '#0c57fe',
+    borderColor: '#0c57fe',
   },
   skCheckboxLabel: {
     fontSize: 13,

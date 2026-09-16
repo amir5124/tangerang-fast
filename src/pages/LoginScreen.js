@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
-import { useTailwind } from 'tailwind-rn';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import messaging from '@react-native-firebase/messaging';
+import React, { useState } from 'react';
+import { ActivityIndicator, Alert, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useTailwind } from 'tailwind-rn';
 import API from '../utils/api';
 
 const LoginScreen = ({ navigation }) => {
@@ -35,9 +35,9 @@ const LoginScreen = ({ navigation }) => {
       await AsyncStorage.setItem('userData', JSON.stringify(user));
 
       Alert.alert("Sukses", `Selamat datang kembali, ${user.full_name}`);
-      
+
       // 4. Arahkan ke halaman utama (Home)
-      navigation.replace('Home'); 
+      navigation.replace('Home');
     } catch (error) {
       const msg = error.response?.data?.message || "Koneksi ke server gagal";
       Alert.alert("Gagal Masuk", msg);
@@ -49,7 +49,7 @@ const LoginScreen = ({ navigation }) => {
   return (
     <View style={tailwind('flex-1 bg-white p-6 justify-center')}>
       <View style={tailwind('mb-10')}>
-        <Text style={[tailwind('text-4xl font-bold'), { color: '#633594' }]}>Masuk</Text>
+        <Text style={[tailwind('text-4xl font-bold'), { color: '#0c57fe' }]}>Masuk</Text>
         <Text style={tailwind('text-gray-500 mt-2')}>Selamat datang kembali di TangerangFast</Text>
       </View>
 
@@ -76,7 +76,7 @@ const LoginScreen = ({ navigation }) => {
         <TouchableOpacity
           onPress={handleLogin}
           disabled={loading}
-          style={[tailwind('p-4 rounded-xl items-center shadow-md'), { backgroundColor: '#633594' }]}
+          style={[tailwind('p-4 rounded-xl items-center shadow-md'), { backgroundColor: '#0c57fe' }]}
         >
           {loading ? (
             <ActivityIndicator color="#fff" />
@@ -87,7 +87,7 @@ const LoginScreen = ({ navigation }) => {
 
         <View style={tailwind('mt-8 items-center')}>
           <Text style={tailwind('text-gray-600')}>Belum punya akun?</Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={() => navigation.navigate('Register')}
             style={[tailwind('w-full p-4 rounded-xl mt-4 items-center border'), { borderColor: '#2ca942' }]}
           >

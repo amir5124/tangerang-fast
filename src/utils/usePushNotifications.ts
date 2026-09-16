@@ -69,7 +69,7 @@ export async function registerForPushNotificationsAsync(): Promise<
             name: 'Pesanan & Transaksi',
             importance: Notifications.AndroidImportance.MAX,
             vibrationPattern: [0, 250, 250, 250],
-            lightColor: '#633594',
+            lightColor: '#0c57fe',
             sound: 'notification',
           });
         }

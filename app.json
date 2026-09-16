@@ -4,10 +4,10 @@
     "slug": "TangerangFast",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/app-icon.png",
+    "icon": "./assets/images/icon-baru.png",
     "notification": {
       "icon": "./assets/images/notif-icon.png",
-      "color": "#633594",
+      "color": "#0c57fe",
       "vapidPublicKey": "BFPdeTAbPGE5VGFZpZFav7IEn-2M6sUP9PJf39QSqb3SPmDwaSFvs93gJSCECXsjVswzcA1R4_m6ONz0eYQ_mOw",
       "serviceWorkerPath": "expo-service-worker.js"
     },
@@ -22,7 +22,7 @@
       }
     },
     "web": {
-      "themeColor": "#633594",
+      "themeColor": "#0c57fe",
       "config": {
         "firebase": {
           "apiKey": "AIzaSyDlcY6gl30RNhKvTFUMYLB9W-booJLYVHs",
@@ -38,9 +38,8 @@
       "package": "com.tangerangfast.app",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
-        "backgroundColor": "#633594",
-        "foregroundImage": "./assets/images/notif-icon.png",
-        "backgroundImage": "./assets/images/notif-icon.png"
+        "backgroundColor": "#0c57fe",
+        "foregroundImage": "./assets/images/icon-baru.png"
       },
       "permissions": [
         "ACCESS_COARSE_LOCATION",
@@ -54,7 +53,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/app-icon.png",
+          "image": "./assets/images/icon-baru.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
@@ -68,7 +67,8 @@
           "locationAlwaysAndWhenInUsePermission": "Izinkan TangerangFast mengakses lokasi Anda."
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      "@react-native-google-signin/google-signin"
     ],
     "extra": {
       "eas": {

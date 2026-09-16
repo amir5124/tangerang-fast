@@ -19,10 +19,10 @@ import {
   navigateToStatusPesanan,
 } from '../../utils/checkActiveArtOrder';
 import {
-  STATUS_PESANAN_GROUP_STATUSES,
-  MATCHING_GROUP_STATUSES,
   INACTIVE_STATUSES,
+  MATCHING_GROUP_STATUSES,
   OrderStatus,
+  STATUS_PESANAN_GROUP_STATUSES,
 } from '../../utils/orderStatusConfig';
 import { Shimmer } from './Shimmer';
 
@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#633594',
+    color: '#0c57fe',
   },
   categoryGrid: {
     flexDirection: 'row',

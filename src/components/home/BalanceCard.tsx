@@ -7,7 +7,7 @@ export const BalanceCard = ({ saldo }: { saldo: string }) => {
         <View style={styles.container}>
             {/* Area Saldo Putih */}
             <View style={styles.balanceInfo}>
-                <Ionicons name="wallet" size={24} color="#633594" />
+                <Ionicons name="wallet" size={24} color="#0c57fe" />
                 <Text style={styles.balanceText}>Rp {saldo}</Text>
             </View>
 

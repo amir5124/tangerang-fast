@@ -255,7 +255,7 @@ const ContactDetailScreen = () => {
             {isFetchingProfile && (
               <ActivityIndicator
                 size="small"
-                color="#633594"
+                color="#0c57fe"
                 style={{ marginBottom: 10 }}
               />
             )}
@@ -337,7 +337,7 @@ const ContactDetailScreen = () => {
               <Ionicons
                 name="location-outline"
                 size={20}
-                color="#633594"
+                color="#0c57fe"
                 style={styles.inputIcon}
               />
               <TextInput
@@ -346,7 +346,7 @@ const ContactDetailScreen = () => {
                 onChangeText={handleLocationSearch}
                 placeholder="Ketik nama jalan atau perumahan..."
               />
-              {loading && <ActivityIndicator size="small" color="#633594" />}
+              {loading && <ActivityIndicator size="small" color="#0c57fe" />}
             </View>
 
             {predictions.length > 0 && (
@@ -406,7 +406,7 @@ const ContactDetailScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  customHeader: { backgroundColor: '#633594' },
+  customHeader: { backgroundColor: '#0c57fe' },
   headerContent: {
     height: 56,
     flexDirection: 'row',
@@ -484,10 +484,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   totalLabel: { fontSize: 12, color: '#666' },
-  totalValue: { fontSize: 20, fontWeight: 'bold', color: '#633594' },
+  totalValue: { fontSize: 20, fontWeight: 'bold', color: '#0c57fe' },
   minOrder: { fontSize: 10, color: '#999' },
   btnNext: {
-    backgroundColor: '#633594',
+    backgroundColor: '#0c57fe',
     paddingVertical: 15,
     paddingHorizontal: 35,
     borderRadius: 10,

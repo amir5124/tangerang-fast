@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
     },
     logoBold: {
         fontWeight: 'bold',
-        color: '#633594',
+        color: '#0c57fe',
     },
 
 
@@ -201,12 +201,12 @@ const styles = StyleSheet.create({
         width: 44,
         height: 44,
         borderRadius: 14,
-        backgroundColor: '#633594',
+        backgroundColor: '#0c57fe',
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 18,
         elevation: 6,
-        shadowColor: "#633594",
+        shadowColor: "#0c57fe",
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 5,
@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
         paddingBottom: 20, // Dikurangi karena sudah ada padding dari _layout.tsx
     },
     button: {
-        backgroundColor: '#633594',
+        backgroundColor: '#0c57fe',
         height: 60,
         borderRadius: 18,
         flexDirection: 'row',

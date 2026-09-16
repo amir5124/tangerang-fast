@@ -173,7 +173,7 @@ const ServiceLaundryScreen = () => {
                     headerTitle: "Laundry",
                     headerShown: true,
                     headerTintColor: '#fff',
-                    headerStyle: { backgroundColor: '#633594' },
+                    headerStyle: { backgroundColor: '#0c57fe' },
                     headerTitleAlign: 'center',
                 }}
             />
@@ -187,7 +187,7 @@ const ServiceLaundryScreen = () => {
 
                 <View style={styles.locationBox}>
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                        <Ionicons name="location-sharp" size={18} color="#633594" />
+                        <Ionicons name="location-sharp" size={18} color="#0c57fe" />
                         <Text style={styles.locationTitle}>Lokasi Sekitar Anda</Text>
                     </View>
                     <Text style={styles.addressText}>{userAddress}</Text>
@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     customHeader: {
-        backgroundColor: '#633594',
+        backgroundColor: '#0c57fe',
     },
     headerContent: {
         height: 56,

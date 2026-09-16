@@ -1,6 +1,7 @@
 import NetInfo from '@react-native-community/netinfo';
 import * as Notifications from 'expo-notifications';
 import { Stack, useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar'; // ✅ ditambahkan (sebelumnya hilang)
 import { WifiOff } from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
@@ -32,16 +33,13 @@ const firebaseConfig = {
   appId: '1:206607018424:web:4f0ddad4a1a6fc3aa7074d',
 };
 
-// Inisialisasi Firebase App saja di top-level (aman, tidak butuh browser API)
-// Jangan inisialisasi `messaging` di sini — pindahkan ke dalam useEffect
 const app =
   getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
-// Konfigurasi Foreground Handler (Native)
 Notifications.setNotificationHandler({
   handleNotification: async () =>
     ({
-      shouldShowAlert: false, // Toast custom yang akan muncul
+      shouldShowAlert: false,
       shouldPlaySound: true,
       shouldSetBadge: true,
     }) as any,
@@ -71,18 +69,13 @@ const toastConfig: ToastConfig = {
   ),
 };
 
-// --- KOMPONEN CONNECTION BANNER (SUDAH DIPERBAIKI) ---
-// Web: pakai navigator.onLine + event listener (lebih reliable)
-// Native: tetap pakai NetInfo
 const ConnectionBanner = () => {
   const [isConnected, setIsConnected] = useState<boolean>(true);
 
   useEffect(() => {
     if (Platform.OS === 'web') {
-      // Guard kalau window/navigator belum siap (SSR/static render)
       if (typeof navigator === 'undefined') return;
 
-      // Set state awal sesuai kondisi browser saat ini
       setIsConnected(navigator.onLine);
 
       const handleOnline = () => setIsConnected(true);
@@ -96,7 +89,6 @@ const ConnectionBanner = () => {
         window.removeEventListener('offline', handleOffline);
       };
     } else {
-      // --- NATIVE (Android/iOS) tetap pakai NetInfo ---
       const unsubscribe = NetInfo.addEventListener(state => {
         setIsConnected(state.isConnected !== false);
       });
@@ -121,7 +113,6 @@ function RootLayoutContent() {
   const notificationListener = useRef<any>(null);
   const responseListener = useRef<any>(null);
 
-  // --- LISTENER SUARA NOTIFIKASI DARI SERVICE WORKER (Web Only) ---
   useEffect(() => {
     if (Platform.OS !== 'web') return;
     if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
@@ -146,14 +137,10 @@ function RootLayoutContent() {
   }, []);
 
   useEffect(() => {
-    // A. Registrasi/Pengecekan Token saat App Terbuka
     registerForPushNotificationsAsync().then(token => {
       if (token) console.log('✅ Device Token Active:');
     });
 
-    // B. Listener Web Foreground
-    // Inisialisasi messaging DI SINI (client-side, setelah komponen mount),
-    // bukan di top-level module, dan dicek dulu dengan isSupported()
     let unsubscribeOnMessage: (() => void) | undefined;
 
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
@@ -178,7 +165,6 @@ function RootLayoutContent() {
         });
     }
 
-    // C. Listener Native Foreground
     notificationListener.current =
       Notifications.addNotificationReceivedListener(notification => {
         const { title, body, data } = notification.request.content;
@@ -190,7 +176,6 @@ function RootLayoutContent() {
         });
       });
 
-    // D. Listener Native Clicked (Background/Killed)
     responseListener.current =
       Notifications.addNotificationResponseReceivedListener(response => {
         const data = response.notification.request.content.data;
@@ -214,38 +199,45 @@ function RootLayoutContent() {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={{ flex: 1 }}>
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: '#fff' },
-          }}>
-          <Stack.Screen name="index" />
-          <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
-          <Stack.Screen
-            name="edit-profile"
-            options={{
+    <>
+      <StatusBar style="light" backgroundColor="#0c57fe" />
+      <View style={styles.container}>
+        {/* Penutup area status bar (khusus iOS, karena backgroundColor StatusBar tidak berlaku di iOS) */}
+        <View style={{ height: insets.top, backgroundColor: '#0c57fe' }} />
+
+        <View style={{ flex: 1 }}>
+          <Stack
+            screenOptions={{
               headerShown: false,
-              title: 'Edit Profil',
-              animation: 'slide_from_right',
-            }}
-          />
-        </Stack>
-        <View
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            zIndex: 999,
-          }}>
-          <ConnectionBanner />
+              contentStyle: { backgroundColor: '#fff' },
+            }}>
+            <Stack.Screen name="index" />
+            <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
+            <Stack.Screen
+              name="edit-profile"
+              options={{
+                headerShown: false,
+                title: 'Edit Profil',
+                animation: 'slide_from_right',
+              }}
+            />
+          </Stack>
+          <View
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              zIndex: 999,
+            }}>
+            <ConnectionBanner />
+          </View>
         </View>
+
+        <View style={{ height: insets.bottom, backgroundColor: '#fff' }} />
+        <Toast config={toastConfig} position="top" topOffset={insets.top + 10} />
       </View>
-      <View style={{ height: insets.bottom, backgroundColor: '#fff' }} />
-      <Toast config={toastConfig} position="top" topOffset={insets.top + 10} />
-    </View>
+    </>
   );
 }
 
@@ -260,7 +252,7 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#633594' },
+  container: { flex: 1, backgroundColor: '#0c57fe' }, // ✅ diganti agar konsisten dengan status bar
   offlineBanner: {
     backgroundColor: '#EF4444',
     flexDirection: 'row',

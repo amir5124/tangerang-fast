@@ -2,15 +2,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 export default function ForgotPasswordScreen() {
@@ -34,8 +34,8 @@ export default function ForgotPasswordScreen() {
         'https://backend.tangerangfast.online/api/auth/request-reset',
         {
           method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({email}),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email }),
         },
       );
 
@@ -48,7 +48,7 @@ export default function ForgotPasswordScreen() {
           router.replace('/login'); // Di web lebih baik replace ke login
         } else {
           Alert.alert('Berhasil', msg, [
-            {text: 'OK', onPress: () => router.back()},
+            { text: 'OK', onPress: () => router.back() },
           ]);
         }
       } else {
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     backgroundColor: '#F8FAFC',
   },
-  icon: {marginRight: 12},
+  icon: { marginRight: 12 },
   input: {
     flex: 1,
     fontSize: 16,
@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
     outlineStyle: 'none', // Menghapus outline default browser di web
   } as any,
   button: {
-    backgroundColor: '#633594',
+    backgroundColor: '#0c57fe',
     height: 56,
     borderRadius: 12,
     justifyContent: 'center',
@@ -200,5 +200,5 @@ const styles = StyleSheet.create({
   buttonDisabled: {
     backgroundColor: '#A58BBA',
   },
-  buttonText: {color: '#FFF', fontSize: 16, fontWeight: '700'},
+  buttonText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
 });

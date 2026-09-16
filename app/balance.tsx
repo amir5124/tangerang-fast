@@ -58,7 +58,7 @@ interface WalletResponse {
 
 const WalletScreen: React.FC = () => {
   const router = useRouter();
-  const THEME_COLOR = '#633594';
+  const THEME_COLOR = '#0c57fe';
 
   // State Data Utama
   const [loading, setLoading] = useState(true);
@@ -769,7 +769,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 16,
   },
-  withdrawText: { fontWeight: 'bold', marginLeft: 8, color: '#633594' },
+  withdrawText: { fontWeight: 'bold', marginLeft: 8, color: '#0c57fe' },
   historySection: { flex: 1, paddingHorizontal: 20 },
   historyHeader: { marginVertical: 20 },
   historyTitle: { fontSize: 18, fontWeight: 'bold', color: '#1E293B' },
@@ -879,7 +879,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   toggleButtonActive: {
-    backgroundColor: '#633594',
+    backgroundColor: '#0c57fe',
   },
   toggleButtonText: {
     fontSize: 14,
@@ -902,7 +902,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   addAccountButton: {
-    backgroundColor: '#633594',
+    backgroundColor: '#0c57fe',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
@@ -950,7 +950,7 @@ const styles = StyleSheet.create({
   selectedBankAccount: {
     backgroundColor: '#F3E8FF',
     borderWidth: 1,
-    borderColor: '#633594',
+    borderColor: '#0c57fe',
   },
   bankAccountIcon: {
     width: 48,

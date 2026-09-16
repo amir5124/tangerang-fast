@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     confirmButton: {
-        backgroundColor: '#633594', // Crimson Red
+        backgroundColor: '#0c57fe', // Crimson Red
     },
     cancelButton: {
         backgroundColor: '#6e7881', // Muted Grey

@@ -1,6 +1,9 @@
 import { AntDesign, Ionicons } from '@expo/vector-icons';
-import * as AuthSession from 'expo-auth-session';
-import * as Google from 'expo-auth-session/providers/google';
+import {
+  GoogleSignin,
+  isErrorWithCode,
+  statusCodes,
+} from '@react-native-google-signin/google-signin';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import React, { useEffect, useState } from 'react';
@@ -23,11 +26,24 @@ import { registerForPushNotificationsAsync } from '../utils/usePushNotifications
 
 WebBrowser.maybeCompleteAuthSession();
 
+// Konfigurasi GoogleSignin hanya perlu dijalankan sekali (native only).
+// webClientId di sini WAJIB sama dengan clientId yang dipakai backend
+// untuk verifikasi idToken. androidClientId TIDAK perlu diisi manual —
+// library ini otomatis membaca dari google-services.json.
+if (Platform.OS !== 'web') {
+  GoogleSignin.configure({
+    webClientId:
+      '206607018424-vpr9bdfrk6oedfcvouf5i5e3lan7ckoh.apps.googleusercontent.com',
+    offlineAccess: false,
+  });
+}
+
 const RegisterScreen = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
 
   const [loading, setLoading] = useState(false);
+  const [loadingGoogle, setLoadingGoogle] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -38,15 +54,6 @@ const RegisterScreen = () => {
     phone_number: '',
     password: '',
     role: (params.role as string) || 'customer',
-  });
-
-  const [request, googleResponse, promptAsync] = Google.useIdTokenAuthRequest({
-    webClientId:
-      '206607018424-vpr9bdfrk6oedfcvouf5i5e3lan7ckoh.apps.googleusercontent.com',
-    redirectUri: AuthSession.makeRedirectUri({
-      scheme: 'tangerangfast',
-      preferLocalhost: true,
-    }),
   });
 
   const isFormValid =
@@ -83,34 +90,97 @@ const RegisterScreen = () => {
         }
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    if (googleResponse?.type === 'success') {
-      const { id_token } = googleResponse.params;
-      handleGoogleLoginBackend(id_token);
-    }
-  }, [googleResponse]);
-
   const onGoogleRegisterPress = async () => {
-    setLoading(true);
+    setLoadingGoogle(true);
+    const clientId =
+      '206607018424-vpr9bdfrk6oedfcvouf5i5e3lan7ckoh.apps.googleusercontent.com';
+
     if (Platform.OS === 'web') {
-      const clientId =
-        '206607018424-vpr9bdfrk6oedfcvouf5i5e3lan7ckoh.apps.googleusercontent.com';
       const redirectUri = window.location.origin + window.location.pathname;
-      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=id_token&scope=${encodeURIComponent('openid profile email')}&nonce=${Math.random().toString(36).substring(7)}`;
+      const authUrl =
+        `https://accounts.google.com/o/oauth2/v2/auth?` +
+        `client_id=${clientId}` +
+        `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+        `&response_type=id_token` +
+        `&scope=${encodeURIComponent('openid profile email')}` +
+        `&nonce=${Math.random().toString(36).substring(7)}`;
+
       window.location.href = authUrl;
-    } else {
-      const result = await promptAsync();
-      if (result?.type !== 'success') setLoading(false);
+      return;
+    }
+
+    // --- Mobile: pakai GoogleSignin native (tidak lewat browser/redirect) ---
+    try {
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      const userInfo = await GoogleSignin.signIn();
+
+      // idToken bisa ada di userInfo.data (versi terbaru library) atau langsung di userInfo
+      const idToken =
+        (userInfo as any)?.data?.idToken ?? (userInfo as any)?.idToken;
+
+      if (!idToken) {
+        throw new Error('Tidak menerima idToken dari Google');
+      }
+
+      await handleGoogleLoginBackend(idToken);
+    } catch (error: any) {
+      console.error('❌ Google Sign-In Error:', {
+        code: error?.code,
+        message: error?.message,
+        raw: error,
+      });
+
+      if (isErrorWithCode(error)) {
+        switch (error.code) {
+          case statusCodes.SIGN_IN_CANCELLED:
+            // User membatalkan sendiri, tidak perlu tampilkan alert
+            break;
+
+          case statusCodes.IN_PROGRESS:
+            Alert.alert(
+              'Tunggu Sebentar',
+              'Proses login Google sebelumnya masih berjalan.',
+            );
+            break;
+
+          case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
+            Alert.alert(
+              'Google Play Services Tidak Tersedia',
+              'Pastikan Google Play Services sudah terinstall dan diperbarui di perangkat Anda.',
+            );
+            break;
+
+          default:
+            Alert.alert(
+              'Registrasi Gagal',
+              `Gagal daftar dengan Google.\n\nKode: ${error.code}\n${error.message || ''
+              }`,
+            );
+            break;
+        }
+      } else {
+        Alert.alert(
+          'Registrasi Gagal',
+          error?.message || 'Terjadi kesalahan tak terduga saat daftar dengan Google.',
+        );
+      }
+
+      setLoadingGoogle(false);
     }
   };
 
-  const handleGoogleLoginBackend = async (idToken: string) => {
-    setLoading(true);
+  const handleGoogleLoginBackend = async (
+    idToken: string,
+    tokenTerbaru?: string,
+  ) => {
+    setLoadingGoogle(true);
     try {
-      // Ambil fresh token tepat sebelum tembak API
-      const freshToken = await registerForPushNotificationsAsync();
+      // Ambil fresh token jika tidak dipassing lewat parameter
+      const freshToken =
+        tokenTerbaru || (await registerForPushNotificationsAsync());
       const currentFcmToken =
         freshToken || (Platform.OS === 'web' ? 'WEB_TOKEN' : 'NO_TOKEN');
 
@@ -153,7 +223,7 @@ const RegisterScreen = () => {
         error.response?.data?.message || 'Registrasi Google bermasalah';
       Platform.OS === 'web' ? alert(msg) : Alert.alert('Gagal', msg);
     } finally {
-      setLoading(false);
+      setLoadingGoogle(false);
     }
   };
 
@@ -163,8 +233,7 @@ const RegisterScreen = () => {
     try {
       // Ambil fresh token
       const freshToken = await registerForPushNotificationsAsync();
-      const currentFcmToken =
-        freshToken || (Platform.OS === 'web' ? 'WEB_NO_TOKEN' : 'NO_TOKEN');
+      const currentFcmToken = freshToken || (Platform.OS === 'web' ? 'WEB_NO_TOKEN' : 'NO_TOKEN');
 
       const payload = { ...form, fcm_token: currentFcmToken };
       const response = await API.post('/auth/register', payload);
@@ -306,7 +375,7 @@ const RegisterScreen = () => {
               isFormValid ? styles.btnActive : styles.btnDisabled,
             ]}
             onPress={handleRegister}
-            disabled={!isFormValid || loading}>
+            disabled={!isFormValid || loading || loadingGoogle}>
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
@@ -323,9 +392,9 @@ const RegisterScreen = () => {
           <TouchableOpacity
             style={[styles.btnAction, styles.btnGoogle]}
             onPress={onGoogleRegisterPress}
-            disabled={loading}>
-            {loading ? (
-              <ActivityIndicator color="#633594" />
+            disabled={loading || loadingGoogle}>
+            {loadingGoogle ? (
+              <ActivityIndicator color="#0c57fe" />
             ) : (
               <>
                 <AntDesign
@@ -401,7 +470,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 15,
   },
-  btnActive: { backgroundColor: '#633594' },
+  btnActive: { backgroundColor: '#0c57fe' },
   btnDisabled: { backgroundColor: '#E0E0E0' },
   btnActionText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
   divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 25 },

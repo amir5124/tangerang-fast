@@ -39,13 +39,13 @@ export const ServiceOptionCard = ({ item, quantity, onAdd, onRemove }: Props) =>
             ) : (
                 <View style={styles.counter}>
                     <TouchableOpacity onPress={onRemove}>
-                        <Ionicons name="remove-circle-outline" size={28} color="#633594" />
+                        <Ionicons name="remove-circle-outline" size={28} color="#0c57fe" />
                     </TouchableOpacity>
 
                     <Text style={styles.qtyText}>{quantity}</Text>
 
                     <TouchableOpacity onPress={onAdd}>
-                        <Ionicons name="add-circle" size={28} color="#633594" />
+                        <Ionicons name="add-circle" size={28} color="#0c57fe" />
                     </TouchableOpacity>
                 </View>
             )}
@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
     image: { width: 60, height: 60, borderRadius: 8, backgroundColor: '#f0f0f0' },
     info: { flex: 1, marginLeft: 12 },
     name: { fontWeight: 'bold', fontSize: 14, color: '#333' },
-    price: { color: '#633594', fontWeight: 'bold', marginTop: 4, fontSize: 13 },
+    price: { color: '#0c57fe', fontWeight: 'bold', marginTop: 4, fontSize: 13 },
     btnAdd: {
         paddingVertical: 6,
         paddingHorizontal: 12,

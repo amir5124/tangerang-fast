@@ -7,12 +7,17 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:206607018424:android:5796566a86df0934a7074d",
+        "mobilesdk_app_id": "1:206607018424:android:cb834b06e4032d69a7074d",
         "android_client_info": {
-          "package_name": "com.tangerangfast.app"
+          "package_name": "com.tangerangadmin"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "206607018424-u9a7v54du628kt7mmnlcclsvq3og33ce.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAOqkbQqhltDs7AaVhl_EFC-LxHwwA968w"
@@ -20,7 +25,49 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "206607018424-u9a7v54du628kt7mmnlcclsvq3og33ce.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:206607018424:android:5796566a86df0934a7074d",
+        "android_client_info": {
+          "package_name": "com.tangerangfast.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "206607018424-tnfvpuigmcm1638egc1qi8vn3qm18eu1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.tangerangfast.app",
+            "certificate_hash": "61d4becd785066ddceaba1bf92ef8ae6ff469084"
+          }
+        },
+        {
+          "client_id": "206607018424-u9a7v54du628kt7mmnlcclsvq3og33ce.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAOqkbQqhltDs7AaVhl_EFC-LxHwwA968w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "206607018424-u9a7v54du628kt7mmnlcclsvq3og33ce.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     },
@@ -31,7 +78,12 @@
           "package_name": "com.tangerangfast.mitra"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "206607018424-u9a7v54du628kt7mmnlcclsvq3og33ce.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAOqkbQqhltDs7AaVhl_EFC-LxHwwA968w"
@@ -39,7 +91,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "206607018424-u9a7v54du628kt7mmnlcclsvq3og33ce.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

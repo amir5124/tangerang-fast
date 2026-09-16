@@ -373,7 +373,7 @@ const SummaryScreen = () => {
                 paymentMethod === 'QRIS' ? 'qr-code-outline' : 'card-outline'
               }
               size={20}
-              color="#633594"
+              color="#0c57fe"
             />
             <Text style={[styles.infoValue, { marginLeft: 10 }]}>
               {paymentMethod}
@@ -415,11 +415,11 @@ const SummaryScreen = () => {
                   setModalVisible(false);
                 }}>
                 <View style={styles.row}>
-                  <Ionicons name={opt.icon as any} size={22} color="#633594" />
+                  <Ionicons name={opt.icon as any} size={22} color="#0c57fe" />
                   <Text style={styles.optionText}>{opt.name}</Text>
                 </View>
                 {paymentMethod === opt.name && (
-                  <Ionicons name="checkmark-circle" size={22} color="#633594" />
+                  <Ionicons name="checkmark-circle" size={22} color="#0c57fe" />
                 )}
               </TouchableOpacity>
             ))}
@@ -482,7 +482,7 @@ const SummaryScreen = () => {
       <Modal transparent visible={isLoading}>
         <View style={styles.loadingOverlay}>
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#633594" />
+            <ActivityIndicator size="large" color="#0c57fe" />
             <Text style={styles.loadingText}>Memproses Pesanan...</Text>
           </View>
         </View>
@@ -513,7 +513,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  voucherIconBg: { backgroundColor: '#633594', padding: 4, borderRadius: 4 },
+  voucherIconBg: { backgroundColor: '#0c57fe', padding: 4, borderRadius: 4 },
   promoText: { marginLeft: 12, fontSize: 14, fontWeight: '500', color: '#333' },
   serviceItem: {
     flexDirection: 'row',
@@ -545,9 +545,9 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   totalLabel: { fontSize: 12, color: '#666' },
-  finalPrice: { fontSize: 18, fontWeight: 'bold', color: '#633594' },
+  finalPrice: { fontSize: 18, fontWeight: 'bold', color: '#0c57fe' },
   btnOrder: {
-    backgroundColor: '#633594',
+    backgroundColor: '#0c57fe',
     paddingVertical: 12,
     paddingHorizontal: 40,
     borderRadius: 8,
@@ -611,7 +611,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F3F4F6',
   },
   optionText: { marginLeft: 15, fontSize: 16, fontWeight: '500', color: '#333' },
-  customHeader: { backgroundColor: '#633594' },
+  customHeader: { backgroundColor: '#0c57fe' },
   headerContent: {
     height: 56,
     flexDirection: 'row',
@@ -650,7 +650,7 @@ const styles = StyleSheet.create({
     }),
   },
   applyBtn: {
-    backgroundColor: '#633594',
+    backgroundColor: '#0c57fe',
     paddingVertical: 10,
     paddingHorizontal: 16, // Dikurangi sedikit dari 20 ke 16 agar hemat ruang
     borderRadius: 8,

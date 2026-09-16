@@ -4,17 +4,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    ActivityIndicator,
-    Modal,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TextStyle,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Modal,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TextStyle,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 export default function ChangePasswordScreen() {
@@ -79,7 +79,7 @@ export default function ChangePasswordScreen() {
           <Ionicons name="arrow-back" size={24} color="#1E293B" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Ubah Password</Text>
-        <View style={{width: 24}} />
+        <View style={{ width: 24 }} />
       </View>
 
       <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
@@ -93,7 +93,7 @@ export default function ChangePasswordScreen() {
             <TextInput
               style={styles.input}
               value={form.old_password}
-              onChangeText={txt => setForm({...form, old_password: txt})}
+              onChangeText={txt => setForm({ ...form, old_password: txt })}
               secureTextEntry={secureOld}
               placeholder="Masukkan password saat ini"
             />
@@ -113,7 +113,7 @@ export default function ChangePasswordScreen() {
             <TextInput
               style={styles.input}
               value={form.new_password}
-              onChangeText={txt => setForm({...form, new_password: txt})}
+              onChangeText={txt => setForm({ ...form, new_password: txt })}
               secureTextEntry={secureNew}
               placeholder="Minimal 6 karakter"
             />
@@ -133,7 +133,7 @@ export default function ChangePasswordScreen() {
             <TextInput
               style={styles.input}
               value={form.confirm_password}
-              onChangeText={txt => setForm({...form, confirm_password: txt})}
+              onChangeText={txt => setForm({ ...form, confirm_password: txt })}
               secureTextEntry={true}
               placeholder="Ulangi password baru"
             />
@@ -141,7 +141,7 @@ export default function ChangePasswordScreen() {
         </View>
 
         <TouchableOpacity
-          style={[styles.saveButton, loading && {opacity: 0.7}]}
+          style={[styles.saveButton, loading && { opacity: 0.7 }]}
           onPress={handleChangePassword}
           disabled={loading}>
           {loading ? (
@@ -175,7 +175,7 @@ export default function ChangePasswordScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {flex: 1, backgroundColor: '#FFF'},
+  container: { flex: 1, backgroundColor: '#FFF' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -185,15 +185,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
   },
-  headerTitle: {fontSize: 18, fontWeight: '700', color: '#1E293B'},
-  content: {padding: 24},
+  headerTitle: { fontSize: 18, fontWeight: '700', color: '#1E293B' },
+  content: { padding: 24 },
   description: {
     fontSize: 14,
     color: '#64748B',
     marginBottom: 30,
     lineHeight: 20,
   },
-  inputGroup: {marginBottom: 20},
+  inputGroup: { marginBottom: 20 },
   label: {
     fontSize: 13,
     fontWeight: '600',
@@ -232,18 +232,18 @@ const styles = StyleSheet.create({
     color: '#333',
     paddingVertical: Platform.OS === 'web' ? 0 : 8,
     ...Platform.select({
-      web: {outlineWidth: 0, outlineStyle: 'none', boxShadow: 'none'} as any,
+      web: { outlineWidth: 0, outlineStyle: 'none', boxShadow: 'none' } as any,
       default: {},
     }),
   } as TextStyle,
   saveButton: {
-    backgroundColor: '#633594',
+    backgroundColor: '#0c57fe',
     borderRadius: 14,
     padding: 18,
     marginTop: 20,
     alignItems: 'center',
   },
-  saveButtonText: {color: '#FFF', fontSize: 16, fontWeight: '700'},
+  saveButtonText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#633594',
+    backgroundColor: '#0c57fe',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,

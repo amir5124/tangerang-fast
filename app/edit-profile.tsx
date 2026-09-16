@@ -73,7 +73,7 @@ export default function EditProfileScreen() {
   };
 
   const pickImage = async () => {
-    const {status} = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert(
         'Izin Ditolak',
@@ -232,7 +232,7 @@ export default function EditProfileScreen() {
         <Text style={styles.headerTitle}>Edit Profil</Text>
         <TouchableOpacity onPress={handleSave} disabled={loading}>
           {loading ? (
-            <ActivityIndicator size="small" color="#633594" />
+            <ActivityIndicator size="small" color="#0c57fe" />
           ) : (
             <Text style={styles.saveText}>Simpan</Text>
           )}
@@ -243,7 +243,7 @@ export default function EditProfileScreen() {
         <View style={styles.avatarContainer}>
           <TouchableOpacity onPress={pickImage} style={styles.avatarWrapper}>
             {selectedImage ? (
-              <Image source={{uri: selectedImage}} style={styles.avatarImage} />
+              <Image source={{ uri: selectedImage }} style={styles.avatarImage} />
             ) : (
               <View style={styles.avatarPlaceholder}>
                 <Text style={styles.avatarInitial}>
@@ -264,7 +264,7 @@ export default function EditProfileScreen() {
             <TextInput
               style={styles.input}
               value={form.full_name}
-              onChangeText={txt => setForm({...form, full_name: txt})}
+              onChangeText={txt => setForm({ ...form, full_name: txt })}
               placeholder="Nama lengkap Anda"
             />
           </View>
@@ -276,7 +276,7 @@ export default function EditProfileScreen() {
             <TextInput
               style={styles.input}
               value={form.email}
-              onChangeText={txt => setForm({...form, email: txt})}
+              onChangeText={txt => setForm({ ...form, email: txt })}
               placeholder="email@anda.com"
               keyboardType="email-address"
               autoCapitalize="none"
@@ -290,7 +290,7 @@ export default function EditProfileScreen() {
             <TextInput
               style={styles.input}
               value={form.phone_number}
-              onChangeText={txt => setForm({...form, phone_number: txt})}
+              onChangeText={txt => setForm({ ...form, phone_number: txt })}
               placeholder="0812xxxx"
               keyboardType="phone-pad"
             />
@@ -319,7 +319,7 @@ export default function EditProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {flex: 1, backgroundColor: '#FFF'},
+  container: { flex: 1, backgroundColor: '#FFF' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -329,9 +329,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
   },
-  headerTitle: {fontSize: 18, fontWeight: '700', color: '#1E293B'},
-  saveText: {fontSize: 16, fontWeight: '700', color: '#633594'},
-  content: {padding: 24},
+  headerTitle: { fontSize: 18, fontWeight: '700', color: '#1E293B' },
+  saveText: { fontSize: 16, fontWeight: '700', color: '#0c57fe' },
+  content: { padding: 24 },
   avatarContainer: {
     alignItems: 'center',
     marginBottom: 32,
@@ -353,7 +353,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#633594',
+    backgroundColor: '#0c57fe',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -366,7 +366,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: '#633594',
+    backgroundColor: '#0c57fe',
     width: 32,
     height: 32,
     borderRadius: 16,
@@ -378,10 +378,10 @@ const styles = StyleSheet.create({
   changePhotoText: {
     marginTop: 12,
     fontSize: 14,
-    color: '#633594',
+    color: '#0c57fe',
     fontWeight: '600',
   },
-  inputGroup: {marginBottom: 20},
+  inputGroup: { marginBottom: 20 },
   label: {
     fontSize: 13,
     fontWeight: '600',

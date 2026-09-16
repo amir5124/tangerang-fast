@@ -1,6 +1,9 @@
 import { AntDesign, Ionicons } from '@expo/vector-icons';
-import * as AuthSession from 'expo-auth-session';
-import * as Google from 'expo-auth-session/providers/google';
+import {
+  GoogleSignin,
+  isErrorWithCode,
+  statusCodes,
+} from '@react-native-google-signin/google-signin';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import React, { useEffect, useState } from 'react';
@@ -25,6 +28,18 @@ import { registerForPushNotificationsAsync } from '../utils/usePushNotifications
 
 WebBrowser.maybeCompleteAuthSession();
 
+// Konfigurasi GoogleSignin hanya perlu dijalankan sekali (native only).
+// webClientId di sini WAJIB sama dengan clientId yang dipakai backend
+// untuk verifikasi idToken. androidClientId TIDAK perlu diisi manual —
+// library ini otomatis membaca dari google-services.json.
+if (Platform.OS !== 'web') {
+  GoogleSignin.configure({
+    webClientId:
+      '206607018424-vpr9bdfrk6oedfcvouf5i5e3lan7ckoh.apps.googleusercontent.com',
+    offlineAccess: false,
+  });
+}
+
 const LoginScreen = () => {
   const router = useRouter();
   const [loadingEmail, setLoadingEmail] = useState(false);
@@ -33,22 +48,6 @@ const LoginScreen = () => {
   const [form, setForm] = useState({ email: '', password: '' });
 
   const TARGET_ROLE = 'customer';
-
-  const [request, googleResponse, promptAsync] = Google.useIdTokenAuthRequest({
-    webClientId:
-      '206607018424-vpr9bdfrk6oedfcvouf5i5e3lan7ckoh.apps.googleusercontent.com',
-    redirectUri: AuthSession.makeRedirectUri({
-      scheme: 'tangerangfast',
-      preferLocalhost: true,
-    }),
-  });
-
-  useEffect(() => {
-    if (googleResponse?.type === 'success') {
-      const { id_token } = googleResponse.params;
-      handleGoogleLoginBackend(id_token);
-    }
-  }, [googleResponse]);
 
   const handleSubscribe = async (token: string, role: string) => {
     try {
@@ -81,12 +80,70 @@ const LoginScreen = () => {
         `&nonce=${Math.random().toString(36).substring(7)}`;
 
       window.location.href = authUrl;
-    } else {
-      console.log('📱 [DEBUG] Mobile: Menggunakan Pop-up Auth...');
-      const result = await promptAsync();
-      if (result?.type !== 'success') {
-        setLoadingGoogle(false);
+      return;
+    }
+
+    // --- Mobile: pakai GoogleSignin native (tidak lewat browser/redirect) ---
+    try {
+      console.log('📱 [DEBUG] Mobile: Menggunakan Native Google Sign-In...');
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      const userInfo = await GoogleSignin.signIn();
+
+      // idToken bisa ada di userInfo.data (versi terbaru library) atau langsung di userInfo
+      const idToken =
+        (userInfo as any)?.data?.idToken ?? (userInfo as any)?.idToken;
+
+      if (!idToken) {
+        throw new Error('Tidak menerima idToken dari Google');
       }
+
+      await handleGoogleLoginBackend(idToken);
+    } catch (error: any) {
+      // Log detail lengkap ke console untuk debugging
+      console.error('❌ Google Sign-In Error:', {
+        code: error?.code,
+        message: error?.message,
+        raw: error,
+      });
+
+      if (isErrorWithCode(error)) {
+        switch (error.code) {
+          case statusCodes.SIGN_IN_CANCELLED:
+            // User membatalkan sendiri, tidak perlu tampilkan alert
+            break;
+
+          case statusCodes.IN_PROGRESS:
+            Alert.alert(
+              'Tunggu Sebentar',
+              'Proses login Google sebelumnya masih berjalan.',
+            );
+            break;
+
+          case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
+            Alert.alert(
+              'Google Play Services Tidak Tersedia',
+              'Pastikan Google Play Services sudah terinstall dan diperbarui di perangkat Anda.',
+            );
+            break;
+
+          default:
+            // Termasuk DEVELOPER_ERROR (code 10) — biasanya konfigurasi
+            // SHA-1/package name/webClientId belum sinkron dengan Google Console.
+            Alert.alert(
+              'Login Gagal',
+              `Gagal login dengan Google.\n\nKode: ${error.code}\n${error.message || ''
+              }`,
+            );
+            break;
+        }
+      } else {
+        Alert.alert(
+          'Login Gagal',
+          error?.message || 'Terjadi kesalahan tak terduga saat login dengan Google.',
+        );
+      }
+
+      setLoadingGoogle(false);
     }
   };
 
@@ -305,7 +362,7 @@ const LoginScreen = () => {
             onPress={onGoogleLoginPress}
             disabled={loadingGoogle || loadingEmail}>
             {loadingGoogle ? (
-              <ActivityIndicator color="#633594" />
+              <ActivityIndicator color="#0c57fe" />
             ) : (
               <>
                 <AntDesign name="google" size={20} color="#EA4335" />
@@ -360,7 +417,7 @@ const styles = StyleSheet.create({
   } as TextStyle,
   hint: { fontSize: 12, color: '#A0A0A0', marginTop: 6 },
   forgotPassContainer: { alignSelf: 'flex-end', marginTop: 15 },
-  forgotPassText: { color: '#633594', fontWeight: '700', fontSize: 14 },
+  forgotPassText: { color: '#0c57fe', fontWeight: '700', fontSize: 14 },
   btnMain: {
     height: 55,
     borderRadius: 8,
@@ -368,7 +425,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 30,
   },
-  btnActive: { backgroundColor: '#633594' },
+  btnActive: { backgroundColor: '#0c57fe' },
   btnDisabled: { backgroundColor: '#E0E0E0' },
   btnMainText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
   dividerContainer: {

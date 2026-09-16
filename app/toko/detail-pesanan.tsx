@@ -937,7 +937,7 @@ export default function DetailPesanan() {
                                     style={styles.datePickerButton}
                                     onPress={() => setShowCalendar(true)}
                                 >
-                                    <Ionicons name="calendar" size={20} color="#633594" />
+                                    <Ionicons name="calendar" size={20} color="#0c57fe" />
                                     <Text style={styles.datePickerText}>
                                         {formatDateDisplay(deliveryDate)}
                                     </Text>
@@ -1250,13 +1250,13 @@ export default function DetailPesanan() {
                             markedDates={{
                                 [deliveryDate]: {
                                     selected: true,
-                                    selectedColor: '#633594'
+                                    selectedColor: '#0c57fe'
                                 },
                             }}
                             theme={{
-                                todayTextColor: '#633594',
-                                selectedDayBackgroundColor: '#633594',
-                                arrowColor: '#633594',
+                                todayTextColor: '#0c57fe',
+                                selectedDayBackgroundColor: '#0c57fe',
+                                arrowColor: '#0c57fe',
                                 calendarBackground: '#ffffff',
                                 dayTextColor: '#2d4150',
                                 textDisabledColor: '#d9e1e8',
@@ -1666,7 +1666,7 @@ const styles = StyleSheet.create({
     },
     selectedDateInfoText: {
         fontSize: 14,
-        color: '#633594',
+        color: '#0c57fe',
         fontWeight: '600',
         textAlign: 'center',
         marginBottom: 12,
@@ -1994,7 +1994,7 @@ const styles = StyleSheet.create({
         borderColor: '#E5E5E5',
     },
     closeCalendarButton: {
-        backgroundColor: '#633594',
+        backgroundColor: '#0c57fe',
         borderRadius: 10,
         padding: 14,
         marginTop: 16,

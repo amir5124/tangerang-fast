@@ -56,7 +56,7 @@ const ChatScreen: React.FC = () => {
 
           {/* List Item 1 */}
           <TouchableOpacity style={styles.chatCard}>
-            <View style={[styles.avatarCircle, { backgroundColor: '#633594' }]}>
+            <View style={[styles.avatarCircle, { backgroundColor: '#0c57fe' }]}>
               <Ionicons name="notifications" size={30} color="#fff" />
             </View>
             <View style={styles.chatContentContainer}>

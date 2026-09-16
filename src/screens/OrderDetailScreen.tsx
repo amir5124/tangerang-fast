@@ -374,7 +374,7 @@ const OrderDetailScreen = () => {
   if (isLoading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#633594" />
+        <ActivityIndicator size="large" color="#0c57fe" />
         <Text style={{ marginTop: 10, color: '#666' }}>Mohon tunggu...</Text>
       </View>
     );
@@ -444,7 +444,7 @@ const OrderDetailScreen = () => {
         {/* ── INFORMASI PENTING ── */}
         <View style={styles.infoSection}>
           <View style={styles.infoHeader}>
-            <Ionicons name="information-circle" size={22} color="#633594" />
+            <Ionicons name="information-circle" size={22} color="#0c57fe" />
             <Text style={styles.infoTitle}>{importantInfo.title}</Text>
           </View>
           {importantInfo.items.map((item, index) => (
@@ -519,12 +519,12 @@ const OrderDetailScreen = () => {
             minDate={today}
             onDayPress={(day: any) => setSelectedDate(day.dateString)}
             markedDates={{
-              [selectedDate]: { selected: true, selectedColor: '#633594' },
+              [selectedDate]: { selected: true, selectedColor: '#0c57fe' },
             }}
             theme={{
-              todayTextColor: '#633594',
-              selectedDayBackgroundColor: '#633594',
-              arrowColor: '#633594',
+              todayTextColor: '#0c57fe',
+              selectedDayBackgroundColor: '#0c57fe',
+              arrowColor: '#0c57fe',
             }}
           />
         </View>
@@ -539,7 +539,7 @@ const OrderDetailScreen = () => {
             onPress={() =>
               showInfoToast('Biaya operasional untuk pengembangan aplikasi TangerangFast.')
             }>
-            <Text style={[styles.minOrder, { color: '#633594', textDecorationLine: 'none' }]}>
+            <Text style={[styles.minOrder, { color: '#0c57fe', textDecorationLine: 'none' }]}>
               Belum termasuk biaya layanan ⓘ
             </Text>
           </TouchableOpacity>
@@ -594,9 +594,9 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
   },
-  typeBtnActive: { borderColor: '#633594', backgroundColor: '#F5F3FF' },
+  typeBtnActive: { borderColor: '#0c57fe', backgroundColor: '#F5F3FF' },
   typeBtnText: { color: '#4B5563', fontSize: 14 },
-  typeBtnTextActive: { color: '#633594', fontWeight: 'bold' },
+  typeBtnTextActive: { color: '#0c57fe', fontWeight: 'bold' },
   bottomBar: {
     padding: 20,
     borderTopWidth: 1,
@@ -614,17 +614,17 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
   },
   totalLabel: { fontSize: 11, color: '#6B7280', textTransform: 'uppercase' },
-  totalValue: { fontSize: 20, fontWeight: 'bold', color: '#633594' },
+  totalValue: { fontSize: 20, fontWeight: 'bold', color: '#0c57fe' },
   minOrder: { fontSize: 10, color: '#EF4444', marginTop: 2 },
   btnPesan: {
-    backgroundColor: '#633594',
+    backgroundColor: '#0c57fe',
     paddingVertical: 14,
     paddingHorizontal: 30,
     borderRadius: 12,
   },
   btnPesanText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
   customHeader: {
-    backgroundColor: '#633594',
+    backgroundColor: '#0c57fe',
   },
   headerContent: {
     height: 56,
@@ -713,7 +713,7 @@ const styles = StyleSheet.create({
   infoTitle: {
     fontSize: 15,
     fontWeight: 'bold',
-    color: '#633594',
+    color: '#0c57fe',
   },
   infoItem: {
     flexDirection: 'row',
@@ -725,7 +725,7 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#633594',
+    backgroundColor: '#0c57fe',
     marginTop: 6,
     marginRight: 10,
     flexShrink: 0,
