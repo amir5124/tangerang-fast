@@ -301,7 +301,7 @@ export default function ProfileScreen() {
 const InfoItem = ({ icon, label, value }: any) => (
   <View style={styles.infoItem}>
     <View style={styles.iconCircle}>
-      <Ionicons name={icon} size={18} color="#0c57fe" />
+      <Ionicons name={icon} size={18} color="#fff" />
     </View>
     <View>
       <Text style={styles.infoLabel}>{label}</Text>

@@ -8,30 +8,30 @@
 
 /* Begin PBXBuildFile section */
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
+		2F19E727F5D62E7D0247236B /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = CB5CFA6340A084FB56AB5D50 /* PrivacyInfo.xcprivacy */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
-		6675B0B39D8C4F6D935EF75D /* notification.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 195AD3E9096A46BC8AF1918B /* notification.mp3 */; };
+		7DE6E73B7BCA43968B665C2F /* notification.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 3DAA019DA68B47348ABAAFA4 /* notification.mp3 */; };
+		91CEF6308A014AEBD43D53E3 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F550AC655311353C2DD2947 /* ExpoModulesProvider.swift */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
-		BFF3FF4E7B5C4CBFD874A6C3 /* libPods-TangerangFast.a in Frameworks */ = {isa = PBXBuildFile; fileRef = EB08035BD03E30F760C86427 /* libPods-TangerangFast.a */; };
-		D07EC1EB56B8D4204CDD686F /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8EA503D38FC65A126DFB1F0 /* ExpoModulesProvider.swift */; };
-		F030795916F42BE8BE11C201 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 41D3F9E048C570964011479B /* PrivacyInfo.xcprivacy */; };
+		E5DD8FFCA2DC15285485BC05 /* libPods-TangFast.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B9211C4F4C5B6AC554F7334C /* libPods-TangFast.a */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		13B07F961A680F5B00A75B9A /* TangerangFast.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TangerangFast.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = TangerangFast/Images.xcassets; sourceTree = "<group>"; };
-		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = TangerangFast/Info.plist; sourceTree = "<group>"; };
-		195AD3E9096A46BC8AF1918B /* notification.mp3 */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = notification.mp3; path = TangerangFast/notification.mp3; sourceTree = "<group>"; };
-		39C646D916225B183FEEF1B5 /* Pods-TangerangFast.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-TangerangFast.debug.xcconfig"; path = "Target Support Files/Pods-TangerangFast/Pods-TangerangFast.debug.xcconfig"; sourceTree = "<group>"; };
-		41D3F9E048C570964011479B /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = TangerangFast/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		792410713418793DC4CAF3C3 /* Pods-TangerangFast.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-TangerangFast.release.xcconfig"; path = "Target Support Files/Pods-TangerangFast/Pods-TangerangFast.release.xcconfig"; sourceTree = "<group>"; };
-		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = TangerangFast/SplashScreen.storyboard; sourceTree = "<group>"; };
-		B8EA503D38FC65A126DFB1F0 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-TangerangFast/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		13B07F961A680F5B00A75B9A /* TangFast.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TangFast.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = TangFast/Images.xcassets; sourceTree = "<group>"; };
+		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = TangFast/Info.plist; sourceTree = "<group>"; };
+		3DAA019DA68B47348ABAAFA4 /* notification.mp3 */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = notification.mp3; path = TangFast/notification.mp3; sourceTree = "<group>"; };
+		5F550AC655311353C2DD2947 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-TangFast/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = TangFast/SplashScreen.storyboard; sourceTree = "<group>"; };
+		B5E98E65FBD069DE3706D970 /* Pods-TangFast.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-TangFast.debug.xcconfig"; path = "Target Support Files/Pods-TangFast/Pods-TangFast.debug.xcconfig"; sourceTree = "<group>"; };
+		B9211C4F4C5B6AC554F7334C /* libPods-TangFast.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-TangFast.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
-		EB08035BD03E30F760C86427 /* libPods-TangerangFast.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-TangerangFast.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		CB5CFA6340A084FB56AB5D50 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = TangFast/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		D77A303C7DEA7BFBC07CFDCF /* Pods-TangFast.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-TangFast.release.xcconfig"; path = "Target Support Files/Pods-TangFast/Pods-TangFast.release.xcconfig"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
-		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = TangerangFast/AppDelegate.swift; sourceTree = "<group>"; };
-		F11748442D0722820044C1D9 /* TangerangFast-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "TangerangFast-Bridging-Header.h"; path = "TangerangFast/TangerangFast-Bridging-Header.h"; sourceTree = "<group>"; };
+		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = TangFast/AppDelegate.swift; sourceTree = "<group>"; };
+		F11748442D0722820044C1D9 /* TangFast-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "TangFast-Bridging-Header.h"; path = "TangFast/TangFast-Bridging-Header.h"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -39,41 +39,41 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				BFF3FF4E7B5C4CBFD874A6C3 /* libPods-TangerangFast.a in Frameworks */,
+				E5DD8FFCA2DC15285485BC05 /* libPods-TangFast.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		13B07FAE1A68108700A75B9A /* TangerangFast */ = {
+		13B07FAE1A68108700A75B9A /* TangFast */ = {
 			isa = PBXGroup;
 			children = (
 				F11748412D0307B40044C1D9 /* AppDelegate.swift */,
-				F11748442D0722820044C1D9 /* TangerangFast-Bridging-Header.h */,
+				F11748442D0722820044C1D9 /* TangFast-Bridging-Header.h */,
 				BB2F792B24A3F905000567C9 /* Supporting */,
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				195AD3E9096A46BC8AF1918B /* notification.mp3 */,
-				41D3F9E048C570964011479B /* PrivacyInfo.xcprivacy */,
+				3DAA019DA68B47348ABAAFA4 /* notification.mp3 */,
+				CB5CFA6340A084FB56AB5D50 /* PrivacyInfo.xcprivacy */,
 			);
-			name = TangerangFast;
+			name = TangFast;
 			sourceTree = "<group>";
 		};
 		2D16E6871FA4F8E400B85C8A /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				EB08035BD03E30F760C86427 /* libPods-TangerangFast.a */,
+				B9211C4F4C5B6AC554F7334C /* libPods-TangFast.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		4C55043F30BC279AD7BD6824 /* ExpoModulesProviders */ = {
+		4376CACFCDA1F4FB7B5DDCBA /* ExpoModulesProviders */ = {
 			isa = PBXGroup;
 			children = (
-				AB982043CF89924A4944ED42 /* TangerangFast */,
+				D939B6D83D9719BD5C7379A1 /* TangFast */,
 			);
 			name = ExpoModulesProviders;
 			sourceTree = "<group>";
@@ -88,12 +88,12 @@
 		83CBB9F61A601CBA00E9B192 = {
 			isa = PBXGroup;
 			children = (
-				13B07FAE1A68108700A75B9A /* TangerangFast */,
+				13B07FAE1A68108700A75B9A /* TangFast */,
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
-				D45AE1B83E09D7EBB58C47CA /* Pods */,
-				4C55043F30BC279AD7BD6824 /* ExpoModulesProviders */,
+				8814533ABEF42D6022199F9B /* Pods */,
+				4376CACFCDA1F4FB7B5DDCBA /* ExpoModulesProviders */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -103,17 +103,19 @@
 		83CBBA001A601CBA00E9B192 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				13B07F961A680F5B00A75B9A /* TangerangFast.app */,
+				13B07F961A680F5B00A75B9A /* TangFast.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		AB982043CF89924A4944ED42 /* TangerangFast */ = {
+		8814533ABEF42D6022199F9B /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				B8EA503D38FC65A126DFB1F0 /* ExpoModulesProvider.swift */,
+				B5E98E65FBD069DE3706D970 /* Pods-TangFast.debug.xcconfig */,
+				D77A303C7DEA7BFBC07CFDCF /* Pods-TangFast.release.xcconfig */,
 			);
-			name = TangerangFast;
+			name = Pods;
+			path = Pods;
 			sourceTree = "<group>";
 		};
 		BB2F792B24A3F905000567C9 /* Supporting */ = {
@@ -122,42 +124,40 @@
 				BB2F792C24A3F905000567C9 /* Expo.plist */,
 			);
 			name = Supporting;
-			path = TangerangFast/Supporting;
+			path = TangFast/Supporting;
 			sourceTree = "<group>";
 		};
-		D45AE1B83E09D7EBB58C47CA /* Pods */ = {
+		D939B6D83D9719BD5C7379A1 /* TangFast */ = {
 			isa = PBXGroup;
 			children = (
-				39C646D916225B183FEEF1B5 /* Pods-TangerangFast.debug.xcconfig */,
-				792410713418793DC4CAF3C3 /* Pods-TangerangFast.release.xcconfig */,
+				5F550AC655311353C2DD2947 /* ExpoModulesProvider.swift */,
 			);
-			name = Pods;
-			path = Pods;
+			name = TangFast;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		13B07F861A680F5B00A75B9A /* TangerangFast */ = {
+		13B07F861A680F5B00A75B9A /* TangFast */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "TangerangFast" */;
+			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "TangFast" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				20CF90D9148B5CCEB79B81A1 /* [Expo] Configure project */,
+				73EFEF5A5921A624E28ECAE3 /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				BB27BAC6F49E8F9847158320 /* [CP] Embed Pods Frameworks */,
+				8BB839B6528A4EC9CC82DBBA /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
-			name = TangerangFast;
-			productName = TangerangFast;
-			productReference = 13B07F961A680F5B00A75B9A /* TangerangFast.app */;
+			name = TangFast;
+			productName = TangFast;
+			productReference = 13B07F961A680F5B00A75B9A /* TangFast.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -173,7 +173,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "TangerangFast" */;
+			buildConfigurationList = 83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "TangFast" */;
 			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -186,7 +186,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				13B07F861A680F5B00A75B9A /* TangerangFast */,
+				13B07F861A680F5B00A75B9A /* TangFast */,
 			);
 		};
 /* End PBXProject section */
@@ -199,8 +199,8 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				6675B0B39D8C4F6D935EF75D /* notification.mp3 in Resources */,
-				F030795916F42BE8BE11C201 /* PrivacyInfo.xcprivacy in Resources */,
+				7DE6E73B7BCA43968B665C2F /* notification.mp3 in Resources */,
+				2F19E727F5D62E7D0247236B /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -239,14 +239,14 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(DERIVED_FILE_DIR)/Pods-TangerangFast-checkManifestLockResult.txt",
+				"$(DERIVED_FILE_DIR)/Pods-TangFast-checkManifestLockResult.txt",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		20CF90D9148B5CCEB79B81A1 /* [Expo] Configure project */ = {
+		73EFEF5A5921A624E28ECAE3 /* [Expo] Configure project */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -257,18 +257,18 @@
 			inputPaths = (
 				"$(SRCROOT)/.xcode.env",
 				"$(SRCROOT)/.xcode.env.local",
-				"$(SRCROOT)/TangerangFast/TangerangFast.entitlements",
-				"$(SRCROOT)/Pods/Target Support Files/Pods-TangerangFast/expo-configure-project.sh",
+				"$(SRCROOT)/TangFast/TangFast.entitlements",
+				"$(SRCROOT)/Pods/Target Support Files/Pods-TangFast/expo-configure-project.sh",
 			);
 			name = "[Expo] Configure project";
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(SRCROOT)/Pods/Target Support Files/Pods-TangerangFast/ExpoModulesProvider.swift",
+				"$(SRCROOT)/Pods/Target Support Files/Pods-TangFast/ExpoModulesProvider.swift",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-TangerangFast/expo-configure-project.sh\"\n";
+			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-TangFast/expo-configure-project.sh\"\n";
 		};
 		800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -276,7 +276,7 @@
 			files = (
 			);
 			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-TangerangFast/Pods-TangerangFast-resources.sh",
+				"${PODS_ROOT}/Target Support Files/Pods-TangFast/Pods-TangFast-resources.sh",
 				"${PODS_CONFIGURATION_BUILD_DIR}/AppAuth/AppAuthCore_Privacy.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/EXApplication/ExpoApplication_privacy.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/EXConstants/EXConstants.bundle",
@@ -325,16 +325,16 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-TangerangFast/Pods-TangerangFast-resources.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-TangFast/Pods-TangFast-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		BB27BAC6F49E8F9847158320 /* [CP] Embed Pods Frameworks */ = {
+		8BB839B6528A4EC9CC82DBBA /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-TangerangFast/Pods-TangerangFast-frameworks.sh",
+				"${PODS_ROOT}/Target Support Files/Pods-TangFast/Pods-TangFast-frameworks.sh",
 				"${PODS_XCFRAMEWORKS_BUILD_DIR}/React-Core-prebuilt/React.framework/React",
 				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ReactNativeDependencies/ReactNativeDependencies.framework/ReactNativeDependencies",
 				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
@@ -347,7 +347,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-TangerangFast/Pods-TangerangFast-frameworks.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-TangFast/Pods-TangFast-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
@@ -358,7 +358,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
-				D07EC1EB56B8D4204CDD686F /* ExpoModulesProvider.swift in Sources */,
+				91CEF6308A014AEBD43D53E3 /* ExpoModulesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -367,18 +367,18 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 39C646D916225B183FEEF1B5 /* Pods-TangerangFast.debug.xcconfig */;
+			baseConfigurationReference = B5E98E65FBD069DE3706D970 /* Pods-TangFast.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_ENTITLEMENTS = TangerangFast/TangerangFast.entitlements;
+				CODE_SIGN_ENTITLEMENTS = TangFast/TangFast.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_BITCODE = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					"FB_SONARKIT_ENABLED=1",
 				);
-				INFOPLIST_FILE = TangerangFast/Info.plist;
+				INFOPLIST_FILE = TangFast/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -392,8 +392,8 @@
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
 				PRODUCT_BUNDLE_IDENTIFIER = com.tangerangfast.app;
-				PRODUCT_NAME = TangerangFast;
-				SWIFT_OBJC_BRIDGING_HEADER = "TangerangFast/TangerangFast-Bridging-Header.h";
+				PRODUCT_NAME = TangFast;
+				SWIFT_OBJC_BRIDGING_HEADER = "TangFast/TangFast-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -403,13 +403,13 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 792410713418793DC4CAF3C3 /* Pods-TangerangFast.release.xcconfig */;
+			baseConfigurationReference = D77A303C7DEA7BFBC07CFDCF /* Pods-TangFast.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_ENTITLEMENTS = TangerangFast/TangerangFast.entitlements;
+				CODE_SIGN_ENTITLEMENTS = TangFast/TangFast.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
-				INFOPLIST_FILE = TangerangFast/Info.plist;
+				INFOPLIST_FILE = TangFast/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -423,8 +423,8 @@
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = com.tangerangfast.app;
-				PRODUCT_NAME = TangerangFast;
-				SWIFT_OBJC_BRIDGING_HEADER = "TangerangFast/TangerangFast-Bridging-Header.h";
+				PRODUCT_NAME = TangFast;
+				SWIFT_OBJC_BRIDGING_HEADER = "TangFast/TangFast-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VERSIONING_SYSTEM = "apple-generic";
@@ -552,7 +552,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "TangerangFast" */ = {
+		13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "TangFast" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				13B07F941A680F5B00A75B9A /* Debug */,
@@ -561,7 +561,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "TangerangFast" */ = {
+		83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "TangFast" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				83CBBA201A601CBA00E9B192 /* Debug */,

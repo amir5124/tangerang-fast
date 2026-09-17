@@ -10,6 +10,7 @@ import {
   View,
   useWindowDimensions, // Tambahkan ini
 } from 'react-native';
+import { useRefreshOnForeground } from '../../hooks/useRefreshOnForeground';
 import { MenuGrid } from '../../src/components/home/MenuGrid';
 import api from '../../src/utils/api';
 import { BannerSlider } from '../components/home/BannerSlider';
@@ -199,6 +200,15 @@ export default function HomeScreen() {
     setVoucherIndex(0);
     setRefreshing(false);
   }, []);
+
+  // useRefreshOnForeground(onRefresh);
+
+  const onRefreshSilent = useCallback(async () => {
+    // tidak panggil setRefreshing(true) — biar tidak ada spinner
+    await Promise.all([fetchPromoAssets(), fetchReviews(), fetchVouchers()]);
+  }, []);
+
+  useRefreshOnForeground(onRefreshSilent);
 
   const RenderStars = ({ count }: { count: number }) => {
     return (

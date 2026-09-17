@@ -1,7 +1,7 @@
 import NetInfo from '@react-native-community/netinfo';
 import * as Notifications from 'expo-notifications';
 import { Stack, useRouter } from 'expo-router';
-import { StatusBar } from 'expo-status-bar'; // ✅ ditambahkan (sebelumnya hilang)
+import { StatusBar } from 'expo-status-bar';
 import { WifiOff } from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
@@ -65,6 +65,16 @@ const toastConfig: ToastConfig = {
       contentContainerStyle={styles.toastContent}
       text1Style={styles.toastText1}
       text2Style={[styles.toastText2, { color: '#FF9494' }]}
+    />
+  ),
+  // ✅ Style "info" khusus dipakai toast double-tap-exit
+  info: props => (
+    <BaseToast
+      {...props}
+      style={[styles.toastBase, { borderLeftColor: '#0c57fe' }]}
+      contentContainerStyle={styles.toastContent}
+      text1Style={styles.toastText1}
+      text2Style={styles.toastText2}
     />
   ),
 };
@@ -202,7 +212,6 @@ function RootLayoutContent() {
     <>
       <StatusBar style="light" backgroundColor="#0c57fe" />
       <View style={styles.container}>
-        {/* Penutup area status bar (khusus iOS, karena backgroundColor StatusBar tidak berlaku di iOS) */}
         <View style={{ height: insets.top, backgroundColor: '#0c57fe' }} />
 
         <View style={{ flex: 1 }}>
@@ -252,7 +261,7 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0c57fe' }, // ✅ diganti agar konsisten dengan status bar
+  container: { flex: 1, backgroundColor: '#0c57fe' },
   offlineBanner: {
     backgroundColor: '#EF4444',
     flexDirection: 'row',
