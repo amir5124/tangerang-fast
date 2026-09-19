@@ -498,7 +498,7 @@ const OrderDetailScreen = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Jenis Gedung *</Text>
           <View style={styles.row}>
-            {['Rumah', 'Apartemen', 'Kantor', 'Resto'].map(type => (
+            {['Rumah', 'Apart', 'Kantor', 'Resto'].map(type => (
               <TouchableOpacity
                 key={type}
                 style={[styles.typeBtn, buildingType === type && styles.typeBtnActive]}

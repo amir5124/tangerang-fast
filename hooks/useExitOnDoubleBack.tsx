@@ -8,7 +8,6 @@ import {
     StyleSheet,
     Text,
 } from 'react-native';
-import RNExitApp from 'react-native-exit-app';
 
 /**
  * Custom toast "Tekan sekali lagi untuk keluar", full-controlled lewat state
@@ -24,6 +23,12 @@ import RNExitApp from 'react-native-exit-app';
  *       <ExitToast />
  *     </View>
  *   );
+ *
+ * CATATAN WEB: `react-native-exit-app` adalah modul native murni tanpa
+ * dukungan web. Modul ini di-require() secara dinamis (lazy), HANYA saat
+ * benar-benar akan dipanggil di Android, supaya bundler web tidak pernah
+ * mencoba me-load native binding-nya (yang akan crash dengan error
+ * "Cannot read properties of undefined (reading 'getEnforcing')").
  */
 export function useExitOnDoubleBack() {
     const router = useRouter();
@@ -99,6 +104,11 @@ export function useExitOnDoubleBack() {
                 if (now - lastBackPress.current < 2000) {
                     hideToast();
                     console.log('[BackPress] Calling RNExitApp.exitApp()');
+                    // Lazy require: modul native ini hanya di-load saat
+                    // benar-benar dibutuhkan di Android, sehingga web
+                    // (dan iOS, yang juga tidak butuh ini) tidak pernah
+                    // menyentuh binding native-nya sama sekali.
+                    const RNExitApp = require('react-native-exit-app').default;
                     RNExitApp.exitApp();
                     return true;
                 }

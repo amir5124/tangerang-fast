@@ -669,7 +669,7 @@ const StatusPesananScreen = () => {
                 <TouchableOpacity
                     style={styles.helpBtn}
                     activeOpacity={0.85}
-                    onPress={() => Linking.openURL('https://wa.me/6282111222333')}
+                    onPress={() => Linking.openURL('https://wa.me/628211074757')}
                 >
                     <Ionicons name="headset-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
                     <Text style={styles.helpBtnText}>Pusat Bantuan</Text>
