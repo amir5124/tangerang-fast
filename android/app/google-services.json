@@ -43,6 +43,30 @@
       },
       "oauth_client": [
         {
+          "client_id": "206607018424-7kj44mniq174dpeqgft26tlt1eu9oh8g.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.tangerangfast.app",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "206607018424-n9phg0g5aan55cn213bu0peeof4rvntp.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.tangerangfast.app",
+            "certificate_hash": "662b673ef7230dc8c9ce6e8868a143de4f9385ff"
+          }
+        },
+        {
+          "client_id": "206607018424-tj9mh3fc2jd6akkaqhg73moe14kr6rei.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.tangerangfast.app",
+            "certificate_hash": "478558baaed3fb7c744167b2c9b073457aae4142"
+          }
+        },
+        {
           "client_id": "206607018424-tnfvpuigmcm1638egc1qi8vn3qm18eu1.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
